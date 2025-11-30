@@ -18,7 +18,7 @@ public class TransactionService {
         if (transaction.getSenderCard() == null ||
             transaction.getReceiverCard() == null ||
             transaction.getReceiverCard().equals(transaction.getSenderCard()) ||
-            transaction.getAmount().compareTo(new BigDecimal("0")) == 0){
+            transaction.getAmount().compareTo(new BigDecimal("0")) <= 0){
             return null;
         }
         transaction.setTimestamp(LocalDateTime.now());

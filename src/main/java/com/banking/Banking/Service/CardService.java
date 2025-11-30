@@ -5,7 +5,8 @@ import com.banking.Banking.Repository.CardRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional;
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.Random;
 
 @Service
@@ -29,6 +30,8 @@ public class CardService {
         }
 
         card.setCardNumber(cardNumber);
+        card.setBalance(new BigDecimal(0));
+        card.setCreatedDate(LocalDate.now());
         repository.save(card);
         return card;
     }
