@@ -22,7 +22,7 @@ public class TransactionService {
 
     public Transaction createTransaction(Transaction transaction, Long senderCardId){
         Card senderCard = cardService.findById(senderCardId);
-        if (senderCard == null){
+        if (senderCard == null || transaction.getReceiverCard() == null){
             return null;
         }
         transaction.setSenderCard(senderCard);
