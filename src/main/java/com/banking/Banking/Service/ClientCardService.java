@@ -1,8 +1,11 @@
 package com.banking.Banking.Service;
 
 import com.banking.Banking.Entity.Card;
+import com.banking.Banking.Entity.Client;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 public class ClientCardService {
@@ -11,11 +14,4 @@ public class ClientCardService {
     @Autowired
     private ClientService clientService;
 
-    public Card createCardForUser(Card card, Long clientId){
-        if (clientService.findById(clientId) == null){
-            return null;
-        }
-        card.setClient(clientService.findById(clientId));
-        return cardService.createCard(card);
-    }
 }

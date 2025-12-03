@@ -1,8 +1,12 @@
 package com.banking.Banking.Service;
 
+import com.banking.Banking.Entity.Card;
 import com.banking.Banking.Entity.Transaction;
 import com.banking.Banking.Repository.TransactionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -13,10 +17,16 @@ import java.util.List;
 public class TransactionService {
     @Autowired
     private TransactionRepository repository;
+    @Autowired
+    private CardService cardService;
 
-    public Transaction createTransaction(Transaction transaction){
-        if (transaction.getSenderCard() == null ||
-            transaction.getReceiverCard() == null ||
+    public Transaction createTransaction(Transaction transaction, Long senderCardId){
+        Card senderCard = cardService.findById(senderCardId);
+        if (senderCard == null){
+            return null;
+        }
+        transaction.setSenderCard(senderCard);
+        if (transaction.getReceiverCard() == null ||
             transaction.getReceiverCard().equals(transaction.getSenderCard()) ||
             transaction.getAmount().compareTo(new BigDecimal("0")) <= 0){
             return null;
@@ -26,7 +36,7 @@ public class TransactionService {
         return transaction;
     }
 
-    public List<Transaction> findByCardId(Long cardId){
-        return repository.findByCardId(cardId);
+    public Page<Transaction> findByCardId(Long cardId, Pageable pageable){
+        return repository.findByCardId(cardId, pageable);
     }
 }

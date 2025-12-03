@@ -13,7 +13,7 @@ public class ClientService {
     private ClientRepository repository;
 
     public boolean createClient(Client client) {
-        if (repository.findByName(client.getName()).isPresent()) {
+        if (repository.findByPhone(client.getName()).isPresent()) {
             return false;
         }
         repository.save(client);
@@ -28,8 +28,8 @@ public class ClientService {
         return repository.findById(id).orElse(null);
     }
 
-    public Client findByName(String name){
-        return repository.findByName(name).orElse(null);
+    public Client findByPhone(String phone){
+        return repository.findByPhone(phone).orElse(null);
     }
 
     public boolean deleteClient(Long id){

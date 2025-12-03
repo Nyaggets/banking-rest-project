@@ -8,10 +8,7 @@ import java.time.LocalDateTime;
 
 @Data
 public class TransactionDtoRequest {
-    Long id;
-    Long senderCardId;
     Long receiverCardId;
     BigDecimal amount;
-    LocalDateTime timestamp;
     String description;
 }
