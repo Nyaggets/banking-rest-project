@@ -21,10 +21,30 @@ public class TransactionController {
     private TransactionMapper mapper;
 
     @PostMapping("/createTransfer")
-    public ResponseEntity<TransactionDtoResponse> createTransaction(@PathVariable Long cardId,
-                                                                    @RequestBody TransactionDtoRequest transactionDtoRequest){
+    public ResponseEntity<TransactionDtoResponse> createTransfer(@PathVariable Long cardId,
+                                                                 @RequestBody TransactionDtoRequest transactionDtoRequest){
         Transaction transaction = mapper.fromDtoRequest(transactionDtoRequest);
-        if (transactionService.createTransaction(transaction, cardId) == null){
+        if (transactionService.createTransfer(transaction, cardId) == null){
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(mapper.toDtoResponse(transaction));
+    }
+
+    @PostMapping("/createReplenish")
+    public ResponseEntity<TransactionDtoResponse> createReplenish(@PathVariable Long cardId,
+                                                                 @RequestBody TransactionDtoRequest transactionDtoRequest){
+        Transaction transaction = mapper.fromDtoRequest(transactionDtoRequest);
+        if (transactionService.createReplenish(transaction, cardId) == null){
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(mapper.toDtoResponse(transaction));
+    }
+
+    @PostMapping("/createWriteOff")
+    public ResponseEntity<TransactionDtoResponse> createWriteOff(@PathVariable Long cardId,
+                                                                 @RequestBody TransactionDtoRequest transactionDtoRequest){
+        Transaction transaction = mapper.fromDtoRequest(transactionDtoRequest);
+        if (transactionService.createWriteOff(transaction, cardId) == null){
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(mapper.toDtoResponse(transaction));
