@@ -20,7 +20,7 @@ public class TransactionController {
     @Autowired
     private TransactionMapper mapper;
 
-    @PostMapping("/createTransfer")
+    @PostMapping("/create-transfer")
     public ResponseEntity<TransactionDtoResponse> createTransfer(@PathVariable Long cardId,
                                                                  @RequestBody TransactionDtoRequest transactionDtoRequest){
         Transaction transaction = mapper.fromDtoRequest(transactionDtoRequest);
@@ -30,7 +30,7 @@ public class TransactionController {
         return ResponseEntity.ok(mapper.toDtoResponse(transaction));
     }
 
-    @PostMapping("/createReplenish")
+    @PostMapping("/create-replenish")
     public ResponseEntity<TransactionDtoResponse> createReplenish(@PathVariable Long cardId,
                                                                  @RequestBody TransactionDtoRequest transactionDtoRequest){
         Transaction transaction = mapper.fromDtoRequest(transactionDtoRequest);
@@ -40,7 +40,7 @@ public class TransactionController {
         return ResponseEntity.ok(mapper.toDtoResponse(transaction));
     }
 
-    @PostMapping("/createWriteOff")
+    @PostMapping("/create-write-off")
     public ResponseEntity<TransactionDtoResponse> createWriteOff(@PathVariable Long cardId,
                                                                  @RequestBody TransactionDtoRequest transactionDtoRequest){
         Transaction transaction = mapper.fromDtoRequest(transactionDtoRequest);

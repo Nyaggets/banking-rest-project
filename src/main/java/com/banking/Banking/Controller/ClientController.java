@@ -26,7 +26,7 @@ public class ClientController {
         return ResponseEntity.ok(clientsDto);
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("search-id/{id}")
     public ResponseEntity<ClientDtoResponse> findById(@PathVariable("id") Long id){
         Client client = clientService.findById(id);
         if (client == null){
@@ -35,7 +35,7 @@ public class ClientController {
         return ResponseEntity.ok(mapper.toDtoResponse(client));
     }
 
-    @GetMapping("/{phone}")
+    @GetMapping("search-phone/{phone}")
     public ResponseEntity<ClientDtoResponse> findByPhone(@PathVariable("phone") String phone){
         Client client = clientService.findByPhone(phone);
         if (client == null){

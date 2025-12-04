@@ -29,7 +29,7 @@ public class CardController {
         return ResponseEntity.ok(cardsDto);
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("search-id/{id}")
     public ResponseEntity<CardDtoResponse> findById(@PathVariable Long id){
         Card card = cardService.findById(id);
         if (card == null){
@@ -38,7 +38,7 @@ public class CardController {
         return ResponseEntity.ok(mapper.toDtoResponse(card));
     }
 
-    @GetMapping("/{number}")
+    @GetMapping("search-number/{number}")
     public ResponseEntity<CardDtoResponse> findByCardNumber(@PathVariable String number){
         Card card = cardService.findByCardNumber(number);
         if (card == null){
