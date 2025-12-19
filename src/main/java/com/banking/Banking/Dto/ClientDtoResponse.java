@@ -4,6 +4,6 @@ import lombok.Data;
 
 @Data
 public class ClientDtoResponse {
-    String name;
     String phone;
+    String username;
 }

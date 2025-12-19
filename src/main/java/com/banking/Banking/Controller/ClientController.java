@@ -44,8 +44,26 @@ public class ClientController {
         return ResponseEntity.ok(mapper.toDtoResponse(client));
     }
 
-    @PostMapping("/create")
-    public ResponseEntity<ClientDtoResponse> createClient(@RequestBody ClientDtoRequest clientDtoRequest){
+    @PostMapping("/login/{phone}")
+    public ResponseEntity<ClientDtoResponse> loginByPhone(@PathVariable("phone") String phone){
+        Client client = clientService.findByPhone(phone);
+        if (client == null){
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(mapper.toDtoResponse(client));
+    }
+
+    @PostMapping("/login/{password}")
+    public ResponseEntity<ClientDtoResponse> loginByPassword(@PathVariable("phone") String password){
+        Client client = clientService.findByPhone(password);
+        if (client == null){
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(mapper.toDtoResponse(client));
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<ClientDtoResponse> singUpClient(@RequestBody ClientDtoRequest clientDtoRequest){
         Client newClient = mapper.fromDtoRequest(clientDtoRequest);
         if (clientService.findByPhone(newClient.getPhone()) != null){
             return ResponseEntity.badRequest().build();
