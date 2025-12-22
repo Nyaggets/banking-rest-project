@@ -1,7 +1,9 @@
 package com.banking.Banking.Controller;
 
 import com.banking.Banking.Dto.ClientDtoRequest;
+import com.banking.Banking.Entity.Card;
 import com.banking.Banking.Entity.Client;
+import com.banking.Banking.Entity.Transaction;
 import com.banking.Banking.Mapper.CardMapper;
 import com.banking.Banking.Mapper.ClientMapper;
 import com.banking.Banking.Mapper.TransactionMapper;
@@ -15,7 +17,12 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 
-import java.nio.Buffer;
+import java.awt.print.Pageable;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Stream;
 
 @Controller
 public class WebController {
@@ -50,9 +57,20 @@ public class WebController {
         return "signin";
     }
 
-    @GetMapping("/account")
-    public String account(Model model){
-        return "account";
+    @GetMapping("/main")
+    public String mainPage(Model model, Principal principal){
+        Client client = clientService.findByUsername(principal.getName());
+        List<Card> cards = cardService.findAllByClientId(client.getId());
+        List<Transaction> recentTransactions = new ArrayList<>();
+        cards.forEach(card ->
+                    recentTransactions.addAll(transactionService.findByCardId(card.getId()))
+        );
+        recentTransactions.sort(Comparator.comparing(Transaction::getTimestamp));
+
+        model.addAttribute("client", clientMapper.toDtoResponse(client));
+        model.addAttribute("cards", cardMapper.toListDto(cards));
+        model.addAttribute("transactions", transactionMapper.toDtoList(recentTransactions));
+        return "main";
     }
 
     @PostMapping("/signin")

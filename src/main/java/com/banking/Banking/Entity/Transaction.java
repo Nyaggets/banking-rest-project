@@ -19,6 +19,10 @@ public class Transaction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "transaction_id")
     Long id;
+    @Column(name = "operation_type")
+    String type;
+    String merchant;
+    String source;
     @ManyToOne
     @JoinColumn(name = "sender_card_id")
     Card senderCard;

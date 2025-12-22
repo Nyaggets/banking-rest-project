@@ -29,12 +29,12 @@ public class SecurityConfiguation {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login", "/signin", "/logout", "/static/**").permitAll()
-                        .requestMatchers("/account").permitAll()
+                        .requestMatchers("/login", "/signin", "/logout").permitAll()
+                        .requestMatchers("/main").hasAuthority("USER")
                 )
                 .formLogin(login -> login
                         .loginPage("/login")
-                        .defaultSuccessUrl("/account", true)
+                        .defaultSuccessUrl("/main", true)
                         .permitAll()
                 )
                 .logout(logout -> logout

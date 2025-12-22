@@ -6,11 +6,17 @@ import com.banking.Banking.Entity.Transaction;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
+import java.util.List;
+
 @Mapper(componentModel = "spring")
 public interface TransactionMapper {
+    @Mapping(target = "senderCard.id", source = "senderCardId")
     @Mapping(target = "receiverCard.id", source = "receiverCardId")
-    Transaction fromDtoRequest(TransactionDtoRequest transactionDtoRequest);
+    Transaction fromDto(TransactionDtoRequest transactionDtoRequest);
     @Mapping(target = "senderCardId", source = "senderCard.id")
     @Mapping(target = "receiverCardId", source = "receiverCard.id")
-    TransactionDtoResponse toDtoResponse(Transaction transaction);
+    TransactionDtoResponse toDto(Transaction transaction);
+    @Mapping(target = "senderCardId", source = "senderCard.id")
+    @Mapping(target = "receiverCardId", source = "receiverCard.id")
+    List<TransactionDtoResponse> toDtoList(List<Transaction> transactionList);
 }

@@ -12,6 +12,8 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/cards/{cardId}/transactions")
 public class TransactionController {
@@ -20,39 +22,38 @@ public class TransactionController {
     @Autowired
     private TransactionMapper mapper;
 
-    @PostMapping("/create-transfer")
+    @PostMapping("/transfer")
     public ResponseEntity<TransactionDtoResponse> createTransfer(@PathVariable Long cardId,
                                                                  @RequestBody TransactionDtoRequest transactionDtoRequest){
-        Transaction transaction = mapper.fromDtoRequest(transactionDtoRequest);
+        Transaction transaction = mapper.fromDto(transactionDtoRequest);
         if (transactionService.createTransfer(transaction, cardId) == null){
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(mapper.toDtoResponse(transaction));
+        return ResponseEntity.ok(mapper.toDto(transaction));
     }
 
-    @PostMapping("/create-replenish")
+    @PostMapping("/replenish")
     public ResponseEntity<TransactionDtoResponse> createReplenish(@PathVariable Long cardId,
-                                                                 @RequestBody TransactionDtoRequest transactionDtoRequest){
-        Transaction transaction = mapper.fromDtoRequest(transactionDtoRequest);
-        if (transactionService.createReplenish(transaction, cardId) == null){
+                                                       @RequestBody TransactionDtoRequest replenishDto){
+        Transaction replenish = mapper.fromDto(replenishDto);
+        if (transactionService.createReplenish(replenish, cardId) == null){
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(mapper.toDtoResponse(transaction));
+        return ResponseEntity.ok(mapper.toDto(replenish));
     }
 
-    @PostMapping("/create-write-off")
+    @PostMapping("/writeoff")
     public ResponseEntity<TransactionDtoResponse> createWriteOff(@PathVariable Long cardId,
-                                                                 @RequestBody TransactionDtoRequest transactionDtoRequest){
-        Transaction transaction = mapper.fromDtoRequest(transactionDtoRequest);
-        if (transactionService.createWriteOff(transaction, cardId) == null){
+                                                      @RequestBody TransactionDtoRequest writeOffDto){
+        Transaction writeOff = mapper.fromDto(writeOffDto);
+        if (transactionService.createWriteOff(writeOff, cardId) == null){
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(mapper.toDtoResponse(transaction));
+        return ResponseEntity.ok(mapper.toDto(writeOff));
     }
 
     @GetMapping
-    public Page<TransactionDtoResponse> findAllByCardId(@PathVariable Long cardId,
-                                                        @PageableDefault(size = 5) Pageable pageable){
-        return transactionService.findByCardId(cardId, pageable).map(transaction -> mapper.toDtoResponse(transaction));
+    public List<TransactionDtoResponse> findAllByCardId(@PathVariable Long cardId){
+        return mapper.toDtoList(transactionService.findByCardId(cardId));
     }
 }
