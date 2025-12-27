@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>История</title>
+</head>
+<body>
+    <header class="main-header">
+        <div class="container-logo">
+            <a th:href="main">
+                <span class="logo-img"></span>
+                <h2 class="logo-title">Банк</h2>
+            </a>
+        </div>
+
+        <div class="container-actions">
+            <a th:href="profile"><span class="profile-img">пр</span></a>
+            <a th:href="logout"><span class="logout-img"></span>лг</a>
+        </div>
+    </header>
+
+    <main>
+        <aside class="aside-menu">
+            <nav>
+                <ul class="aside-list">
+                    <li class="aside-item">
+                        <a th:href="main"><span class="main-img"></span>Главная</a>
+                    </li>
+                    <li class="aside-item">
+                        <a th:href="transfer"><span class="transfer-img"></span>Перевести</a>
+                    </li>
+                    <li class="aside-item">
+                        <a href="#"><span class="analitics-img"></span>Аналитика</a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <div class="main-container">
+            <div class="history-container">
+                <h1>История</h1>
+                <ul>
+                    <li th:each="transaction : ${transactions}">
+                        <h3 th:text="${transaction.amount}"></h3>
+                        <p th:text="${transaction.timestamp}"></p>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </main>
+
+    <footer class="main-footer">
+    </footer>
+</body>
+</html>

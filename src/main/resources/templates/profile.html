@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Профиль</title>
+</head>
+<body>
+<header class="main-header">
+    <div class="container-logo">
+        <a th:href="main">
+            <span class="logo-img"></span>
+            <h2 class="logo-title">Банк</h2>
+        </a>
+    </div>
+
+    <div class="container-actions">
+        <a th:href="logout"><span class="logout-img"></span></a>
+    </div>
+</header>
+
+<main>
+    <aside class="aside-menu">
+        <nav>
+            <ul class="aside-list">
+                <li class="aside-item">
+                    <a th:href="main"><span class="main-img"></span>Главная</a>
+                </li>
+                <li class="aside-item">
+                    <a th:href="transfer"><span class="transfer-img"></span>Перевести</a>
+                </li>
+                <li class="aside-item">
+                    <a href="#"><span class="analitics-img"></span>Аналитика</a>
+                </li>
+            </ul>
+        </nav>
+    </aside>
+
+    <div class="main-container">
+        <div class="profile-container">
+            <h3>Профиль</h3>
+            <h1 th:text="${client.username}"></h1>
+
+            <h2>Уведомления</h2>
+            <p>Номер для уведомлений</p>
+            <p th:text="${client.phone}"></p>
+            <p><input type="checkbox"> Уведомления по картам и платежам</p>
+        </div>
+    </div>
+</main>
+
+<footer class="main-footer">
+</footer>
+</body>
+</html>

@@ -1,5 +1,6 @@
 package com.banking.Banking.Controller;
 
+import com.banking.Banking.Dto.CardDtoRequest;
 import com.banking.Banking.Dto.ClientDtoRequest;
 import com.banking.Banking.Entity.Card;
 import com.banking.Banking.Entity.Client;
@@ -15,14 +16,15 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 
-import java.awt.print.Pageable;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Stream;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 @Controller
 public class WebController {
@@ -61,16 +63,58 @@ public class WebController {
     public String mainPage(Model model, Principal principal){
         Client client = clientService.findByUsername(principal.getName());
         List<Card> cards = cardService.findAllByClientId(client.getId());
-        List<Transaction> recentTransactions = new ArrayList<>();
-        cards.forEach(card ->
-                    recentTransactions.addAll(transactionService.findByCardId(card.getId()))
-        );
-        recentTransactions.sort(Comparator.comparing(Transaction::getTimestamp));
+        List<Transaction> transactionList = cards.stream()
+                .flatMap(card -> transactionService.findByCardId(card.getId()).stream())
+                .limit(5)
+                .sorted(Comparator.comparing(Transaction::getTimestamp))
+                .toList();
 
         model.addAttribute("client", clientMapper.toDtoResponse(client));
         model.addAttribute("cards", cardMapper.toListDto(cards));
-        model.addAttribute("transactions", transactionMapper.toDtoList(recentTransactions));
+        model.addAttribute("transactions", transactionMapper.toDtoList(transactionList));
         return "main";
+    }
+
+    @GetMapping("/transfer")
+    public String transferPage(Model model, Principal principal){
+        Client client = clientService.findByUsername(principal.getName());
+        List<Card> cards = cardService.findAllByClientId(client.getId());
+        Transaction transfer = new Transaction();
+
+        model.addAttribute("cards", cardMapper.toListDto(cards));
+        model.addAttribute("newTransfer", transactionMapper.toDto(transfer));
+        return "transfer";
+    }
+
+    @GetMapping("/history")
+    public String historyPage(Model model, Principal principal){
+        Client client = clientService.findByUsername(principal.getName());
+        List<Card> cards = cardService.findAllByClientId(client.getId());
+        List<Transaction> transactionList = cards.stream()
+                .flatMap(card -> transactionService.findByCardId(card.getId()).stream())
+                .sorted(Comparator.comparing(Transaction::getTimestamp))
+                .toList();
+
+        model.addAttribute("transactions", transactionMapper.toDtoList(transactionList));
+        return "history";
+    }
+
+    @GetMapping("/profile")
+    public String profilePage(Model model, Principal principal){
+        Client client = clientService.findByUsername(principal.getName());
+        model.addAttribute("client", clientMapper.toDtoResponse(client  ));
+        return "profile";
+    }
+
+    @GetMapping("/card/{card}")
+    public String cardPage(Model model, Principal principal,
+                           @PathVariable CardDtoRequest card){
+        Card cardOrigin = cardService.findByCardNumber(card.getCardNumber());
+        List<Transaction> transactions = transactionService.findByCardId(cardOrigin.getId());
+
+        model.addAttribute("transactions", transactionMapper.toDtoList(transactions));
+        model.addAttribute("card", card);
+        return "card";
     }
 
     @PostMapping("/signin")

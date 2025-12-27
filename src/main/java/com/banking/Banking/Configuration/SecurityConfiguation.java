@@ -30,7 +30,7 @@ public class SecurityConfiguation {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/login", "/signin", "/logout").permitAll()
-                        .requestMatchers("/main").hasAuthority("USER")
+                        .requestMatchers("/main", "/transfer", "/history", "/profile", "/card").hasAuthority("USER")
                 )
                 .formLogin(login -> login
                         .loginPage("/login")
