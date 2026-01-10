@@ -7,6 +7,7 @@ import java.time.LocalDate;
 
 @Data
 public class CardDtoRequest {
+    Long id;
     String cardNumber;
     BigDecimal balance;
     Long clientId;

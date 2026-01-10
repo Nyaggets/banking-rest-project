@@ -6,6 +6,7 @@ import lombok.experimental.FieldDefaults;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Objects;
 
 @Entity
 @AllArgsConstructor
@@ -24,5 +25,19 @@ public class Card {
     @ManyToOne
     @JoinColumn(name = "client_id")
     Client client;
+    @Column(name = "client_name")
+    String clientName;
     LocalDate createdDate;
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        Card card = (Card) o;
+        return Objects.equals(balance, card.balance);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(balance);
+    }
 }

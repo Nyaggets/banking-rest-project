@@ -1,16 +1,16 @@
 package com.banking.Banking.Service;
 
 import com.banking.Banking.Entity.Card;
+import com.banking.Banking.Entity.Client;
 import com.banking.Banking.Entity.Transaction;
 import com.banking.Banking.Repository.TransactionRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -71,5 +71,14 @@ public class TransactionService {
 
     public List<Transaction> findByCardId(Long cardId){
         return repository.findByCardId(cardId);
+    }
+
+    public List<Transaction> findByClientId(Long clientId){
+        List<Card> cards = cardService.findByClientId(clientId);
+        return cards.stream()
+                    .flatMap(card -> repository.findByCardId(card.getId()).stream())
+                    .sorted(Comparator.comparing(Transaction::getTimestamp))
+                    .distinct()
+                    .toList();
     }
 }

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -8,15 +8,15 @@
 <body>
     <header class="main-header">
         <div class="container-logo">
-            <a th:href="main">
+            <a href="main">
                 <span class="logo-img"></span>
                 <h2 class="logo-title">Банк</h2>
             </a>
         </div>
 
         <div class="container-actions">
-            <a th:href="profile"><span class="profile-img">пр</span></a>
-            <a th:href="logout"><span class="logout-img"></span>лг</a>
+            <a href="profile"><span class="profile-img">пр</span></a>
+            <a href="logout"><span class="logout-img"></span>лг</a>
         </div>
     </header>
 
@@ -25,13 +25,13 @@
             <nav>
                 <ul class="aside-list">
                     <li class="aside-item">
-                        <a th:href="main"><span class="main-img"></span>Главная</a>
+                        <a href="main"><span class="main-img"></span>Главная</a>
                     </li>
                     <li class="aside-item">
-                        <a th:href="transfer"><span class="transfer-img"></span>Перевести</a>
+                        <a href="transfer"><span class="transfer-img"></span>Перевести</a>
                     </li>
                     <li class="aside-item">
-                        <a href="#"><span class="analitics-img"></span>Аналитика</a>
+                        <a href="analitics"><span class="analitics-img"></span>Аналитика</a>
                     </li>
                 </ul>
             </nav>
@@ -43,17 +43,7 @@
                     <span class="wallet-icon"></span>Кошелек
                 </h1>
                 
-                <ul class="card-list">
-                    <li th:each="card : ${cards}">
-                        <a th:href="@{/card/{card} (card=${card})}">
-                            <div class="card-item">
-                                <h3 th:text="${card.cardNumber}"></h3>
-                                <h5 th:text="${card.balance}"></h5>
-                                <br>
-                                <p th:text="${card.createdDate}"></p>
-                            </div>
-                        </a>
-                    </li>
+                <ul id="card-list">
                 </ul>
             </section>
 
@@ -63,23 +53,10 @@
                         <span class="history-icon"></span>Последняя активность
                     </h1>
                     <button type="submit" class="show-history-btn">
-                        <a th:href="history"><span class="show-more"></span>Вся история</a>
+                        <a href="history"><span class="show-more"></span>Вся история</a>
                     </button>
                 </div>
-                <ul class="recent-list">
-                    <li th:each="transaction : ${transactions}">
-                        <div class="transaction-container">
-                            <div th:switch="${transaction.type}">
-                                <p th:case="Зачисление" th:text="${transaction.source}"></p>
-                                <p th:case="'Оплата товаров и услуг'" th:text="${transaction.merchant}"></p>
-                                <p th:case="Перевод" class="transfer-name"
-                                   data-sender-id="${transaction.senderCardId}"
-                                   data-receiver-id="${transaction.receiverCardId}"></p>
-                            </div>
-                            <p th:text="${transaction.amount}"></p>
-                            <p th:text="${transaction.timestamp}"></p>
-                        </div>
-                    </li>
+                <ul id="recent-list">
                 </ul>
             </section>
         </div>
@@ -87,5 +64,7 @@
     
     <footer class="main-footer">
     </footer>
+
+    <script type="module" src="/static/js/main.js"></script>
 </body>
 </html>

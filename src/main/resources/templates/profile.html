@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Профиль</title>
@@ -7,14 +7,14 @@
 <body>
 <header class="main-header">
     <div class="container-logo">
-        <a th:href="main">
+        <a href="main">
             <span class="logo-img"></span>
             <h2 class="logo-title">Банк</h2>
         </a>
     </div>
 
     <div class="container-actions">
-        <a th:href="logout"><span class="logout-img"></span></a>
+        <a href="logout"><span class="logout-img"></span></a>
     </div>
 </header>
 
@@ -23,10 +23,10 @@
         <nav>
             <ul class="aside-list">
                 <li class="aside-item">
-                    <a th:href="main"><span class="main-img"></span>Главная</a>
+                    <a href="main"><span class="main-img"></span>Главная</a>
                 </li>
                 <li class="aside-item">
-                    <a th:href="transfer"><span class="transfer-img"></span>Перевести</a>
+                    <a href="transfer"><span class="transfer-img"></span>Перевести</a>
                 </li>
                 <li class="aside-item">
                     <a href="#"><span class="analitics-img"></span>Аналитика</a>
@@ -38,11 +38,11 @@
     <div class="main-container">
         <div class="profile-container">
             <h3>Профиль</h3>
-            <h1 th:text="${client.username}"></h1>
+            <h1 id="client-name"></h1>
 
             <h2>Уведомления</h2>
             <p>Номер для уведомлений</p>
-            <p th:text="${client.phone}"></p>
+            <p id="client-phone"></p>
             <p><input type="checkbox"> Уведомления по картам и платежам</p>
         </div>
     </div>
@@ -50,5 +50,7 @@
 
 <footer class="main-footer">
 </footer>
+
+<script type="module" src="/static/js/profile.js"></script>
 </body>
 </html>

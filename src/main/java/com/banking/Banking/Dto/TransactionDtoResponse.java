@@ -7,12 +7,19 @@ import java.time.LocalDateTime;
 
 @Data
 public class TransactionDtoResponse {
+    Long id;
     String type;
     String merchant;
     String source;
-    Long senderCardId;
-    Long receiverCardId;
     BigDecimal amount;
     LocalDateTime timestamp;
     String description;
+
+    Long senderCardId;
+    String senderCardNumber;
+    ClientDtoResponse senderDetails;
+
+    Long receiverCardId;
+    String receiverCardNumber;
+    ClientDtoResponse receiverDetails;
 }

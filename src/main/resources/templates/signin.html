@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -12,27 +12,21 @@
     </header>
 
     <main class="main">
-        <div class="autn-container">
+        <div class="auth-container">
             <h2 class="auth-title">Здравствуйте! Зарегистрируйтесь по номеру телефона и паролю</h2>
-            <form class="autn-form" th:action="@{/signin}" th:object="${newClient}" method="post">
-                <div class="input-group-lg">
-                    <input type="tel" name="phone" id="phone" placeholder="Номер телефона" required
-                        th:field="*{phone}">
-                    <input type="text" name="username" id="username" class="auth-input" placeholder="Логин" required
-                       th:field="*{username}">
-                    <input type="password" name="password" id="password" class="auth-input" placeholder="Пароль" required
-                       th:field="*{password}">
+            <form id="auth-form" class="auth-form form-group" method="post" action="/signin">
+                <input type="tel" name="phone" id="phone" class="auth-input" placeholder="Номер телефона" required>
+                <input type="text" name="username" id="username" class="auth-input" placeholder="Логин" required>
+                <input type="password" name="password" id="password" class="auth-input" placeholder="Пароль" required>
 
-                    <button type="submit" id="auth-button" class="btn-lg auth-button">Зарегистрироваться</button>
-                </div>
+                <button type="submit" class="btn-lg auth-button">Зарегистрироваться</button>
             </form>
 
-            <a href="login" class="auth-link">Войти</a>
+            <a href="login" id="auth-link" class="auth-link">Войти</a>
         </div>
     </main>
 
     <footer class="auth-footer">
     </footer>
-
 </body>
 </html>

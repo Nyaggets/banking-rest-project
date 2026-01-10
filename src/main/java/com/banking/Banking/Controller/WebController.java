@@ -2,6 +2,7 @@ package com.banking.Banking.Controller;
 
 import com.banking.Banking.Dto.CardDtoRequest;
 import com.banking.Banking.Dto.ClientDtoRequest;
+import com.banking.Banking.Dto.TransactionDtoResponse;
 import com.banking.Banking.Entity.Card;
 import com.banking.Banking.Entity.Client;
 import com.banking.Banking.Entity.Transaction;
@@ -12,19 +13,16 @@ import com.banking.Banking.Service.CardService;
 import com.banking.Banking.Service.ClientService;
 import com.banking.Banking.Service.TransactionService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 @Controller
 public class WebController {
@@ -45,57 +43,50 @@ public class WebController {
         this.transactionMapper = transactionMapper;
     }
 
+    @GetMapping("clients/{clientId}/history")
+    @ResponseBody
+    public ResponseEntity<List<TransactionDtoResponse>> history(@PathVariable Long clientId){
+        Client client = clientService.findById(clientId);
+        if (client == null){
+            return ResponseEntity.notFound().build();
+        }
+        List<Transaction> transactions = transactionService.findByClientId(clientId);
+
+        return ResponseEntity.ok(transactionMapper.toDtoList(transactions));
+    }
+
+    @GetMapping("clients/me")
+    @ResponseBody
+    public ResponseEntity<Client> getCurrentUser(Authentication auth){
+        if (auth == null || auth instanceof AnonymousAuthenticationToken || !auth.isAuthenticated()){
+            return ResponseEntity.notFound().build();
+        }
+        Client client = clientService.findByUsername(auth.getName());
+        return ResponseEntity.ok(client);
+    }
+
     @GetMapping("/login")
-    public String loginPage(Model model){
-        ClientDtoRequest existingClient = new ClientDtoRequest();
-        model.addAttribute("client", existingClient);
+    public String loginPage(){
         return "login";
     }
 
     @GetMapping("/signin")
-    public String signinPage(Model model){
-        ClientDtoRequest newClient = new ClientDtoRequest();
-        model.addAttribute("newClient", newClient);
+    public String signinPage(){
         return "signin";
     }
 
     @GetMapping("/main")
-    public String mainPage(Model model, Principal principal){
-        Client client = clientService.findByUsername(principal.getName());
-        List<Card> cards = cardService.findAllByClientId(client.getId());
-        List<Transaction> transactionList = cards.stream()
-                .flatMap(card -> transactionService.findByCardId(card.getId()).stream())
-                .limit(5)
-                .sorted(Comparator.comparing(Transaction::getTimestamp))
-                .toList();
-
-        model.addAttribute("client", clientMapper.toDtoResponse(client));
-        model.addAttribute("cards", cardMapper.toListDto(cards));
-        model.addAttribute("transactions", transactionMapper.toDtoList(transactionList));
+    public String mainPage(){
         return "main";
     }
 
     @GetMapping("/transfer")
-    public String transferPage(Model model, Principal principal){
-        Client client = clientService.findByUsername(principal.getName());
-        List<Card> cards = cardService.findAllByClientId(client.getId());
-        Transaction transfer = new Transaction();
-
-        model.addAttribute("cards", cardMapper.toListDto(cards));
-        model.addAttribute("newTransfer", transactionMapper.toDto(transfer));
+    public String transferPage(){
         return "transfer";
     }
 
     @GetMapping("/history")
-    public String historyPage(Model model, Principal principal){
-        Client client = clientService.findByUsername(principal.getName());
-        List<Card> cards = cardService.findAllByClientId(client.getId());
-        List<Transaction> transactionList = cards.stream()
-                .flatMap(card -> transactionService.findByCardId(card.getId()).stream())
-                .sorted(Comparator.comparing(Transaction::getTimestamp))
-                .toList();
-
-        model.addAttribute("transactions", transactionMapper.toDtoList(transactionList));
+    public String historyPage(){
         return "history";
     }
 
@@ -106,14 +97,8 @@ public class WebController {
         return "profile";
     }
 
-    @GetMapping("/card/{card}")
-    public String cardPage(Model model, Principal principal,
-                           @PathVariable CardDtoRequest card){
-        Card cardOrigin = cardService.findByCardNumber(card.getCardNumber());
-        List<Transaction> transactions = transactionService.findByCardId(cardOrigin.getId());
-
-        model.addAttribute("transactions", transactionMapper.toDtoList(transactions));
-        model.addAttribute("card", card);
+    @GetMapping("/card")
+    public String cardPage(@RequestParam Long id){
         return "card";
     }
 
@@ -127,11 +112,11 @@ public class WebController {
     }
 
     @PostMapping("/login")
-    public String loginClient(@ModelAttribute("client") ClientDtoRequest clientDto){
+    public String loginClient(@RequestBody ClientDtoRequest clientDto){
         Client existingClient = clientMapper.fromDtoRequest(clientDto);
         if (clientService.findByUsername(existingClient.getUsername()) == null){
             return "login";
         }
-        return "redirect:/account";
+        return "redirect:/main";
     }
 }

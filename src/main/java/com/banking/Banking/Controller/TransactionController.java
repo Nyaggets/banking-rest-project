@@ -23,10 +23,10 @@ public class TransactionController {
     private TransactionMapper mapper;
 
     @PostMapping("/transfer")
-    public ResponseEntity<TransactionDtoResponse> createTransfer(@PathVariable Long cardId,
+    public ResponseEntity<TransactionDtoResponse> createTransfer(@PathVariable String cardId,
                                                                  @RequestBody TransactionDtoRequest transactionDtoRequest){
         Transaction transaction = mapper.fromDto(transactionDtoRequest);
-        if (transactionService.createTransfer(transaction, cardId) == null){
+        if (transactionService.createTransfer(transaction, Long.valueOf(cardId)) == null){
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(mapper.toDto(transaction));

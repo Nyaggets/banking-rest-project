@@ -21,7 +21,7 @@ public class CardController {
 
     @GetMapping
     public ResponseEntity<List<CardDtoRequest>> findAllByClientId(@PathVariable Long clientId){
-        List<Card> cards = cardService.findAllByClientId(clientId);
+        List<Card> cards = cardService.findByClientId(clientId);
         if (cards == null){
             return ResponseEntity.notFound().build();
         }
@@ -29,17 +29,19 @@ public class CardController {
         return ResponseEntity.ok(cardsDto);
     }
 
-    @GetMapping("search-id/{id}")
-    public ResponseEntity<CardDtoRequest> findById(@PathVariable Long id){
-        Card card = cardService.findById(id);
+    @GetMapping("/card")
+    @ResponseBody
+    public ResponseEntity<CardDtoRequest> findById(@PathVariable Long clientId,
+                                                   @RequestParam String id){
+        Card card = cardService.findById(Long.valueOf(id));
         if (card == null){
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(mapper.toDto(card));
     }
 
-    @GetMapping("search-number/{number}")
-    public ResponseEntity<CardDtoRequest> findByCardNumber(@PathVariable String number){
+    @GetMapping("search")
+    public ResponseEntity<CardDtoRequest> findByCardNumber(@RequestParam String number){
         Card card = cardService.findByCardNumber(number);
         if (card == null){
             return ResponseEntity.notFound().build();

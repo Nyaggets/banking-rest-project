@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
 
@@ -38,6 +39,7 @@ public class CardService {
 
         Card card = new Card();
         card.setClient(clientService.findById(clientId));
+        card.setClientName(clientService.findById(clientId).getName());
         card.setCardNumber(cardNumber);
         card.setBalance(new BigDecimal(0));
         card.setCreatedDate(LocalDate.now());
@@ -52,11 +54,13 @@ public class CardService {
         return repository.findByCardNumber(cardNumber).orElse(null);
     }
 
-    public List<Card> findAllByClientId(Long id){
+    public List<Card> findByClientId(Long id){
         if (clientService.findById(id) == null){
             return null;
         }
-        return repository.findAllByClientId(id);
+        return repository.findAllByClientId(id).stream()
+                .sorted(Comparator.comparing(Card::getBalance).reversed())
+                .toList();
     }
 
     public boolean deleteCard(Long id){

@@ -7,4 +7,5 @@ public class ClientDtoRequest {
     String phone;
     String password;
     String username;
+    String name;
 }
