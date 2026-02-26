@@ -3,7 +3,6 @@ package com.banking.Banking.Controller;
 import com.banking.Banking.Dto.CardDtoRequest;
 import com.banking.Banking.Dto.ClientDtoRequest;
 import com.banking.Banking.Dto.TransactionDtoResponse;
-import com.banking.Banking.Entity.Card;
 import com.banking.Banking.Entity.Client;
 import com.banking.Banking.Entity.Transaction;
 import com.banking.Banking.Mapper.CardMapper;
@@ -21,7 +20,6 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
-import java.util.Comparator;
 import java.util.List;
 
 @Controller
@@ -111,12 +109,20 @@ public class WebController {
         return "redirect:/login";
     }
 
-    @PostMapping("/login")
-    public String loginClient(@RequestBody ClientDtoRequest clientDto){
-        Client existingClient = clientMapper.fromDtoRequest(clientDto);
-        if (clientService.findByUsername(existingClient.getUsername()) == null){
-            return "login";
-        }
-        return "redirect:/main";
+    @GetMapping("/admin")
+    public String adminka(){
+        return "admin";
+    }
+
+    @GetMapping("/cards")
+    @ResponseBody
+    public ResponseEntity<List<CardDtoRequest>> findAllCards(){
+        return ResponseEntity.ok(cardMapper.toDtoList(cardService.findAll()));
+    }
+
+    @GetMapping("/transactions")
+    @ResponseBody
+    public ResponseEntity<List<TransactionDtoResponse>> findAllTransactions(){
+        return ResponseEntity.ok(transactionMapper.toDtoList(transactionService.findAll()));
     }
 }

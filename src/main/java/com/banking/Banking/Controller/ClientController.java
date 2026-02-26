@@ -2,9 +2,7 @@ package com.banking.Banking.Controller;
 
 import com.banking.Banking.Dto.ClientDtoRequest;
 import com.banking.Banking.Dto.ClientDtoResponse;
-import com.banking.Banking.Dto.TransactionDtoResponse;
 import com.banking.Banking.Entity.Client;
-import com.banking.Banking.Entity.Transaction;
 import com.banking.Banking.Mapper.ClientMapper;
 import com.banking.Banking.Mapper.TransactionMapper;
 import com.banking.Banking.Service.ClientService;
@@ -12,8 +10,6 @@ import com.banking.Banking.Service.TransactionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AnonymousAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -36,7 +32,7 @@ public class ClientController {
 
     @GetMapping
     public ResponseEntity<List<ClientDtoResponse>> findAll(){
-        List<ClientDtoResponse> clientsDto = clientMapper.toListDtoResponse(clientService.findAll());
+        List<ClientDtoResponse> clientsDto = clientMapper.toDtoListResponse(clientService.findAll());
         return ResponseEntity.ok(clientsDto);
     }
 

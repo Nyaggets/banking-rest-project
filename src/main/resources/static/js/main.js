@@ -1,6 +1,6 @@
 import { URL_BASE, cards, history } from './utils/getData.js'
 import { showHistory } from './utils/processData.js'
-const RECENT_HISTORY_LENGTH = 5
+const RECENT_HISTORY_LENGTH = 8
 
 const cardList = document.getElementById('card-list')
 cards.forEach(card => {

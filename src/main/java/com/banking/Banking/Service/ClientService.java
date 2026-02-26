@@ -1,6 +1,7 @@
 package com.banking.Banking.Service;
 
 import com.banking.Banking.Entity.Client;
+import com.banking.Banking.Entity.Role;
 import com.banking.Banking.Repository.ClientRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -22,14 +23,16 @@ public class ClientService implements UserDetailsService {
         if (repository.findByPhone(client.getPhone()).isPresent()) {
             return false;
         }
-        client.setAuthority("USER");
+        client.setRole(Role.USER);
         client.setPassword(passwordEncoder.encode(client.getPassword()));
         repository.save(client);
         return true;
     }
 
     public List<Client> findAll(){
-        return repository.findAll();
+        List<Client> clients = repository.findAll();
+        clients.removeIf(client -> client.getRole() == Role.ADMIN);
+        return clients;
     }
 
     public Client findById(Long id){

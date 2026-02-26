@@ -1,15 +1,15 @@
-import { URL_BASE, cards, client, getData } from './utils/getData.js'
+import { URL_BASE, cards, client, sendRequest } from './utils/getData.js'
 
 const url = window.location.search
 const search = new URLSearchParams(url)
 let senderCard
 if (search.has('from')) {
     const cardId = new URLSearchParams(url).get('from')
-    senderCard = await getData(`${URL_BASE}/clients/${client.id}/cards/card?id=${cardId}`)
+    senderCard = await sendRequest(`${URL_BASE}/clients/${client.id}/cards/card?id=${cardId}`)
 }
 else if (search.has('to')) {
     const cardId = new URLSearchParams(url).get('to')
-    const receiverCard = await getData(`${URL_BASE}/clients/${client.id}/cards/card?id=${cardId}`)
+    const receiverCard = await sendRequest(`${URL_BASE}/clients/${client.id}/cards/card?id=${cardId}`)
     document.getElementById('receiver').value = receiverCard.cardNumber
     cards.slice(cards.indexOf(receiverCard), 1)
 }
@@ -32,7 +32,7 @@ transferForm.addEventListener('submit', async function(e) {
 
     const senderCardId = document.getElementById('sender-cards-select').value
     const receiver = document.getElementById('receiver').value
-    const receiverCard = await getData(`${URL_BASE}/clients/${client.id}/cards/search?number=${receiver}`)
+    const receiverCard = await sendRequest(`${URL_BASE}/clients/${client.id}/cards/search?number=${receiver}`)
     console.log(receiver, receiverCard, receiverCard.id)
 
     const response = await fetch(`${URL_BASE}/cards/${senderCardId}/transactions/transfer`, {

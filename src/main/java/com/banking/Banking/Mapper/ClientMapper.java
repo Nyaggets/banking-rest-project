@@ -15,5 +15,5 @@ public interface ClientMapper {
     @Mapping(target = "name", source = "name")
     ClientDtoResponse toDtoResponse(Client client);
     @Mapping(target = "name", source = "name")
-    List<ClientDtoResponse> toListDtoResponse(List<Client> clients);
+    List<ClientDtoResponse> toDtoListResponse(List<Client> clients);
 }

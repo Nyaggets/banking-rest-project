@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    <h1>ADMINKAAA</h1>
+    <ul id="buttons-nav">
+        <button class="list-button" id="register-button">Добавить пользователя</button>
+        <button class="list-button" id="clients-button">Клиенты</button>
+        <button class="list-button" id="cards-button">Карты</button>
+        <button class="list-button" id="transactions-button">Транзации</button>
+    </ul>
+
+    <table id="clients-list">
+        <thead>
+            <tr>
+                <th scope="col">ID</th>
+                <th scope="col">Имя</th>
+                <th scope="col">Телефон</th>
+                <th scope="col">Пароль</th>
+            </tr>
+        </thead>
+    </table>
+    <table id="cards-list">
+        <thead>
+            <tr>
+                <th scope="col">ID</th>
+                <th scope="col">Номер карты</th>
+                <th scope="col">Баланс</th>
+                <th scope="col">ID клиента</th>
+                <th scope="col">Дата создания</th>
+            </tr>
+        </thead>
+    </table>
+    <table id="transactions-list">
+        <thead>
+            <tr>
+                <th scope="col">Дата</th>
+                <th scope="col">Тип</th>
+                <th scope="col">Сумма</th>
+                <th scope="col">Получатель</th>
+                <th scope="col">Отправитель</th>
+            </tr>
+        </thead>
+    </table>
+
+    <script type="module" src="/static/js/admin.js"></script>
+</body>
+</html>
