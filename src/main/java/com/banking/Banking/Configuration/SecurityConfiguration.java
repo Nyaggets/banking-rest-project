@@ -10,8 +10,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
-import java.util.Objects;
-
 @Configuration
 @EnableWebSecurity
 public class SecurityConfiguration {
@@ -32,21 +30,13 @@ public class SecurityConfiguration {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/login", "/signin", "/logout", "/static/**").permitAll()
-                        .requestMatchers("/main", "/transfer", "/history", "/profile", "/card").hasRole("USER")
-                        .requestMatchers("/admin", "/signin").hasRole("ADMIN")
+                        .requestMatchers("/main", "/transfer", "/history", "/profile", "/card").hasAuthority("USER")
                         .anyRequest().authenticated()
                 )
                 .formLogin(login -> login
                         .loginPage("/login")
+                        .defaultSuccessUrl("/main", true)
                         .permitAll()
-                        .successHandler((request, response, authentication) -> {
-                            boolean isAdmin = authentication.getAuthorities().stream()
-                                .anyMatch(a -> Objects.equals(a.getAuthority(), "ROLE_ADMIN"));
-                            if (isAdmin)
-                                response.sendRedirect("/admin");
-                            else
-                                response.sendRedirect("/main");
-                        })
                 )
                    .logout(logout -> logout
                         .logoutSuccessUrl("/login?logout")

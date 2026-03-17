@@ -25,7 +25,7 @@ public class CardController {
         if (cards == null){
             return ResponseEntity.notFound().build();
         }
-        List<CardDtoRequest> cardsDto = mapper.toDtoList(cards);
+        List<CardDtoRequest> cardsDto = mapper.toListDto(cards);
         return ResponseEntity.ok(cardsDto);
     }
 

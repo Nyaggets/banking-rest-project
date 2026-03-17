@@ -1,8 +1,8 @@
-const URL_BASE = 'http://localhost:8080'
+const URL_BASE = 'http://localhost:8080';
 
-const sendRequest = async(url) => {
+const getData = async(url) => {
     try {
-        const response = await fetch(url)
+        const response = await fetch(url);
         if (response.ok) {
             return response.json()
         }
@@ -12,21 +12,21 @@ const sendRequest = async(url) => {
     }
 }
 
-const client = await sendRequest(`${URL_BASE}/clients/me`)
-const cards = Array.from(await sendRequest(`${URL_BASE}/clients/${client.id}/cards`))
-const history = Array.from(await sendRequest(`${URL_BASE}/clients/${client.id}/history`))
+const client = await getData(`${URL_BASE}/clients/me`)
+const cards = Array.from(await getData(`${URL_BASE}/clients/${client.id}/cards`))
+const history = Array.from(await getData(`${URL_BASE}/clients/${client.id}/history`))
 
 history.forEach(transaction => {
     switch (transaction.type) {
         case 'Оплата товаров и услуг':
             transaction.direction = 'out'
             transaction.counterpartyName = transaction.merchant
-            break
+            break;
 
         case 'Зачисление':
             transaction.direction = 'in'
             transaction.counterpartyName = transaction.source
-            break
+            break;
 
         case 'Перевод':
             if (transaction.receiverDetails.id == transaction.senderDetails.id) {
@@ -46,8 +46,8 @@ history.forEach(transaction => {
                 transaction.counterpartyName = transaction.receiverDetails.name
                 transaction.counterpartyNumber = transaction.receiverCardNumber
             }
-            break
+            break;
     }
 })
 
-export { URL_BASE, sendRequest, client, cards, history }
+export { URL_BASE, getData, client, cards, history }

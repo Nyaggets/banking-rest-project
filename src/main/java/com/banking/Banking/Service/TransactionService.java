@@ -73,10 +73,6 @@ public class TransactionService {
         return repository.save(transaction);
     }
 
-    public List<Transaction> findAll(){
-        return repository.findAll();
-    }
-
     public List<Transaction> findByCardId(Long cardId){
         return repository.findByCardId(cardId);
     }
@@ -86,6 +82,7 @@ public class TransactionService {
         return cards.stream()
                     .flatMap(card -> repository.findByCardId(card.getId()).stream())
                     .sorted(Comparator.comparing(Transaction::getTimestamp))
-                    .toList().reversed();
+                    .distinct()
+                    .toList();
     }
 }

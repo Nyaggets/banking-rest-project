@@ -14,5 +14,5 @@ public interface CardMapper {
     @Mapping(target="clientId", source = "client.id")
     CardDtoRequest toDto(Card card);
     @Mapping(target="clientId", source = "client.id")
-    List<CardDtoRequest> toDtoList(List<Card> cards);
+    List<CardDtoRequest> toListDto(List<Card> cards);
 }

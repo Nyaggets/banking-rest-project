@@ -46,10 +46,6 @@ public class CardService {
         return repository.save(card);
     }
 
-    public List<Card> findAll(){
-        return repository.findAll();
-    }
-
     public Card findById(Long id){
         return repository.findById(id).orElse(null);
     }

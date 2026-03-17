@@ -17,5 +17,5 @@ document.getElementById('replenish-btn').addEventListener('click', function() {
 })
 
 const cardHistory = document.getElementById('card-history')
-const history = Array.from(await sendRequest(`${URL_BASE}/cards/${cardId}/transactions`))
+const history = Array.from(await getData(`${URL_BASE}/cards/${cardId}/transactions`))
 showHistory(history, cardHistory)
