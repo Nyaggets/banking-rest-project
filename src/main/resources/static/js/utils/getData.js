@@ -19,39 +19,35 @@ const history = Array.from(await sendRequest(`${URL_BASE}/clients/${client.id}/h
 history.forEach(transaction => {
     switch (transaction.type) {
         case 'Оплата товаров и услуг':
-            transaction.sign = '-'
-            transaction.direction = 'OUT'
+            transaction.direction = 'out'
             transaction.counterpartyName = transaction.merchant
             break
 
         case 'Зачисление':
-            transaction.sign = '+'
-            transaction.direction = 'IN'
+            transaction.direction = 'in'
             transaction.counterpartyName = transaction.source
             break
 
         case 'Перевод':
-            transaction.sign = 'o'
             if (transaction.receiverDetails.id == transaction.senderDetails.id) {
-                transaction.direction = 'BETWEEN'
+                transaction.direction = 'between'
                 transaction.type = 'Перевод между своими'
                 transaction.counterpartyName = client.name
                 transaction.counterpartyNumber = transaction.senderCardNumber
             }
             else if (transaction.receiverDetails.id == client.id) {
-                transaction.direction = 'IN'
+                transaction.direction = 'in'
                 transaction.type = 'Входящий перевод'
                 transaction.counterpartyName = transaction.senderDetails.name
                 transaction.counterpartyNumber = transaction.senderCardNumber
             }
             else if (transaction.senderDetails.id == client.id) {
-                transaction.direction = 'OUT'
+                transaction.direction = 'out'
                 transaction.counterpartyName = transaction.receiverDetails.name
                 transaction.counterpartyNumber = transaction.receiverCardNumber
             }
             break
     }
 })
-// history = [new Set(history)]
 
 export { URL_BASE, sendRequest, client, cards, history }

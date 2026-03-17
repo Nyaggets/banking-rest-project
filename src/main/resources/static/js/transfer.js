@@ -17,11 +17,9 @@ const senderSelect = document.getElementById('sender-cards-select')
 cards.forEach((card, key) => {
     if (senderCard && card.id == senderCard.id) {
         senderSelect[key] = new Option(`${card.cardNumber} ${card.balance}`, card.id, true, true)
-        console.log('inside first senderCard = ', senderCard, ' card = ', card)
     }
     else {
         senderSelect[key] = new Option(`${card.cardNumber} ${card.balance}`, card.id, false, false)
-        console.log('inside third senderCard = ', senderCard, ' card = ', card)
     }
 })
 

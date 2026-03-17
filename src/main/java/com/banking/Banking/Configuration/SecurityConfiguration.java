@@ -48,7 +48,7 @@ public class SecurityConfiguration {
                                 response.sendRedirect("/main");
                         })
                 )
-                .logout(logout -> logout
+                   .logout(logout -> logout
                         .logoutSuccessUrl("/login?logout")
                         .permitAll()
                 );

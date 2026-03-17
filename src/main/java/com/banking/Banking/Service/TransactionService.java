@@ -27,12 +27,16 @@ public class TransactionService {
             return null;
         }
         transaction.setSenderCard(senderCard);
+        Card receiverCard = cardService.findById(transaction.getReceiverCard().getId());
         if (transaction.getReceiverCard() == null ||
                 transaction.getReceiverCard().equals(transaction.getSenderCard()) ||
                 transaction.getAmount().compareTo(new BigDecimal("0")) <= 0){
             return null;
         }
         transaction.setType("Перевод");
+        BigDecimal cardBalance = senderCard.getBalance();
+        senderCard.setBalance(cardBalance.subtract(transaction.getAmount()));
+        receiverCard.setBalance(receiverCard.getBalance().add(transaction.getAmount()));
         transaction.setTimestamp(LocalDateTime.now());
         return repository.save(transaction);
     }

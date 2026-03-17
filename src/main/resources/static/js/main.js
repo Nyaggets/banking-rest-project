@@ -1,6 +1,6 @@
 import { URL_BASE, cards, history } from './utils/getData.js'
 import { showHistory } from './utils/processData.js'
-const RECENT_HISTORY_LENGTH = 8
+const RECENT_HISTORY_LENGTH = 5
 
 const cardList = document.getElementById('card-list')
 cards.forEach(card => {
@@ -9,9 +9,15 @@ cards.forEach(card => {
     cardElem.innerHTML =
         `<div class="card-item">
             <h3>${card.cardNumber}</h3>
-            <h5>${card.balance}</h5>
-            <p>${card.createdDate}</p>
+            <h2>${card.balance} ₽</h2>
+            <button class="secondary-btn transfer-btn">Перевести</button>
         </div>`
+
+    const transferBtn = cardElem.querySelector('.transfer-btn')
+    transferBtn.addEventListener('click', function(e) {
+        e.stopPropagation()
+        window.location.assign(`${URL_BASE}/transfer?from=${card.id}`)
+    })
 
     cardElem.addEventListener('click', function(e) {
         e.preventDefault()

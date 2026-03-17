@@ -1,19 +1,18 @@
 import { URL_BASE, client, sendRequest } from './utils/getData.js'
-import { showHistory } from './utils/processData.js'
+import { showHistory, formatDate } from './utils/processData.js'
 
 const url = window.location.search
 const cardId = new URLSearchParams(url).get('id')
 
 const card = await sendRequest(`${URL_BASE}/clients/${client.id}/cards/card?id=${cardId}`)
-document.getElementById('card-container').innerHTML += 
-`<h1>${card.balance}</h1>
-<p>${card.cardNumber}</p>
-<p>${card.createdDate}></p>`
+document.getElementById('card-container').innerHTML += `<h3>${card.cardNumber}</h3>
+    <h2>${card.balance}₽</h2>
+    <h3>${formatDate(card.createdDate)}</h3>`
 
-document.getElementById('transfer-button').addEventListener('click', function() {
+document.getElementById('transfer-btn').addEventListener('click', function() {
     window.location.assign(`${URL_BASE}/transfer?from=${cardId}`)
 })
-document.getElementById('replenish-button').addEventListener('click', function() {
+document.getElementById('replenish-btn').addEventListener('click', function() {
     window.location.assign(`${URL_BASE}/transfer?to=${cardId}`)
 })
 

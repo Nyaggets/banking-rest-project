@@ -1,58 +1,85 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Карта</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link href="../static/css/style.css" rel="stylesheet">
+  <title>Карта</title>
 </head>
+
 <body>
-<header class="main-header">
-    <div class="container-logo">
-        <a href="main">
-            <span class="logo-img"></span>
-            <h2 class="logo-title">Банк</h2>
-        </a>
-    </div>
-
-    <div class="container-actions">
-        <a href="profile"><span class="profile-img">пр</span></a>
-        <a href="logout"><span class="logout-img"></span>лг</a>
-    </div>
-</header>
-
-<main>
-    <aside class="aside-menu">
-        <nav>
-            <ul class="aside-list">
-                <li class="aside-item">
-                    <a href="main"><span class="main-img"></span>Главная</a>
-                </li>
-                <li class="aside-item">
-                    <a href="transfer"><span class="transfer-img"></span>Перевести</a>
-                </li>
-                <li class="aside-item">
-                    <a href="#"><span class="analitics-img"></span>Аналитика</a>
-                </li>
-            </ul>
-        </nav>
-    </aside>
-
-    <div class="main-container">
-        <div id="card-container">
-            <div class="card-buttons">
-                <button class="action-button" id="transfer-button">Перевести</button>
-                <button class="action-button" id="replenish-button">Пополнить</button>
-            </div>
+  <header class="header container">
+    <nav class="navbar navbar-expand-lg">
+      <a class="navbar-brand nav-link" href="main">Банк</a>
+      <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasNavbar">
+        <div class="offcanvas-header">
+          <h5 class="offcanvas-title">Меню</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
         </div>
-
-        <h2>История операций</h2>
-        <ul id="card-history">
-        </ul>
+        <div class="offcanvas-body">
+          <ul class="navbar-nav">
+            <li class="nav-item">
+              <a href="main" class="nav-link">Главная</a>
+            </li>
+            <li class="nav-item">
+              <a href="transfer" class="nav-link">Перевести</a>
+            </li>
+            <li class="nav-item">
+              <a href="analitics" class="nav-link">Аналитика</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div class="side-actions">
+      <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar" aria-controls="offcanvasNavbar" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="profile-actions">
+        <a href="logout"><i class="fa fa-sign-out fa-flip-horizontal" aria-hidden="true"></i></a>
+        <a href="profile"><i class="fa fa-user" aria-hidden="true"></i></a>
+      </div>
     </div>
-</main>
+    </nav>   
+  </header>
 
-<footer class="main-footer">
-</footer>
+  <main>
+    <div class="main-container container">
+      <section id="section-card">
+        <div id="card-container" class="card-item"></div>
+        <div  id="card-stats">
+          <h3>Статистика за месяц</h3>
+          <h2 id="month-income"><i class="fa fa-plus" aria-hidden="true"></i></h2>
+          <h2 id="month-outcome"><i class="fa fa-minus" aria-hidden="true"></i></h2>
+        </div>
+        <div class="fast-actions ">
+          <h3 class="fast-actions-title">Быстрые действия</h3>
+          <ul class="fast-actions-list">
+            <li>
+              <button id="transfer-btn" type="button" class="secondary-btn"><a href="transfer">Перевести</a></button>
+            </li>
+            <li>
+              <button id="replenish-btn" type="button" class="secondary-btn"><a href="transfer">Пополнить</a></button>
+            </li>
+            <li>
+              <button type="button" class="secondary-btn"><a href="#">Снять</a></button>
+            </li>
+          </ul>
+        </div>
+      </section>
 
-<script type="module" src="/static/js/card.js"></script>
+      <section id="card-history col">
+        <div class="history-header">
+          <h2>История операций</h2>
+          <a href="history" class="link">Вся история</a>
+        </div>
+        <ul id="card-history"></ul>
+      </section>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script type="module" src="/static/js/card.js"></script>
 </body>
 </html>
