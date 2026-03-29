@@ -1,6 +1,6 @@
 package com.banking.Banking.Controller;
 
-import com.banking.Banking.Dto.CardDtoRequest;
+import com.banking.Banking.Dto.CardDtoResponse;
 import com.banking.Banking.Entity.Card;
 import com.banking.Banking.Mapper.CardMapper;
 import com.banking.Banking.Service.CardService;
@@ -20,19 +20,19 @@ public class CardController {
     private CardMapper mapper;
 
     @GetMapping
-    public ResponseEntity<List<CardDtoRequest>> findAllByClientId(@PathVariable Long clientId){
+    public ResponseEntity<List<CardDtoResponse>> findAllByClientId(@PathVariable Long clientId){
         List<Card> cards = cardService.findByClientId(clientId);
         if (cards == null){
             return ResponseEntity.notFound().build();
         }
-        List<CardDtoRequest> cardsDto = mapper.toListDto(cards);
+        List<CardDtoResponse> cardsDto = mapper.toListDto(cards);
         return ResponseEntity.ok(cardsDto);
     }
 
     @GetMapping("/card")
     @ResponseBody
-    public ResponseEntity<CardDtoRequest> findById(@PathVariable Long clientId,
-                                                   @RequestParam String id){
+    public ResponseEntity<CardDtoResponse> findById(@PathVariable Long clientId,
+                                                    @RequestParam String id){
         Card card = cardService.findById(Long.valueOf(id));
         if (card == null){
             return ResponseEntity.notFound().build();
@@ -41,21 +41,24 @@ public class CardController {
     }
 
     @GetMapping("search")
-    public ResponseEntity<CardDtoRequest> findByCardNumber(@RequestParam String number){
+    public ResponseEntity<CardDtoResponse> findByCardNumber(@RequestParam String number){
         Card card = cardService.findByCardNumber(number);
         if (card == null){
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.badRequest().build();
         }
         return ResponseEntity.ok(mapper.toDto(card));
     }
 
     @PostMapping("/create")
-    public ResponseEntity<CardDtoRequest> createCardForClient(@PathVariable Long clientId){
-        Card card = cardService.createCard(clientId);
-        if (card == null){
-            return ResponseEntity.notFound().build();
+    public ResponseEntity<CardDtoResponse> createCardForClient(@PathVariable Long clientId){
+        try {
+            Card card = cardService.createCard(clientId);
+            return new ResponseEntity<>(mapper.toDto(card), HttpStatus.CREATED);
         }
-        return new ResponseEntity<>(mapper.toDto(card), HttpStatus.CREATED);
+        catch (Exception ex) {
+            return ResponseEntity.badRequest().build();
+        }
+
     }
 
     @DeleteMapping("/{id}/delete")

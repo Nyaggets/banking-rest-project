@@ -1,7 +1,11 @@
 package com.banking.Banking.Service;
 
 import com.banking.Banking.Entity.Card;
+import com.banking.Banking.validation.CardNotFoundException;
+import com.banking.Banking.Entity.Client;
 import com.banking.Banking.Repository.CardRepository;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -12,6 +16,7 @@ import java.util.List;
 import java.util.Random;
 
 @Service
+@Transactional
 public class CardService {
     @Autowired
     private CardRepository repository;
@@ -28,30 +33,41 @@ public class CardService {
     }
 
     public Card createCard(Long clientId){
-        if (clientService.findById(clientId) == null){
-            return null;
+        Client client = clientService.findById(clientId);
+        if (client == null){
+            throw new EntityNotFoundException("Пользователь не найден");
         }
 
         String cardNumber = generateCardNumber();
         while (repository.findByCardNumber(cardNumber).isPresent()){
             cardNumber = generateCardNumber();
         }
-
-        Card card = new Card();
-        card.setClient(clientService.findById(clientId));
-        card.setClientName(clientService.findById(clientId).getName());
-        card.setCardNumber(cardNumber);
-        card.setBalance(new BigDecimal(0));
-        card.setCreatedDate(LocalDate.now());
+        Card card = Card.builder()
+                        .client(client)
+                        .clientName(client.getName())
+                        .cardNumber(cardNumber)
+                        .balance(BigDecimal.ZERO)
+                        .createdDate(LocalDate.now())
+                        .build();
         return repository.save(card);
     }
 
-    public Card findById(Long id){
+    public Card findById(Long id) {
         return repository.findById(id).orElse(null);
     }
 
-    public Card findByCardNumber(String cardNumber){
-        return repository.findByCardNumber(cardNumber).orElse(null);
+    public Card findByIdOrThrow(Long id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new CardNotFoundException("Карта не найдена"));
+    }
+
+    public Card findByCardNumber(String number) {
+        return repository.findByCardNumber(number).orElse(null);
+    }
+
+    public Card findByCardNumberOrThrow(String number) {
+        return repository.findByCardNumber(number)
+                .orElseThrow(() -> new CardNotFoundException("Карта не найдена по номеру"));
     }
 
     public List<Card> findByClientId(Long id){

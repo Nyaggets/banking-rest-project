@@ -1,5 +1,6 @@
 package com.banking.Banking.Dto;
 
+import com.banking.Banking.Entity.OperationTypes;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -8,7 +9,7 @@ import java.time.LocalDateTime;
 @Data
 public class TransactionDtoResponse {
     Long id;
-    String type;
+    OperationTypes type;
     String merchant;
     String source;
     BigDecimal amount;

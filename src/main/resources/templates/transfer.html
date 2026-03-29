@@ -54,17 +54,20 @@
             <div class="transfer-field col-12 col-md-5">
               <h3>Получатель</h3>
               <input type="text" name="receiver" id="receiver" placeholder="Номер телефона/карты" required>
+              <div data-error-for="receiver" class="error-msg" hidden></div>
             </div>
             <div class="col-md-1 d-flex align-items-center justify-content-center">
               <i class="fa fa-exchange" aria-hidden="true"></i>
             </div>
             <div class="transfer-field col-12 col-md-5">
               <h3>Карта списания</h3>
-              <select name="sender-cards" id="sender-cards-select" required></select>
+              <select name="sender" id="sender-cards-select" required></select>
+              <div data-error-for="sender" class="error-msg" hidden></div>
             </div>
             <div class="transfer-field col-12 col-md-5">
               <h3>Сумма перевода</h3>
               <input type="number" name="amount" id="amount" required>
+              <div data-error-for="amount" class="error-msg" hidden></div>
             </div>
             <div class="col col-md-1"></div>
             <div class="col-12 col-md-5">

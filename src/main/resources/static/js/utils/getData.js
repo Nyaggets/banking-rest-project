@@ -1,14 +1,16 @@
 const URL_BASE = 'http://localhost:8080';
 
 const getData = async(url) => {
-    try {
-        const response = await fetch(url);
-        if (response.ok) {
-            return response.json()
-        }
+    const response = await fetch(url);
+    if (response.ok) {
+        return response.json()
     }
-    catch (error) {
-        console.log(error)
+    else {
+        const errorMap = await response.json()
+        Object.entries(errorMap).forEach(([field, message]) => {
+            document.querySelector(`[name="${field}"]`).classList.add('error')
+            document.querySelector(`[data-error-for="${field}"]`).textContent = message
+        })
     }
 }
 
@@ -18,17 +20,19 @@ const history = Array.from(await getData(`${URL_BASE}/clients/${client.id}/histo
 
 history.forEach(transaction => {
     switch (transaction.type) {
-        case 'Оплата товаров и услуг':
+        case 'WITHDRAWAL':
+            transaction.type = 'Оплата товаров и услуг'
             transaction.direction = 'out'
             transaction.counterpartyName = transaction.merchant
             break;
 
-        case 'Зачисление':
+        case 'DEPOSIT':
+            transaction.type = 'Зачисление'
             transaction.direction = 'in'
             transaction.counterpartyName = transaction.source
             break;
 
-        case 'Перевод':
+        case 'TRANSFER':
             if (transaction.receiverDetails.id == transaction.senderDetails.id) {
                 transaction.direction = 'between'
                 transaction.type = 'Перевод между своими'
@@ -43,6 +47,7 @@ history.forEach(transaction => {
             }
             else if (transaction.senderDetails.id == client.id) {
                 transaction.direction = 'out'
+                transaction.type = 'Перевод'
                 transaction.counterpartyName = transaction.receiverDetails.name
                 transaction.counterpartyNumber = transaction.receiverCardNumber
             }

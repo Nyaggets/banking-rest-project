@@ -24,23 +24,19 @@ public class CardServiceTest {
     private CardService cardService;
 
     @Test
-    void whenExistingNumber_GenerateNew() {
+    void createCard_GenerateUniqueumber() {
         String existingNumber = "12345634569852347829";
         String newNumber = "12345678901234567890";
-
         CardService cardServiceSpy = spy(cardService);
-
         Client mockClient = new Client();
-        when(clientService.findById(1L)).thenReturn(mockClient);
 
+        when(clientService.findById(1L)).thenReturn(mockClient);
         doReturn(existingNumber)
                 .doReturn(newNumber)
                 .when(cardServiceSpy).generateCardNumber();
-
         when(cardRepository.findByCardNumber(anyString()))
                 .thenReturn(Optional.of(new Card()))
                 .thenReturn(Optional.empty());
-
         when(cardRepository.save(any(Card.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 

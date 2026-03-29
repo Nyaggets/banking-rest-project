@@ -8,7 +8,7 @@
   --color-secondary: #f3e6dd;
   --color-accent: #3a3a41;
   --color-text: #0f0100;
-  --color-success: #83d26c;
+  --color-success: #25cd17;
   --color-danger: #e55459;
   --font-size-title: 32px;
   --font-size-secondary-title: 28px;
@@ -117,6 +117,9 @@ section:not(:first-child) {
 }
 .caption {
   color: var(--color-accent);
+}
+.error-msg {
+  color: var(--color-danger);
 }
 
 .auth-container {

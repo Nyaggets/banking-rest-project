@@ -28,7 +28,6 @@ const showHistory = (transactions, historyList, length = transactions.length) =>
 const formatDate = (date) => {
     const formattedDate = new Date(date).setHours(0, 0, 0, 0)
     const yesterday = new Date(new Date().setDate(new Date().getDate() - 1));
-    console.log(formattedDate, new Date().setHours(0, 0, 0, 0), new Date().setHours(0, 0, 0, 0) === formattedDate, yesterday, yesterday.setHours(0, 0, 0, 0),  yesterday.setHours(0, 0, 0, 0) === formattedDate);
     if (new Date().setHours(0, 0, 0, 0) == formattedDate)
         return 'Сегодня'
     else if (yesterday.setHours(0, 0, 0, 0) == formattedDate)

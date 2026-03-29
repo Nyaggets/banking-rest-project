@@ -2,24 +2,26 @@ package com.banking.Banking.Controller;
 
 import com.banking.Banking.Dto.ClientDtoRequest;
 import com.banking.Banking.Dto.ClientDtoResponse;
-import com.banking.Banking.Dto.TransactionDtoResponse;
 import com.banking.Banking.Entity.Client;
-import com.banking.Banking.Entity.Transaction;
 import com.banking.Banking.Mapper.ClientMapper;
 import com.banking.Banking.Mapper.TransactionMapper;
 import com.banking.Banking.Service.ClientService;
 import com.banking.Banking.Service.TransactionService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AnonymousAuthenticationToken;
-import org.springframework.security.core.Authentication;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/clients")
+@Validated
 public class ClientController {
     private final ClientService clientService;
     private final ClientMapper clientMapper;
@@ -52,15 +54,6 @@ public class ClientController {
     @PostMapping("/login/{phone}")
     public ResponseEntity<ClientDtoResponse> loginByPhone(@PathVariable("phone") String phone){
         Client client = clientService.findByPhone(phone);
-        if (client == null){
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(clientMapper.toDtoResponse(client));
-    }
-
-    @PostMapping("/login/{password}")
-    public ResponseEntity<ClientDtoResponse> loginByPassword(@PathVariable("phone") String password){
-        Client client = clientService.findByPhone(password);
         if (client == null){
             return ResponseEntity.notFound().build();
         }

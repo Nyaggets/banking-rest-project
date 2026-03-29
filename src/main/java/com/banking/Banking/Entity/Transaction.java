@@ -1,7 +1,7 @@
 package com.banking.Banking.Entity;
 
-import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.ColumnDefault;
@@ -13,6 +13,7 @@ import java.util.Objects;
 @Entity
 @AllArgsConstructor
 @NoArgsConstructor
+@Builder
 @FieldDefaults(level = AccessLevel.PACKAGE)
 @Getter
 @Setter
@@ -23,7 +24,8 @@ public class Transaction {
     @Column(name = "transaction_id")
     Long id;
     @Column(name = "operation_type")
-    String type;
+    @Enumerated(EnumType.STRING)
+    OperationTypes type;
     @ColumnDefault("null")
     String merchant;
     @ColumnDefault("null")
@@ -36,8 +38,11 @@ public class Transaction {
     @JoinColumn(name = "receiver_card_id")
     @ColumnDefault("null")
     Card receiverCard;
+    @Positive(message = "Сумма перевода должна быть больше 0")
     BigDecimal amount;
+    @PastOrPresent(message = "Дата перевода должна быть не позже текущей")
     LocalDateTime timestamp;
+    @ColumnDefault("null")
     String description;
 
     @Override

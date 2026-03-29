@@ -2,17 +2,22 @@ package com.banking.Banking.Controller;
 
 import com.banking.Banking.Dto.TransactionDtoRequest;
 import com.banking.Banking.Dto.TransactionDtoResponse;
-import com.banking.Banking.Entity.Transaction;
 import com.banking.Banking.Mapper.TransactionMapper;
+import com.banking.Banking.Service.CardService;
+import com.banking.Banking.Service.ClientService;
 import com.banking.Banking.Service.TransactionService;
+import com.banking.Banking.validation.DepositGroup;
+import com.banking.Banking.validation.TransferGroup;
+import com.banking.Banking.validation.WithdrawalGroup;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/cards/{cardId}/transactions")
@@ -21,35 +26,94 @@ public class TransactionController {
     private TransactionService transactionService;
     @Autowired
     private TransactionMapper mapper;
+    @Autowired
+    private ClientService clientService;
+    @Autowired
+    private CardService cardService;
+
+    private String mapFieldName(String field) {
+        return switch (field) {
+            case "receiverCardNumber" -> "receiver";
+            case "senderCardId" -> "sender";
+            default -> field;
+        };
+    }
 
     @PostMapping("/transfer")
-    public ResponseEntity<TransactionDtoResponse> createTransfer(@PathVariable String cardId,
-                                                                 @RequestBody TransactionDtoRequest transactionDtoRequest){
-        Transaction transaction = mapper.fromDto(transactionDtoRequest);
-        if (transactionService.createTransfer(transaction, Long.valueOf(cardId)) == null){
-            return ResponseEntity.notFound().build();
+    public ResponseEntity<?> createTransfer(@Validated(TransferGroup.class)
+                                            @RequestBody TransactionDtoRequest transactionDtoRequest,
+                                            BindingResult result) {
+        if (result.hasErrors()) {
+            return ResponseEntity.badRequest().body(
+                    result.getFieldErrors().stream().collect(
+                            Collectors.toMap(
+                                    error -> mapFieldName(error.getField()),
+                                    FieldError::getDefaultMessage
+                            ))
+            );
         }
-        return ResponseEntity.ok(mapper.toDto(transaction));
+        try {
+            var validTransaction = transactionService.transferValidation(transactionDtoRequest);
+            if (!validTransaction.isEmpty())
+                return ResponseEntity.badRequest().body(validTransaction);
+
+            transactionService.createTransfer(transactionDtoRequest);
+            return ResponseEntity.ok().build();
+        }
+        catch (Exception ex) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
-    @PostMapping("/replenish")
-    public ResponseEntity<TransactionDtoResponse> createReplenish(@PathVariable Long cardId,
-                                                       @RequestBody TransactionDtoRequest replenishDto){
-        Transaction replenish = mapper.fromDto(replenishDto);
-        if (transactionService.createReplenish(replenish, cardId) == null){
-            return ResponseEntity.notFound().build();
+    @PostMapping("/deposit")
+    public ResponseEntity<?> createDeposit(@Validated(DepositGroup.class)
+                                            @RequestBody TransactionDtoRequest depositDto,
+                                            BindingResult result) {
+        if (result.hasErrors()) {
+            return ResponseEntity.badRequest().body(
+                    result.getFieldErrors().stream().collect(
+                            Collectors.toMap(
+                                    error -> mapFieldName(error.getField()),
+                                    FieldError::getDefaultMessage
+                            ))
+            );
         }
-        return ResponseEntity.ok(mapper.toDto(replenish));
+        try {
+            var validTransaction = transactionService.depositValidation(depositDto);
+            if (!validTransaction.isEmpty())
+                return ResponseEntity.badRequest().body(validTransaction);
+
+            transactionService.createDeposit(depositDto);
+            return ResponseEntity.ok().build();
+        }
+        catch (Exception ex) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
-    @PostMapping("/writeoff")
-    public ResponseEntity<TransactionDtoResponse> createWriteOff(@PathVariable Long cardId,
-                                                      @RequestBody TransactionDtoRequest writeOffDto){
-        Transaction writeOff = mapper.fromDto(writeOffDto);
-        if (transactionService.createWriteOff(writeOff, cardId) == null){
-            return ResponseEntity.notFound().build();
+    @PostMapping("/withdrawal")
+    public ResponseEntity<?> createWithdrawal(@Validated(WithdrawalGroup.class)
+                                               @RequestBody TransactionDtoRequest withdrawalDto,
+                                                BindingResult result) {
+        if (result.hasErrors()) {
+            return ResponseEntity.badRequest().body(
+                    result.getFieldErrors().stream().collect(
+                            Collectors.toMap(
+                                    error -> mapFieldName(error.getField()),
+                                    FieldError::getDefaultMessage
+                            ))
+            );
         }
-        return ResponseEntity.ok(mapper.toDto(writeOff));
+        try {
+            var validTransaction = transactionService.withdrawalValidation(withdrawalDto);
+            if (!validTransaction.isEmpty())
+                return ResponseEntity.badRequest().body(validTransaction);
+
+            transactionService.createWithdrawal(withdrawalDto);
+            return ResponseEntity.ok().build();
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     @GetMapping

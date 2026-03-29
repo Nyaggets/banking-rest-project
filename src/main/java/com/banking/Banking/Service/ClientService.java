@@ -41,7 +41,12 @@ public class ClientService implements UserDetailsService {
     }
 
     public Client findByUsername(String username){
-        return repository.findByUsername(username);
+        return repository.findByUsername(username).orElse(null);
+    }
+
+    public Client findByUsernameOrThrow(String username){
+        return repository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("Пользователь не найден"));
     }
 
     public boolean deleteClient(Long id){
@@ -54,6 +59,7 @@ public class ClientService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        return repository.findByUsername(username);
+        return repository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("Invalid credentials"));
     }
 }

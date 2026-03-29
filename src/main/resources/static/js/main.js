@@ -14,13 +14,11 @@ cards.forEach(card => {
         </div>`
 
     const transferBtn = cardElem.querySelector('.transfer-btn')
-    transferBtn.addEventListener('click', function(e) {
-        e.stopPropagation()
+    transferBtn.addEventListener('click', () => {
         window.location.assign(`${URL_BASE}/transfer?from=${card.id}`)
     })
 
-    cardElem.addEventListener('click', function(e) {
-        e.preventDefault()
+    cardElem.addEventListener('click', () => {
         window.location.assign(`${URL_BASE}/card?id=${card.id}`)
     })
 })
