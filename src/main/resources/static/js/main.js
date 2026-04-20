@@ -18,8 +18,9 @@ cards.forEach(card => {
         window.location.assign(`${URL_BASE}/transfer?from=${card.id}`)
     })
 
-    cardElem.addEventListener('click', () => {
-        window.location.assign(`${URL_BASE}/card?id=${card.id}`)
+    cardElem.addEventListener('click', (e) => {
+        if (e.target.tagName !== 'BUTTON')
+            window.location.assign(`${URL_BASE}/card?id=${card.id}`)
     })
 })
 

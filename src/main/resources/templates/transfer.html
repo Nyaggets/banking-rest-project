@@ -11,6 +11,16 @@
 </head>
 
 <body>
+  <div class="toast position-fixed mt-3 top-0 start-50 translate-middle-x" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="true" data-bs-delay="1500">
+    <div class="toast-header">
+      <strong class="me-auto" id="toast-header"></strong>
+      <small>Только что</small>
+      <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+    <div class="toast-body" id="toast-body">
+    </div>
+  </div>
+
   <header class="header container">
     <nav class="navbar navbar-expand-lg">
       <a class="navbar-brand nav-link" href="main">Банк</a>
@@ -66,8 +76,13 @@
             </div>
             <div class="transfer-field col-12 col-md-5">
               <h3>Сумма перевода</h3>
-              <input type="number" name="amount" id="amount" required>
+              <input type="text" pattern="[0-9. ]*" name="amount" id="amount" required>
               <div data-error-for="amount" class="error-msg" hidden></div>
+              <div class="amout-btns-row">
+                <button type="button" class="secondary-btn amount-btn">500₽</button>
+                <button type="button" class="secondary-btn amount-btn">1 000₽</button>
+                <button type="button" class="secondary-btn amount-btn">1 500₽</button>
+              </div>
             </div>
             <div class="col col-md-1"></div>
             <div class="col-12 col-md-5">
@@ -76,7 +91,7 @@
             </div>
           
             <div class="col">
-              <p>Комиссия: 0.00₽</p>
+              <p id="commission-amount">Комиссия: 0₽</p>
               <button type="submit" class="main-btn" id="transfer-btn">Перевести</button>
             </div>
           </form>
@@ -85,7 +100,7 @@
     </div>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script type="module" src="/static/js/transfer.js"></script>
 </body>
 </html>

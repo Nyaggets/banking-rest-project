@@ -10,12 +10,14 @@ import com.banking.Banking.validation.DepositGroup;
 import com.banking.Banking.validation.TransferGroup;
 import com.banking.Banking.validation.WithdrawalGroup;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -39,9 +41,21 @@ public class TransactionController {
         };
     }
 
+    @PostMapping("/commission")
+    public ResponseEntity<?> calculateCommission(@RequestParam String amount) {
+        if (amount.isEmpty())
+            return ResponseEntity.ok(BigDecimal.ZERO);
+        try {
+            var commissionAmount = transactionService.calculateCommission(new BigDecimal(amount));
+            return ResponseEntity.ok(commissionAmount);
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
     @PostMapping("/transfer")
     public ResponseEntity<?> createTransfer(@Validated(TransferGroup.class)
-                                            @RequestBody TransactionDtoRequest transactionDtoRequest,
+                                            @RequestBody TransactionDtoRequest dtoRequest,
                                             BindingResult result) {
         if (result.hasErrors()) {
             return ResponseEntity.badRequest().body(
@@ -53,11 +67,11 @@ public class TransactionController {
             );
         }
         try {
-            var validTransaction = transactionService.transferValidation(transactionDtoRequest);
+            var validTransaction = transactionService.transferValidation(dtoRequest);
             if (!validTransaction.isEmpty())
                 return ResponseEntity.badRequest().body(validTransaction);
 
-            transactionService.createTransfer(transactionDtoRequest);
+            transactionService.createTransfer(dtoRequest);
             return ResponseEntity.ok().build();
         }
         catch (Exception ex) {
@@ -80,11 +94,16 @@ public class TransactionController {
         }
         try {
             var validTransaction = transactionService.depositValidation(depositDto);
-            if (!validTransaction.isEmpty())
-                return ResponseEntity.badRequest().body(validTransaction);
+            if (validTransaction.isEmpty()) {
+                transactionService.createDeposit(depositDto);
+                return ResponseEntity.ok().build();
+            }
 
-            transactionService.createDeposit(depositDto);
-            return ResponseEntity.ok().build();
+            if (validTransaction.containsKey("unauthorized"))
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(validTransaction);
+            if (validTransaction.containsKey("forbidden"))
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(validTransaction);
+            return ResponseEntity.badRequest().body(validTransaction);
         }
         catch (Exception ex) {
             return ResponseEntity.badRequest().build();
@@ -112,7 +131,7 @@ public class TransactionController {
             transactionService.createWithdrawal(withdrawalDto);
             return ResponseEntity.ok().build();
         } catch (Exception ex) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body(ex.getMessage());
         }
     }
 

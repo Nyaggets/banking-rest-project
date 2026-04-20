@@ -1,20 +1,21 @@
 import { URL_BASE, cards, client, getData } from './utils/getData.js'
+import { processResponse, formatAmount } from './utils/processData.js'
 
 const url = window.location.search
 const search = new URLSearchParams(url)
-let senderCard
-let receiverCard
+let choosedSenderCard
+let choosedReceiverCard
 if (search.has('from')) {
-    senderCard = await getData(`${URL_BASE}/clients/${client.id}/cards/card?id=${search.get('from')}`)
+    choosedSenderCard = await getData(`${URL_BASE}/clients/${client.id}/cards/card?id=${search.get('from')}`)
 }
 else if (search.has('to')) {
-    receiverCard = await getData(`${URL_BASE}/clients/${client.id}/cards/card?id=${search.get('to')}`)
-    document.getElementById('receiver').value = receiverCard.cardNumber
-    cards.slice(cards.indexOf(receiverCard), 1)
+    choosedReceiverCard = await getData(`${URL_BASE}/clients/${client.id}/cards/card?id=${search.get('to')}`)
+    document.getElementById('receiver').value = choosedReceiverCard.cardNumber
+    cards.slice(cards.indexOf(choosedReceiverCard), 1)
 }
 const senderSelect = document.getElementById('sender-cards-select')
 cards.forEach((card, key) => {
-    if (senderCard && card.id == senderCard.id) {
+    if (choosedSenderCard && card.id == choosedSenderCard.id) {
         senderSelect[key] = new Option(`${card.cardNumber} ${card.balance}`, card.id, true, true)
     }
     else {
@@ -22,34 +23,56 @@ cards.forEach((card, key) => {
     }
 })
 
+//считаю комиссию
+const calcCommission = async (amountInputEl) => {
+    const cleanedAmount = amountInputEl.value.replace(' ', '').replace('.', ',')
+    const commissionEl = document.getElementById('commission-amount')
+    const response = await fetch(`${URL_BASE}/cards/${senderSelect.value}/transactions/commission?amount=${cleanedAmount}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json;charset=utf-8'
+        },
+    })
+    amountInputEl.value = formatAmount(cleanedAmount)
+    if (response.ok) {
+        const commission = await response.text()
+        const commissionFormatted = formatAmount(commission)
+        commissionEl.innerText = `Комиссия: ${commissionFormatted}₽`
+        const totalAmount = parseFloat(cleanedAmount) + parseFloat(commission)
+        const totalAmountFormatted = formatAmount(totalAmount.toString())
+        document.getElementById('transfer-btn').innerText = `Перевести ${totalAmountFormatted} ${totalAmountFormatted ? '₽' : ''}`
+    }
+}
+
+const amountInput = document.getElementById('amount')
+amountInput.addEventListener('input', async () => {
+    calcCommission(amountInput)
+})
+
+const amountBtns = document.querySelectorAll('.amount-btn')
+amountBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        amountInput.value = btn.innerText.replace(/[^\d\s\,]/g, '')
+        calcCommission(amountInput)
+    })
+})
+
+
 const transferForm = document.getElementById('transfer-form')
-transferForm.addEventListener('submit', async function(e) {
+transferForm.addEventListener('submit', async (e) => {
     e.preventDefault()
-    const senderCardId = document.getElementById('sender-cards-select').value
-    receiverCard = document.getElementById('receiver').value
-    const response = await fetch(`${URL_BASE}/cards/${senderCardId}/transactions/transfer`, {
+    const receiverCard = document.getElementById('receiver').value
+    const response = await fetch(`${URL_BASE}/cards/${senderSelect.value}/transactions/transfer`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json;charset=utf-8'
         },
         body: JSON.stringify({
-            senderCardId,
+            senderCardId: senderSelect.value,
             receiverCardNumber: receiverCard, 
-            amount: document.getElementById('amount').value,
+            amount: amountInput.value.replace(/\s/g, '').replace(/\./g, ','),
             description: document.getElementById('description').value
         })
     })
-
-    if (response.ok) {
-        //тост сюда бахнуть
-        alert('Отправлено!')
-    }
-    else {
-        const errorMap = await response.json()
-        Object.entries(errorMap).forEach(([field, message]) => {
-            document.querySelector(`[name="${field}"]`).classList.add('in-valid')
-            document.querySelector(`[data-error-for="${field}"]`).hidden = false
-            document.querySelector(`[data-error-for="${field}"]`).textContent = message
-        })
-    }
+    processResponse(response);
 })

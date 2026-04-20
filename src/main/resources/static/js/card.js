@@ -15,6 +15,7 @@ document.getElementById('transfer-btn').addEventListener('click', function() {
 document.getElementById('replenish-btn').addEventListener('click', function() {
     window.location.assign(`${URL_BASE}/transfer?to=${cardId}`)
 })
+//не осуществляются to|from переходы
 
 const cardHistory = document.getElementById('card-history')
 const history = Array.from(await getData(`${URL_BASE}/cards/${cardId}/transactions`))

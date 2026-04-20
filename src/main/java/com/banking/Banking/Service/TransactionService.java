@@ -26,19 +26,26 @@ public class TransactionService {
     @Autowired
     private ClientService clientService;
 
+    public BigDecimal calculateCommission(BigDecimal amount) {
+        return amount.compareTo(new BigDecimal("100000")) < 0
+                ? BigDecimal.ZERO
+                : amount.multiply(new BigDecimal("0.05"));
+    }
+
     private void isAmountValid(BigDecimal senderBalance, BigDecimal amount, Map<String, String> errors) {
         if (amount.compareTo(BigDecimal.ZERO) <= 0)
             errors.put("amount", "Некорректная сумма перевода");
         if (senderBalance.compareTo(amount) < 0)
             errors.put("amount", "На карте отправителя недостаточно средств");
+        if (amount.compareTo(new BigDecimal("1000000")) > 0 || amount.compareTo(BigDecimal.TEN) < 0)
+            errors.put("amount", "Разовый перевод должен быть от 10₽ до 1 000 000₽ включительно");
     }
 
     private boolean clientSenderValidation(Card senderCard, Map<String, String> errors) {
-        boolean isValid = true;
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         Client client = clientService.findByUsername(auth.getName());
         if (client == null) {
-            errors.put("operation error", "Пользователь не найден");
+            errors.put("unauthorized", "Пользователь не найден");
             return false;
         }
         if (senderCard == null) {
@@ -46,10 +53,10 @@ public class TransactionService {
             return false;
         }
         if (!Objects.equals(senderCard.getClient().getId(), client.getId())) {
-            errors.put("sender", "Карта не принадлежит текущему пользователю");
-            isValid = false;
+            errors.put("forbidden", "Карта не принадлежит текущему пользователю");
+            return false;
         }
-        return isValid;
+        return true;
     }
 
     private boolean receiverValidation(Card receiverCard, Map<String, String> errors) {
@@ -59,7 +66,6 @@ public class TransactionService {
         }
         return true;
     }
-
 
     public Map<String, String> transferValidation(TransactionDtoRequest transactionDto) {
         Map<String, String> errors = new HashMap<>();
@@ -79,17 +85,21 @@ public class TransactionService {
     public Transaction createTransfer(TransactionDtoRequest transactionDto) {
         Card senderCard = cardService.findByIdOrThrow(transactionDto.getSenderCardId());
         Card receiverCard = cardService.findByCardNumberOrThrow(transactionDto.getReceiverCardNumber());
+        BigDecimal commission = calculateCommission(transactionDto.getAmount());
+
         Transaction transaction = Transaction.builder()
                 .type(OperationTypes.TRANSFER)
                 .senderCard(senderCard)
                 .receiverCard(receiverCard)
                 .amount(transactionDto.getAmount())
+                .commission(commission)
+                .totalAmount(transactionDto.getAmount().add(commission))
                 .description(transactionDto.getDescription())
                 .timestamp(LocalDateTime.now())
                 .build();
 
         BigDecimal senderBalance = transaction.getSenderCard().getBalance();
-        transaction.getSenderCard().setBalance(senderBalance.subtract(transaction.getAmount()));
+        transaction.getSenderCard().setBalance(senderBalance.subtract(transaction.getTotalAmount()));
         receiverCard.setBalance(receiverCard.getBalance().add(transaction.getAmount()));
         return repository.save(transaction);
     }
@@ -105,20 +115,25 @@ public class TransactionService {
 
     public Transaction createWithdrawal(TransactionDtoRequest transactionDto) {
         Card senderCard = cardService.findByIdOrThrow(transactionDto.getSenderCardId());
+        BigDecimal commission = calculateCommission(transactionDto.getAmount());
+
         Transaction transaction = Transaction.builder()
                 .type(OperationTypes.WITHDRAWAL)
                 .senderCard(senderCard)
                 .merchant(transactionDto.getMerchant())
                 .amount(transactionDto.getAmount())
+                .commission(commission)
+                .totalAmount(transactionDto.getAmount().add(commission))
                 .description(transactionDto.getDescription())
                 .timestamp(LocalDateTime.now())
                 .build();
+
         BigDecimal cardBalance = senderCard.getBalance();
         if (transaction.getAmount().compareTo(cardBalance) == 1 ||
                 transaction.getAmount().compareTo(BigDecimal.ZERO) <= 0){
             return null;
         }
-        senderCard.setBalance(cardBalance.subtract(transaction.getAmount()));
+        senderCard.setBalance(cardBalance.subtract(transaction.getTotalAmount()));
         return repository.save(transaction);
     }
 
@@ -139,11 +154,12 @@ public class TransactionService {
                 .source(transactionDto.getSource())
                 .receiverCard(receiverCard)
                 .amount(transactionDto.getAmount())
+                .totalAmount(transactionDto.getAmount())
                 .description(transactionDto.getDescription())
                 .timestamp(LocalDateTime.now())
                 .build();
         BigDecimal senderBalance = receiverCard.getBalance();
-        receiverCard.setBalance(senderBalance.add(transactionDto.getAmount()));
+        receiverCard.setBalance(senderBalance.add(transaction.getTotalAmount()));
         return repository.save(transaction);
     }
 
@@ -155,7 +171,7 @@ public class TransactionService {
         List<Card> cards = cardService.findByClientId(clientId);
         return cards.stream()
                     .flatMap(card -> repository.findByCardId(card.getId()).stream())
-                    .sorted(Comparator.comparing(Transaction::getTimestamp))
+                    .sorted(Comparator.comparing(Transaction::getTimestamp).reversed())
                     .distinct()
                     .toList();
     }

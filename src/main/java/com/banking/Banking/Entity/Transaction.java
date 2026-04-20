@@ -40,6 +40,13 @@ public class Transaction {
     Card receiverCard;
     @Positive(message = "Сумма перевода должна быть больше 0")
     BigDecimal amount;
+    @PositiveOrZero(message = "Сумма комиссии должна быть больше или равна 0")
+    @ColumnDefault("0")
+    BigDecimal commission;
+    @Column(name = "total_amount")
+    @Positive(message = "Сумма перевода должна быть больше 0")
+    @ColumnDefault("0")
+    BigDecimal totalAmount;
     @PastOrPresent(message = "Дата перевода должна быть не позже текущей")
     LocalDateTime timestamp;
     @ColumnDefault("null")

@@ -13,6 +13,8 @@ public class TransactionDtoResponse {
     String merchant;
     String source;
     BigDecimal amount;
+    BigDecimal commission;
+    BigDecimal totalAmount;
     LocalDateTime timestamp;
     String description;
 
