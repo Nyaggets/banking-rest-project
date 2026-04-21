@@ -1,6 +1,7 @@
 package com.banking.Banking.Repository;
 
 import com.banking.Banking.Entity.Card;
+import com.banking.Banking.Entity.Client;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 

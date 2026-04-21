@@ -1,6 +1,8 @@
 package com.banking.Banking.Service;
 
+import com.banking.Banking.Entity.Card;
 import com.banking.Banking.Entity.Client;
+import com.banking.Banking.Repository.CardRepository;
 import com.banking.Banking.Repository.ClientRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -10,9 +12,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class ClientService implements UserDetailsService {
+    @Autowired
+    private CardRepository cardRepository;
     @Autowired
     private ClientRepository repository;
     @Autowired
@@ -58,8 +63,14 @@ public class ClientService implements UserDetailsService {
     }
 
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(String userIdentifier) throws UsernameNotFoundException {
+        String username = userIdentifier;
+        if (userIdentifier.matches("^\\d{20}$")) {
+            Optional<Card> card = cardRepository.findByCardNumber(userIdentifier);
+            username = card.map(Card::getClientName).orElse(null);
+        }
+
         return repository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("Invalid credentials"));
+            .orElseThrow(() -> new UsernameNotFoundException("Invalid credentials"));
     }
 }
