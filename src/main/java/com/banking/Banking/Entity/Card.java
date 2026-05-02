@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import org.hibernate.validator.constraints.Length;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -22,8 +23,8 @@ public class Card {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "card_id")
     Long id;
+    @Column(name = "card_number", columnDefinition = "TEXT")
     @NotBlank
-    @Pattern(regexp = "^\\d{20}$", message = "Номер карты должен содержать 20 символов")
     String cardNumber;
     @NotNull
     BigDecimal balance;
@@ -34,9 +35,30 @@ public class Card {
     @Column(name = "client_name")
     @NotBlank
     String clientName;
+    @Column(name = "created_date")
     @NotNull
-    @PastOrPresent(message = "Дата создания карты должна быть не позже текущей даты")
     LocalDate createdDate;
+    @Column(name = "expired_date")
+    @NotNull
+    LocalDate expiredDate;
+    @NotNull
+    @Column(columnDefinition = "TEXT")
+    String cvv;
+    @NotNull
+    @Column(columnDefinition = "TEXT")
+    String last4;
+    @NotNull
+    @Column(name = "card_number_hash", columnDefinition = "TEXT")
+    String cardNumberHash;
+    @NotNull
+    @Column(name = "cvv_hash", columnDefinition = "TEXT")
+    String cvvHash;
+    @NotNull
+    @Column(name = "pin_code", columnDefinition = "TEXT")
+    String pinCode;
+    @NotNull
+    @Column(name = "pin_code_hash", columnDefinition = "TEXT")
+    String pinCodeHash;
 
     @Override
     public boolean equals(Object o) {

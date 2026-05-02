@@ -56,25 +56,25 @@ public class TransactionServiceTest {
                 .id(1L)
                 .client(senderClient)
                 .balance(new BigDecimal("1000"))
-                .cardNumber("1111111111111111111111")
+                .cardNumber("1111")
                 .build();
 
         receiverCard = Card.builder()
                 .id(2L)
                 .client(new Client())
                 .balance(new BigDecimal("500"))
-                .cardNumber("22222222222222222222")
+                .cardNumber("2222")
                 .build();
 
         transferDto = TransactionDtoRequest.builder()
                 .senderCardId(1L)
-                .receiverCardNumber("22222222222222222222")
+                .receiverIdentifier("2222")
                 .amount(new BigDecimal("100"))
                 .build();
 
         depositDto = TransactionDtoRequest.builder()
                 .source("source")
-                .receiverCardNumber("22222222222222222222")
+                .receiverIdentifier("2222")
                 .amount(new BigDecimal("100"))
                 .build();
 
@@ -112,7 +112,7 @@ public class TransactionServiceTest {
     @WithMockUser(username = "client")
     void transferValidation_Success() {
         when(cardService.findById(1L)).thenReturn(senderCard);
-        when(cardService.findByCardNumber(anyString())).thenReturn(receiverCard);
+        when(cardService.findByCardIdentifier(anyString())).thenReturn(receiverCard);
         when(clientService.findByUsername(anyString())).thenReturn(senderClient);
 
         var result = transactionService.transferValidation(transferDto);
@@ -121,21 +121,23 @@ public class TransactionServiceTest {
     }
     @Test
     @WithMockUser(username = "client")
-    void transferValidation_ClientError() {
+    void transferValidation_Unauthorized() {
         senderCard.setClient(new Client());
         when(cardService.findById(1L)).thenReturn(senderCard);
+        when(cardService.findByCardIdentifier(anyString())).thenReturn(receiverCard);
         when(clientService.findByUsername(anyString())).thenReturn(null);
 
         var result = transactionService.transferValidation(transferDto);
 
         assertThat(result.size()).isEqualTo(1);
-        assertThat(result).containsKey("operation error");
+        assertThat(result).containsKey("unauthorized");
     }
     @Test
     @WithMockUser(username = "client")
     void transferValidation_SeveralErrors() {
         transferDto.setAmount(BigDecimal.ZERO);
         when(cardService.findById(1L)).thenReturn(senderCard);
+        when(cardService.findByCardIdentifier(anyString())).thenReturn(senderCard);
         when(clientService.findByUsername(anyString())).thenReturn(senderClient);
 
         var result = transactionService.transferValidation(transferDto);
@@ -147,7 +149,7 @@ public class TransactionServiceTest {
     @Test
     void createTransfer_Success() {
         when(cardService.findByIdOrThrow(1L)).thenReturn(senderCard);
-        when(cardService.findByCardNumberOrThrow(anyString())).thenReturn(receiverCard);
+        when(cardService.findByCardIdentifier(anyString())).thenReturn(receiverCard);
         when(transactionRepository.save(any(Transaction.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -163,7 +165,7 @@ public class TransactionServiceTest {
 
     @Test
     void depositValidation_Success() {
-        when(cardService.findByCardNumber(anyString())).thenReturn(receiverCard);
+        when(cardService.findByCardIdentifier(anyString())).thenReturn(receiverCard);
 
         var result = transactionService.depositValidation(depositDto);
 
@@ -172,7 +174,6 @@ public class TransactionServiceTest {
     @Test
     void depositValidation_SeveralErrors() {
         depositDto.setAmount(BigDecimal.ZERO);
-        when(cardService.findByCardNumber(anyString())).thenReturn(null);
 
         var result = transactionService.depositValidation(depositDto);
 
@@ -182,7 +183,7 @@ public class TransactionServiceTest {
     }
     @Test
     void createDeposit_Success() {
-        when(cardService.findByCardNumberOrThrow(anyString())).thenReturn(receiverCard);
+        when(cardService.findByCardIdentifier(anyString())).thenReturn(receiverCard);
         when(transactionRepository.save(any(Transaction.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -207,7 +208,7 @@ public class TransactionServiceTest {
     }
     @Test
     @WithMockUser(username = "client")
-    void withdrawalValidation_ClientError() {
+    void withdrawalValidation_Forbidden() {
         senderCard.setClient(new Client());
         when(cardService.findById(1L)).thenReturn(senderCard);
         when(clientService.findByUsername(anyString())).thenReturn(senderClient);
@@ -215,7 +216,7 @@ public class TransactionServiceTest {
         var result = transactionService.withdrawalValidation(withdrawalDto);
 
         assertThat(result.size()).isEqualTo(1);
-        assertThat(result).containsKey("sender");
+        assertThat(result).containsKey("forbidden");
     }
     @Test
     @WithMockUser(username = "client")
@@ -229,7 +230,7 @@ public class TransactionServiceTest {
 
         assertThat(result.size()).isEqualTo(2);
         assertThat(result).containsKey("amount");
-        assertThat(result).containsKey("sender");
+        assertThat(result).containsKey("forbidden");
     }
     @Test
     void createWithdrawal_Success() {

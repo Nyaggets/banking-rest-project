@@ -54,6 +54,13 @@ public class ClientService implements UserDetailsService {
                 .orElseThrow(() -> new UsernameNotFoundException("Пользователь не найден"));
     }
 
+    public boolean checkPassword(String password, Long clientId) {
+        Client client = findById(clientId);
+        if (client == null || client.getPassword() == null)
+            return false;
+        return passwordEncoder.matches(password, client.getPassword());
+    }
+
     public boolean deleteClient(Long id){
         if (repository.findById(id).orElse(null) == null){
             return false;
@@ -65,12 +72,12 @@ public class ClientService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String userIdentifier) throws UsernameNotFoundException {
         String username = userIdentifier;
-        if (userIdentifier.matches("^\\d{20}$")) {
-            Optional<Card> card = cardRepository.findByCardNumber(userIdentifier);
-            username = card.map(Card::getClientName).orElse(null);
+        if (userIdentifier.matches("^(\\+7|8)\\d{10}$")) {
+            Optional<Client> client = repository.findByPhone(userIdentifier);
+            username = client.map(Client::getUsername).orElse(null);
         }
 
         return repository.findByUsername(username)
-            .orElseThrow(() -> new UsernameNotFoundException("Invalid credentials"));
+            .orElseThrow(() -> new UsernameNotFoundException("Пользователь не найден"));
     }
 }

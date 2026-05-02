@@ -45,22 +45,44 @@
   </header>
 
   <main>
+    <div class="modal fade" id="confirm-modal" tabindex="-1" aria-labelledby="confirm-modal-label" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="confirm-modal-label">Подтверждение личности</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <label for="password-input">Введите пароль от аккаунта</label>
+            <input type="password" name="confirm-password" id="password-input">
+            <div data-error-for="confirm-password" class="error-msg" id="confirm-error" hidden></div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="secondary-btn" data-bs-dismiss="modal">Отмена</button>
+            <button type="button" class="main-btn" id="password-conf-btn">Подтвердить</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="main-container container">
       <section id="section-card">
         <div id="card-container" class="card-item"></div>
+
         <div  id="card-stats">
           <h3>Статистика за месяц</h3>
           <h2 id="month-income"><i class="fa fa-plus" aria-hidden="true"></i></h2>
           <h2 id="month-outcome"><i class="fa fa-minus" aria-hidden="true"></i></h2>
         </div>
-        <div class="fast-actions ">
+
+        <div class="fast-actions">
           <h3 class="fast-actions-title">Быстрые действия</h3>
           <ul class="fast-actions-list">
             <li>
-              <button id="transfer-btn" type="button" class="secondary-btn"><a href="transfer">Перевести</a></button>
+              <button id="transfer-btn" type="button" class="secondary-btn">Перевести</button>
             </li>
             <li>
-              <button id="replenish-btn" type="button" class="secondary-btn"><a href="transfer">Пополнить</a></button>
+              <button id="replenish-btn" type="button" class="secondary-btn">Пополнить</button>
             </li>
             <li>
               <button type="button" class="secondary-btn"><a href="#">Снять</a></button>

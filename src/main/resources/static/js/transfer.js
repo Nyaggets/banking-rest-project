@@ -3,27 +3,42 @@ import { processResponse, formatAmount } from './utils/processData.js'
 
 const url = window.location.search
 const search = new URLSearchParams(url)
-let choosedSenderCard
-let choosedReceiverCard
+let urlSenderCard
+let urlReceiverCard
 if (search.has('from')) {
-    choosedSenderCard = await getData(`${URL_BASE}/clients/${client.id}/cards/card?id=${search.get('from')}`)
+    urlSenderCard = await getData(`${URL_BASE}/clients/${client.id}/cards/card?id=${search.get('from')}`)
 }
 else if (search.has('to')) {
-    choosedReceiverCard = await getData(`${URL_BASE}/clients/${client.id}/cards/card?id=${search.get('to')}`)
-    document.getElementById('receiver').value = choosedReceiverCard.cardNumber
-    cards.slice(cards.indexOf(choosedReceiverCard), 1)
+    urlReceiverCard = await getData(`${URL_BASE}/clients/${client.id}/cards/card?id=${search.get('to')}`)
+    document.getElementById('receiver').value = urlReceiverCard.hiddenNumber
 }
 const senderSelect = document.getElementById('sender-cards-select')
 cards.forEach((card, key) => {
-    if (choosedSenderCard && card.id == choosedSenderCard.id) {
-        senderSelect[key] = new Option(`${card.cardNumber} ${card.balance}`, card.id, true, true)
-    }
-    else {
-        senderSelect[key] = new Option(`${card.cardNumber} ${card.balance}`, card.id, false, false)
-    }
+    senderSelect[key] = new Option(`${card.hiddenNumber} ${card.balance}₽`, card.id, false, (urlSenderCard && card.id == urlSenderCard.id))
 })
+if (search.has('type')) {
+    const type = search.get('type')
+    if (type == 'INTERNAL') {
+        document.querySelector('.external-rec').remove()
+        const internalSelect = document.querySelector('.internal-rec')
+        cards.forEach((card, key) => {
+            internalSelect[key] = new Option(`${card.hiddenNumber} ${card.balance}₽`, card.id, false, (urlReceiverCard && card.id == urlReceiverCard.id))
+        })
 
-//считаю комиссию
+        internalSelect.addEventListener('change', () => {
+            if (internalSelect.value == senderSelect.value)
+                senderSelect.selectedIndex = -1
+        })
+        senderSelect.addEventListener('change', () => {
+            if (internalSelect.value == senderSelect.value)
+                internalSelect.selectedIndex = -1
+        })
+    }
+    else if (type == 'EXTERNAL')
+            document.querySelector('.internal-rec').remove()
+}
+
+//расчет комиссии
 const calcCommission = async (amountInputEl) => {
     const cleanedAmount = amountInputEl.value.replace(' ', '').replace('.', ',')
     const commissionEl = document.getElementById('commission-amount')
@@ -43,12 +58,10 @@ const calcCommission = async (amountInputEl) => {
         document.getElementById('transfer-btn').innerText = `Перевести ${totalAmountFormatted} ${totalAmountFormatted ? '₽' : ''}`
     }
 }
-
 const amountInput = document.getElementById('amount')
 amountInput.addEventListener('input', async () => {
     calcCommission(amountInput)
 })
-
 const amountBtns = document.querySelectorAll('.amount-btn')
 amountBtns.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -57,11 +70,10 @@ amountBtns.forEach(btn => {
     })
 })
 
-
 const transferForm = document.getElementById('transfer-form')
 transferForm.addEventListener('submit', async (e) => {
     e.preventDefault()
-    const receiverCard = document.getElementById('receiver').value
+    const receiverIdentifier = document.getElementById('receiver').value.replace(/[\s\*]/g, '')
     const response = await fetch(`${URL_BASE}/cards/${senderSelect.value}/transactions/transfer`, {
         method: 'POST',
         headers: {
@@ -69,7 +81,7 @@ transferForm.addEventListener('submit', async (e) => {
         },
         body: JSON.stringify({
             senderCardId: senderSelect.value,
-            receiverCardNumber: receiverCard, 
+            receiverIdentifier, 
             amount: amountInput.value.replace(/\s/g, '').replace(/\./g, ','),
             description: document.getElementById('description').value
         })

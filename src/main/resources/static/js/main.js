@@ -8,19 +8,21 @@ cards.forEach(card => {
     cardList.appendChild(cardElem)
     cardElem.innerHTML =
         `<div class="card-item">
-            <h3>${card.cardNumber}</h3>
-            <h2>${card.balance} ₽</h2>
+            <h3>${card.hiddenNumber}</h3>
+            <h2>${card.balance}₽</h2>
             <button class="secondary-btn transfer-btn">Перевести</button>
         </div>`
-
-    const transferBtn = cardElem.querySelector('.transfer-btn')
-    transferBtn.addEventListener('click', () => {
-        window.location.assign(`${URL_BASE}/transfer?from=${card.id}`)
-    })
 
     cardElem.addEventListener('click', (e) => {
         if (e.target.tagName !== 'BUTTON')
             window.location.assign(`${URL_BASE}/card?id=${card.id}`)
+    })
+    
+    const transferBtn = cardElem.querySelectorAll('.transfer-btn')
+    transferBtn.forEach(btn => {
+        btn.addEventListener('click', () => {
+            window.location.assign(`${URL_BASE}/transfer?from=${card.id}`)
+        })
     })
 })
 

@@ -63,7 +63,8 @@
           <form id="transfer-form" class="row">
             <div class="transfer-field col-12 col-md-5">
               <h3>Получатель</h3>
-              <input type="text" name="receiver" id="receiver" placeholder="Номер телефона/карты" required>
+              <input type="text" pattern="[0-9+*]*" name="receiver" id="receiver" placeholder="Номер телефона/карты" class="external-rec" required>
+              <select name="receiver" id="receiver" class="internal-rec" required></select>
               <div data-error-for="receiver" class="error-msg" hidden></div>
             </div>
             <div class="col-md-1 d-flex align-items-center justify-content-center">

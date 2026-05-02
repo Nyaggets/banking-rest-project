@@ -18,10 +18,10 @@ const showHistory = (transactions, historyList, length = transactions.length) =>
                 break
         }
         transactionElem.innerHTML = `<div class="transaction-item transaction-${transaction.direction}">
-            <p class="caption">${transaction.type} ${formatDate(transaction.timestamp)}</p>
-            <span class="transaction-main"><h3>${transaction.counterpartyName}</h3>
-            <h3 class="transaction-amount">${signIcon} ${transaction.totalAmount}₽</h3></span>
-        </div>`
+                <p class="caption">${transaction.type} ${formatDate(transaction.timestamp)}</p>
+                <span class="transaction-main"><h3>${transaction.counterpartyName}</h3>
+                <h3 class="transaction-amount">${signIcon} ${transaction.totalAmount}₽</h3></span>
+            </div>`
     }
 }
 
@@ -39,7 +39,7 @@ const formatDate = (date) => {
 //тут пересмотреть логику, может оставить только обработку  401 и else
 const processResponse = async (response) => {
     if (response.ok) {
-        showToast('Новый перевод', 'Успешно отправлено')
+        showToast('Операция выполнена', 'Успешно выполнено')
         setTimeout(() => window.location.assign('/main'), 1600)
     }
     else if (response.status === 403) { 

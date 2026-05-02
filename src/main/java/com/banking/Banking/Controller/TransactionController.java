@@ -35,7 +35,7 @@ public class TransactionController {
 
     private String mapFieldName(String field) {
         return switch (field) {
-            case "receiverCardNumber" -> "receiver";
+            case "receiverIdentifier" -> "receiver";
             case "senderCardId" -> "sender";
             default -> field;
         };
@@ -75,7 +75,7 @@ public class TransactionController {
             return ResponseEntity.ok().build();
         }
         catch (Exception ex) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body(ex.getMessage());
         }
     }
 

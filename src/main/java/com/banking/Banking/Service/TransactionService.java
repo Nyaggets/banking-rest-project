@@ -59,7 +59,8 @@ public class TransactionService {
         return true;
     }
 
-    private boolean receiverValidation(Card receiverCard, Map<String, String> errors) {
+    private boolean receiverValidation(String receiverIdentifier, Map<String, String> errors) {
+        Card receiverCard = cardService.findByCardIdentifier(receiverIdentifier);
         if (receiverCard == null) {
             errors.put("receiver", "Получатель не найден");
             return false;
@@ -70,13 +71,11 @@ public class TransactionService {
     public Map<String, String> transferValidation(TransactionDtoRequest transactionDto) {
         Map<String, String> errors = new HashMap<>();
         Card senderCard = cardService.findById(transactionDto.getSenderCardId());
-        Card receiverCard = cardService.findByCardNumber(transactionDto.getReceiverCardNumber());
 
-        if (!clientSenderValidation(senderCard, errors))
-            return errors;
+        clientSenderValidation(senderCard, errors);
         isAmountValid(senderCard.getBalance(), transactionDto.getAmount(), errors);
-        if (!receiverValidation(receiverCard, errors))
-            return errors;
+        receiverValidation(transactionDto.getReceiverIdentifier(), errors);
+        Card receiverCard = cardService.findByCardIdentifier(transactionDto.getReceiverIdentifier());
         if (senderCard.getId().equals(receiverCard.getId()))
             errors.put("receiver", "Карта получателя совпадает с картой отправителя");
         return errors;
@@ -84,9 +83,8 @@ public class TransactionService {
 
     public Transaction createTransfer(TransactionDtoRequest transactionDto) {
         Card senderCard = cardService.findByIdOrThrow(transactionDto.getSenderCardId());
-        Card receiverCard = cardService.findByCardNumberOrThrow(transactionDto.getReceiverCardNumber());
+        Card receiverCard = cardService.findByCardIdentifier(transactionDto.getReceiverIdentifier());
         BigDecimal commission = calculateCommission(transactionDto.getAmount());
-
         Transaction transaction = Transaction.builder()
                 .type(OperationTypes.TRANSFER)
                 .senderCard(senderCard)
@@ -97,7 +95,6 @@ public class TransactionService {
                 .description(transactionDto.getDescription())
                 .timestamp(LocalDateTime.now())
                 .build();
-
         BigDecimal senderBalance = transaction.getSenderCard().getBalance();
         transaction.getSenderCard().setBalance(senderBalance.subtract(transaction.getTotalAmount()));
         receiverCard.setBalance(receiverCard.getBalance().add(transaction.getAmount()));
@@ -116,7 +113,6 @@ public class TransactionService {
     public Transaction createWithdrawal(TransactionDtoRequest transactionDto) {
         Card senderCard = cardService.findByIdOrThrow(transactionDto.getSenderCardId());
         BigDecimal commission = calculateCommission(transactionDto.getAmount());
-
         Transaction transaction = Transaction.builder()
                 .type(OperationTypes.WITHDRAWAL)
                 .senderCard(senderCard)
@@ -127,9 +123,8 @@ public class TransactionService {
                 .description(transactionDto.getDescription())
                 .timestamp(LocalDateTime.now())
                 .build();
-
         BigDecimal cardBalance = senderCard.getBalance();
-        if (transaction.getAmount().compareTo(cardBalance) == 1 ||
+        if (transaction.getAmount().compareTo(cardBalance) > 0 ||
                 transaction.getAmount().compareTo(BigDecimal.ZERO) <= 0){
             return null;
         }
@@ -139,16 +134,15 @@ public class TransactionService {
 
     public Map<String, String> depositValidation(TransactionDtoRequest transactionDto) {
         Map<String, String> errors = new HashMap<>();
-        Card receiverCard = cardService.findByCardNumber(transactionDto.getReceiverCardNumber());
 
-        receiverValidation(receiverCard, errors);
+        receiverValidation(transactionDto.getReceiverIdentifier(), errors);
         if (transactionDto.getAmount().compareTo(BigDecimal.ZERO) <= 0)
             errors.put("amount", "Некорректная сумма перевода");
         return errors;
     }
 
     public Transaction createDeposit(TransactionDtoRequest transactionDto) {
-        Card receiverCard = cardService.findByCardNumberOrThrow(transactionDto.getReceiverCardNumber());
+        Card receiverCard = cardService.findByCardIdentifier(transactionDto.getReceiverIdentifier());
         Transaction transaction = Transaction.builder()
                 .type(OperationTypes.DEPOSIT)
                 .source(transactionDto.getSource())

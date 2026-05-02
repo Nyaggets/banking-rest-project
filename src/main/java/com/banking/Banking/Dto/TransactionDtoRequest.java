@@ -34,8 +34,8 @@ public class TransactionDtoRequest {
 
     @Null(groups = {WithdrawalGroup.class}, message = "{field.invalidOperation}")
     @NotNull(groups = {TransferGroup.class, DepositGroup.class}, message = "{field.required}")
-    @Pattern(regexp = "^\\d{20}$", message = "{card.invalidPattern}", groups = {TransferGroup.class})
-    String receiverCardNumber;
+    @Pattern(regexp = "^(\\d{1,4}|(\\+7|8)\\d{10})$", message = "{cardOrPhone.invalidPattern}", groups = {DepositGroup.class, TransferGroup.class})
+    String receiverIdentifier;
 
     @NotNull(message = "{field.required}")
     @Positive(message = "{amount.invalid}")

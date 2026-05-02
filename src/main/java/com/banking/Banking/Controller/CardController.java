@@ -2,11 +2,13 @@ package com.banking.Banking.Controller;
 
 import com.banking.Banking.Dto.CardDtoResponse;
 import com.banking.Banking.Entity.Card;
+import com.banking.Banking.Entity.Client;
 import com.banking.Banking.Mapper.CardMapper;
 import com.banking.Banking.Service.CardService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -42,21 +44,21 @@ public class CardController {
 
     @GetMapping("search")
     public ResponseEntity<CardDtoResponse> findByCardNumber(@RequestParam String number){
-        Card card = cardService.findByCardNumber(number);
+        Card card = cardService.findByCardNumberHash(number);
         if (card == null){
             return ResponseEntity.badRequest().build();
         }
         return ResponseEntity.ok(mapper.toDto(card));
     }
 
-    @PostMapping("/create")
-    public ResponseEntity<CardDtoResponse> createCardForClient(@PathVariable Long clientId){
+    @PostMapping
+    public ResponseEntity<?> createCardForClient(@PathVariable Long clientId){
         try {
             Card card = cardService.createCard(clientId);
             return new ResponseEntity<>(mapper.toDto(card), HttpStatus.CREATED);
         }
         catch (Exception ex) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body(ex.getMessage());
         }
 
     }
@@ -68,4 +70,6 @@ public class CardController {
         }
         return ResponseEntity.ok().build();
     }
+
+
 }

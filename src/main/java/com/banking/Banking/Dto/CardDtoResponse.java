@@ -8,9 +8,9 @@ import java.time.LocalDate;
 @Data
 public class CardDtoResponse {
     Long id;
-    String cardNumber;
+    String hiddenNumber;
     BigDecimal balance;
     Long clientId;
-    LocalDate createdDate;
+    LocalDate expiredDate;
 }
 

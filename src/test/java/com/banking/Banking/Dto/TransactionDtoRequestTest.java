@@ -66,13 +66,13 @@ public class TransactionDtoRequestTest {
 
         transferDto = TransactionDtoRequest.builder()
                 .senderCardId(1L)
-                .receiverCardNumber("22222222222222222222")
+                .receiverIdentifier("22222222222222222222")
                 .amount(new BigDecimal("100"))
                 .build();
 
         depositDto = TransactionDtoRequest.builder()
                 .source("source")
-                .receiverCardNumber("22222222222222222222")
+                .receiverIdentifier("22222222222222222222")
                 .amount(new BigDecimal("100"))
                 .build();
 
@@ -85,12 +85,13 @@ public class TransactionDtoRequestTest {
     @Test
     void transferValidation_Success() {
         var transferResult = validator.validate(transferDto, TransferGroup.class, Default.class);
+        System.out.println(transferResult);
         assertThat(transferResult).isEmpty();
     }
     @Test
     void transferValidation_InvalidData() {
         transferDto.setSenderCardId(null);
-        transferDto.setReceiverCardNumber(null);
+        transferDto.setReceiverIdentifier(null);
         transferDto.setAmount(new BigDecimal(4).negate());
 
         var transferResult = validator.validate(transferDto, TransferGroup.class, Default.class);
@@ -101,6 +102,7 @@ public class TransactionDtoRequestTest {
     void transferValidation_InvalidFiled() {
         transferDto.setMerchant(""); //поле, которое должно быть null в transfer операции
         var transferResult = validator.validate(transferDto, TransferGroup.class, Default.class);
+        System.out.println(transferResult);
 
         assertThat(transferResult.size()).isEqualTo(1);
     }
@@ -114,7 +116,7 @@ public class TransactionDtoRequestTest {
     @Test
     void depositValidation_InvalidData() {
         depositDto.setSource(null);
-        depositDto.setReceiverCardNumber(null);
+        depositDto.setReceiverIdentifier(null);
         depositDto.setAmount(new BigDecimal(4).negate());
 
         var depositResult = validator.validate(depositDto, DepositGroup.class, Default.class);
@@ -123,8 +125,8 @@ public class TransactionDtoRequestTest {
     }
     @Test
     void depositValidation_InvalidFiled() {
-        transferDto.setMerchant(""); //поле, которое должно быть null в deposit операции
-        var depositResult = validator.validate(transferDto, TransferGroup.class, Default.class);
+        depositDto.setMerchant(""); //поле, которое должно быть null в deposit операции
+        var depositResult = validator.validate(depositDto, DepositGroup.class, Default.class);
 
         assertThat(depositResult.size()).isEqualTo(1);
     }
@@ -146,9 +148,34 @@ public class TransactionDtoRequestTest {
     }
     @Test
     void withdrawalValidation_InvalidFiled() {
-        transferDto.setReceiverCardNumber(""); //поле, которое должно быть null в withdrawal операции
-        var withdrawalResult = validator.validate(transferDto, TransferGroup.class, Default.class);
+        withdrawalDto.setReceiverIdentifier(""); //поле, которое должно быть null в withdrawal операции
+        var withdrawalResult = validator.validate(withdrawalDto, WithdrawalGroup.class, Default.class);
 
         assertThat(withdrawalResult.size()).isEqualTo(1);
+    }
+    @Test
+    void depositValidation_PatternSuccess() {
+        TransactionDtoRequest depositCard = depositDto;
+        TransactionDtoRequest depositPhone = depositDto;
+        depositPhone.setReceiverIdentifier("89022213880");
+
+        var depositCardResult = validator.validate(depositCard, DepositGroup.class, Default.class);
+        var depositPhoneResult = validator.validate(depositPhone, DepositGroup.class, Default.class);
+
+        assertThat(depositCardResult.size()).isEqualTo(0);
+        assertThat(depositPhoneResult.size()).isEqualTo(0);
+    }
+    @Test
+    void depositValidation_InvalidPattern() {
+        TransactionDtoRequest depositCard = depositDto;
+        depositCard.setReceiverIdentifier("invalid");
+        TransactionDtoRequest depositPhone = depositDto;
+        depositPhone.setReceiverIdentifier("invalid");
+
+        var depositCardResult = validator.validate(depositCard, DepositGroup.class, Default.class);
+        var depositPhoneResult = validator.validate(depositPhone, DepositGroup.class, Default.class);
+
+        assertThat(depositCardResult.size()).isEqualTo(1);
+        assertThat(depositPhoneResult.size()).isEqualTo(1);
     }
 }

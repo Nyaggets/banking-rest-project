@@ -23,6 +23,6 @@ public class TransactionDtoResponse {
     ClientDtoResponse senderDetails;
 
     Long receiverCardId;
-    String receiverCardNumber;
+    String receiverIdentifier;
     ClientDtoResponse receiverDetails;
 }
