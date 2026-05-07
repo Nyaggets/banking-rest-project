@@ -9,9 +9,11 @@ import com.banking.Banking.Service.TransactionService;
 import com.banking.Banking.validation.DepositGroup;
 import com.banking.Banking.validation.TransferGroup;
 import com.banking.Banking.validation.WithdrawalGroup;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.annotation.Validated;
@@ -19,8 +21,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
+@PreAuthorize("isAuthenticated()")
 @RestController
 @RequestMapping("/cards/{cardId}/transactions")
 public class TransactionController {
@@ -41,6 +45,19 @@ public class TransactionController {
         };
     }
 
+    private ResponseEntity<Map<Object, String>> validateBindingResult(BindingResult result) {
+        if (result.hasErrors()) {
+            return ResponseEntity.badRequest().body(
+                    result.getFieldErrors().stream().collect(
+                            Collectors.toMap(
+                                    error -> mapFieldName(error.getField()),
+                                    FieldError::getDefaultMessage
+                            ))
+            );
+        }
+        return null;
+    }
+
     @PostMapping("/commission")
     public ResponseEntity<?> calculateCommission(@RequestParam String amount) {
         if (amount.isEmpty())
@@ -57,21 +74,18 @@ public class TransactionController {
     public ResponseEntity<?> createTransfer(@Validated(TransferGroup.class)
                                             @RequestBody TransactionDtoRequest dtoRequest,
                                             BindingResult result) {
-        if (result.hasErrors()) {
-            return ResponseEntity.badRequest().body(
-                    result.getFieldErrors().stream().collect(
-                            Collectors.toMap(
-                                    error -> mapFieldName(error.getField()),
-                                    FieldError::getDefaultMessage
-                            ))
-            );
-        }
-        try {
-            var validTransaction = transactionService.transferValidation(dtoRequest);
-            if (!validTransaction.isEmpty())
-                return ResponseEntity.badRequest().body(validTransaction);
+        validateBindingResult(result);
+        transactionService.createTransfer(dtoRequest);
+        return ResponseEntity.ok().build();
+    }
 
-            transactionService.createTransfer(dtoRequest);
+    @PostMapping("/deposit")
+    public ResponseEntity<?> createDeposit(@Validated(DepositGroup.class)
+                                            @RequestBody TransactionDtoRequest depositDto,
+                                            BindingResult result) {
+        validateBindingResult(result);
+        try {
+            transactionService.createDeposit(depositDto);
             return ResponseEntity.ok().build();
         }
         catch (Exception ex) {
@@ -79,55 +93,12 @@ public class TransactionController {
         }
     }
 
-    @PostMapping("/deposit")
-    public ResponseEntity<?> createDeposit(@Validated(DepositGroup.class)
-                                            @RequestBody TransactionDtoRequest depositDto,
-                                            BindingResult result) {
-        if (result.hasErrors()) {
-            return ResponseEntity.badRequest().body(
-                    result.getFieldErrors().stream().collect(
-                            Collectors.toMap(
-                                    error -> mapFieldName(error.getField()),
-                                    FieldError::getDefaultMessage
-                            ))
-            );
-        }
-        try {
-            var validTransaction = transactionService.depositValidation(depositDto);
-            if (validTransaction.isEmpty()) {
-                transactionService.createDeposit(depositDto);
-                return ResponseEntity.ok().build();
-            }
-
-            if (validTransaction.containsKey("unauthorized"))
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(validTransaction);
-            if (validTransaction.containsKey("forbidden"))
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(validTransaction);
-            return ResponseEntity.badRequest().body(validTransaction);
-        }
-        catch (Exception ex) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
-
     @PostMapping("/withdrawal")
     public ResponseEntity<?> createWithdrawal(@Validated(WithdrawalGroup.class)
                                                @RequestBody TransactionDtoRequest withdrawalDto,
                                                 BindingResult result) {
-        if (result.hasErrors()) {
-            return ResponseEntity.badRequest().body(
-                    result.getFieldErrors().stream().collect(
-                            Collectors.toMap(
-                                    error -> mapFieldName(error.getField()),
-                                    FieldError::getDefaultMessage
-                            ))
-            );
-        }
+        validateBindingResult(result);
         try {
-            var validTransaction = transactionService.withdrawalValidation(withdrawalDto);
-            if (!validTransaction.isEmpty())
-                return ResponseEntity.badRequest().body(validTransaction);
-
             transactionService.createWithdrawal(withdrawalDto);
             return ResponseEntity.ok().build();
         } catch (Exception ex) {

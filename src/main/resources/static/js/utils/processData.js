@@ -18,7 +18,7 @@ const showHistory = (transactions, historyList, length = transactions.length) =>
                 break
         }
         transactionElem.innerHTML = `<div class="transaction-item transaction-${transaction.direction}">
-                <p class="caption">${transaction.type} ${formatDate(transaction.timestamp)}</p>
+                <p class="caption">${transaction.type}  —  ${formatDate(transaction.timestamp)}</p>
                 <span class="transaction-main"><h3>${transaction.counterpartyName}</h3>
                 <h3 class="transaction-amount">${signIcon} ${transaction.totalAmount}₽</h3></span>
             </div>`
@@ -33,30 +33,29 @@ const formatDate = (date) => {
     else if (yesterday.setHours(0, 0, 0, 0) == formattedDate)
         return 'Вчера'
     else 
-        return new Date(date).toLocaleDateString('ru-RU')
+        return `${new Date(date).toLocaleDateString('ru-RU')}`
 }
 
-//тут пересмотреть логику, может оставить только обработку  401 и else
 const processResponse = async (response) => {
-    if (response.ok) {
-        showToast('Операция выполнена', 'Успешно выполнено')
-        setTimeout(() => window.location.assign('/main'), 1600)
-    }
-    else if (response.status === 403) { 
-        showToast('Операция отклонена', 'Сессия истекла. Пожалуйста, войдите снова')
-        setTimeout(() => window.location.assign('/main'), 1600)
-    }
-    else if (response.status === 401) { 
-        showToast('Ошибка сессии', 'Сессия истекла. Пожалуйста, войдите снова')
+    if (response.status === 401) { 
+        showToast('Операция отклонена', 'Пользователь не найден')
         setTimeout(() => window.location.assign('/login'), 1600)
     }
-    else {
-        const errorMap = await response.json()
+    else if (response.status === 500) { 
+        showToast('Ошибка сервера', 'Запрос не может быть выполнен. Попробуйте ещё раз позже')
+    }
+    else if (response.status == 400 || response.status == 404 || response.status == 403){
+        const { errors: errorMap } = await response.json()
         Object.entries(errorMap).forEach(([field, message]) => {
-            document.querySelector(`[name="${field}"]`).classList.add('in-valid')
-            document.querySelector(`[data-error-for="${field}"]`).hidden = false
-            document.querySelector(`[data-error-for="${field}"]`).textContent = message
+            document.querySelector(`[error-for="${field}"]`).hidden = false
+            document.querySelector(`[error-for="${field}"]`).textContent = message
         })
+    }
+    else if (response.status == 429) {
+        const { errors: { field, message, expiresAt } } = await response.json()
+        console.log(field, message, expiresAt)
+        document.querySelector(`[error-for="${field}"]`).hidden = false
+        document.querySelector(`[error-for="${field}"]`).textContent = `${message} Повторите ещё раз после ${new Date(expiresAt).toLocaleTimeString([], {timeStyle: 'short'})}`
     }
 }
 
@@ -75,4 +74,4 @@ const formatAmount = (amount) => {
     return mainPart + decimalLmited
 }
 
-export { showHistory, formatDate, processResponse, formatAmount}
+export { showHistory, formatDate, processResponse, formatAmount, showToast}

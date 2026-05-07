@@ -18,33 +18,28 @@ document.getElementById('replenish-btn').addEventListener('click', function() {
     window.location.assign(`${URL_BASE}/transfer?type=INTERNAL&to=${cardId}`)
 })
 
+const modalEl = document.getElementById('confirm-modal')
+const modalInput = document.getElementById('password-input')
+modalEl.addEventListener('hidden.bs.modal', function (event) {
+    modalInput.value = ''
+})
 if (document.getElementById('password-conf-btn')) {
     document.getElementById('password-conf-btn').addEventListener('click', async () => {
-        const details = await fetch(`${URL_BASE}/card/${cardId}/card-details`, {
+        const errorEl = document.getElementById('confirm-error')
+        const response = await fetch(`${URL_BASE}/card/${cardId}/card-details`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json;charset=utf-8' },
-            body: JSON.stringify({ password: document.getElementById('password-input').value })
+            body: JSON.stringify({ password: modalInput.value })
         })
-        if (details.ok) {
-            const { cardNumber, cvv } = await details.json()
+        processResponse(response);
+        if (response.ok) {
+            const { cardNumber, cvv } = await response.json()
             document.getElementById('card-number').innerText = cardNumber
             document.getElementById('cvv').innerText = cvv
-
-            var genericModalEl = document.getElementById('confirm-modal')
-            var modal = bootstrap.Modal.getInstance(genericModalEl)
-            modal.hide()
-
+            bootstrap.Modal.getInstance(modalEl).hide()
         }
-        else if (details.status == '401') {
-            const errorEl = document.getElementById('confirm-error')
-            errorEl.hidden = false
-            errorEl.innerText = 'Неверный пароль'
-        }
-        else if (details.status == '429') {
-            document.getElementById('password-input').readOnly = true
-            const errorEl = document.getElementById('confirm-error')
-            errorEl.hidden = false
-            errorEl.innerText = 'Лимит попыток исчерпан'
+        else if (response.status == '429') {
+            modalInput.disabled = true
         }
     })
 }

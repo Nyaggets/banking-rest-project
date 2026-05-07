@@ -85,6 +85,9 @@ input, select {
   width: 100%;
   box-sizing: border-box;
 }
+input:disabled {  
+  background-color: var(--color-secondary);
+}
 section:not(:first-child) {
   margin-top: 64px;
 }

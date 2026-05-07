@@ -3,6 +3,8 @@ package com.banking.Banking.Service;
 import com.banking.Banking.Entity.Card;
 import com.banking.Banking.Entity.Client;
 import com.banking.Banking.Repository.CardRepository;
+import com.banking.Banking.validation.RequestLimitException;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
+@Slf4j
 @ExtendWith(MockitoExtension.class)
 public class CardServiceTest {
     private CardService cardService;
@@ -49,11 +52,10 @@ public class CardServiceTest {
     void createCard_GenerateUniqueNumber() {
         String existingNumber = "11111111111111111111";
         String newNumber = "22222222222222222222";
-        Long clientId = 1L;
         CardService cardServiceSpy = spy(cardService);
-        Client mockClient = new Client();
+        Client otherClient = new Client();
 
-        when(clientService.findById(clientId)).thenReturn(mockClient);
+        when(clientService.findByIdOrThrow(clientId)).thenReturn(otherClient);
         doReturn(existingNumber)
                 .doReturn(newNumber)
                 .when(cardServiceSpy).generateCardNumber();
@@ -73,11 +75,10 @@ public class CardServiceTest {
     void createCard_GenerateUniqueCVV() {
         String existingCVV = "111";
         String newCVV = "222";
-        Long clientId = 1L;
         CardService cardServiceSpy = spy(cardService);
         Client mockClient = new Client();
 
-        when(clientService.findById(clientId)).thenReturn(mockClient);
+        when(clientService.findByIdOrThrow(clientId)).thenReturn(mockClient);
         doReturn(existingCVV)
                 .doReturn(newCVV)
                 .when(cardServiceSpy).generateCVV();
@@ -94,7 +95,7 @@ public class CardServiceTest {
     }
 
     @Test
-    public void RevealAttempts_Success() {
+    public void RevealAttempts_Success() throws RequestLimitException {
         when(clientService.checkPassword(anyString(), anyLong())).thenReturn(true);
         when(cardRepository.findById(1L)).thenReturn(Optional.of(card));
 
@@ -108,23 +109,25 @@ public class CardServiceTest {
     @Test
     public void RevealAttempts_TooManyTries() {
         when(clientService.checkPassword(anyString(), anyLong())).thenReturn(false);
+        when(cardRepository.findById(clientId)).thenReturn(Optional.of(card));
 
         for (int i = 0; i < 3; i++)
             assertThrows(BadCredentialsException.class, () -> cardService.revealCardDetails(clientId, "", card.getId()));
 
-        assertThrows(RuntimeException.class, () -> cardService.revealCardDetails(clientId, "", card.getId()));
+        assertThrows(RequestLimitException.class, () -> cardService.revealCardDetails(clientId, "", card.getId()));
     }
 
     @Test
-    public void RevealAttempts_TimeLimitTest() {
+    public void RevealAttempts_TimeLimitTest() throws RequestLimitException {
+        when(cardRepository.findById(clientId)).thenReturn(Optional.of(card));
         when(clientService.checkPassword(anyString(), anyLong())).thenReturn(false);
+
         for (int i = 0; i < 3; i++)
             assertThrows(BadCredentialsException.class, () -> cardService.revealCardDetails(clientId, "", card.getId()));
 
-        assertThrows(RuntimeException.class, () -> cardService.revealCardDetails(clientId, "", card.getId()));
+        assertThrows(RequestLimitException.class, () -> cardService.revealCardDetails(clientId, "", card.getId()));
 
         when(clientService.checkPassword(anyString(), anyLong())).thenReturn(true);
-        when(cardRepository.findById(clientId)).thenReturn(Optional.of(card));
         cardService.setClock(Clock.fixed(Instant.parse("2026-02-05T12:00:01Z"), ZoneId.of("UTC")));
         Map<String, String> details = cardService.revealCardDetails(clientId, "", card.getId());
 

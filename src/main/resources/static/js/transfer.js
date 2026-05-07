@@ -1,5 +1,5 @@
 import { URL_BASE, cards, client, getData } from './utils/getData.js'
-import { processResponse, formatAmount } from './utils/processData.js'
+import { processResponse, formatAmount, showToast } from './utils/processData.js'
 
 const url = window.location.search
 const search = new URLSearchParams(url)
@@ -16,6 +16,8 @@ const senderSelect = document.getElementById('sender-cards-select')
 cards.forEach((card, key) => {
     senderSelect[key] = new Option(`${card.hiddenNumber} ${card.balance}₽`, card.id, false, (urlSenderCard && card.id == urlSenderCard.id))
 })
+
+//отображение поля ввода в зависимости от типа операции
 if (search.has('type')) {
     const type = search.get('type')
     if (type == 'INTERNAL') {
@@ -35,8 +37,10 @@ if (search.has('type')) {
         })
     }
     else if (type == 'EXTERNAL')
-            document.querySelector('.internal-rec').remove()
+        document.querySelector('.internal-rec').remove()
 }
+else
+    document.querySelector('.internal-rec').remove()
 
 //расчет комиссии
 const calcCommission = async (amountInputEl) => {
@@ -73,6 +77,11 @@ amountBtns.forEach(btn => {
 const transferForm = document.getElementById('transfer-form')
 transferForm.addEventListener('submit', async (e) => {
     e.preventDefault()
+    const errors = document.querySelectorAll('.error-msg')
+    errors.forEach(elem => {
+        elem.hidden = true
+        elem.textContent = ''
+    })
     const receiverIdentifier = document.getElementById('receiver').value.replace(/[\s\*]/g, '')
     const response = await fetch(`${URL_BASE}/cards/${senderSelect.value}/transactions/transfer`, {
         method: 'POST',
@@ -87,4 +96,12 @@ transferForm.addEventListener('submit', async (e) => {
         })
     })
     processResponse(response);
+    if (response.ok) {
+        showToast('Операция выполнена', 'Успешно выполнено')
+        setTimeout(() => window.location.assign('/main'), 1600)
+    }
+    else if (response.status === 403) { 
+        showToast('Операция отклонена', 'Текущий пользователь не имеет доступа к карте отправителя')
+    }
+    
 })

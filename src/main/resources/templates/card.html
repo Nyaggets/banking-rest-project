@@ -16,7 +16,7 @@
       <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasNavbar">
         <div class="offcanvas-header">
           <h5 class="offcanvas-title">Меню</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+          <button type="button" class="btn-close" errors-bs-dismiss="offcanvas" aria-label="Close"></button>
         </div>
         <div class="offcanvas-body">
           <ul class="navbar-nav">
@@ -33,7 +33,7 @@
         </div>
       </div>
       <div class="side-actions">
-      <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar" aria-controls="offcanvasNavbar" aria-expanded="false" aria-label="Toggle navigation">
+      <button class="navbar-toggler" type="button" errors-bs-toggle="offcanvas" errors-bs-target="#offcanvasNavbar" aria-controls="offcanvasNavbar" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="profile-actions">
@@ -50,15 +50,15 @@
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title" id="confirm-modal-label">Подтверждение личности</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <button type="button" class="btn-close" errors-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
             <label for="password-input">Введите пароль от аккаунта</label>
             <input type="password" name="confirm-password" id="password-input">
-            <div data-error-for="confirm-password" class="error-msg" id="confirm-error" hidden></div>
+            <div error-for="sender" class="error-msg" id="confirm-error" hidden></div>
           </div>
           <div class="modal-footer">
-            <button type="button" class="secondary-btn" data-bs-dismiss="modal">Отмена</button>
+            <button type="button" class="secondary-btn" errors-bs-dismiss="modal">Отмена</button>
             <button type="button" class="main-btn" id="password-conf-btn">Подтвердить</button>
           </div>
         </div>

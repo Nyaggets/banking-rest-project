@@ -1,13 +1,12 @@
 package com.banking.Banking.Service;
 
-import com.banking.Banking.Entity.Card;
 import com.banking.Banking.Entity.Client;
 import com.banking.Banking.Repository.CardRepository;
 import com.banking.Banking.Repository.ClientRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -49,15 +48,13 @@ public class ClientService implements UserDetailsService {
         return repository.findByUsername(username).orElse(null);
     }
 
-    public Client findByUsernameOrThrow(String username){
-        return repository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("Пользователь не найден"));
+    public Client findByIdOrThrow(Long id){
+        return repository.findById(id)
+                .orElseThrow(() -> new BadCredentialsException("Пользователь не найден"));
     }
 
     public boolean checkPassword(String password, Long clientId) {
-        Client client = findById(clientId);
-        if (client == null || client.getPassword() == null)
-            return false;
+        Client client = findByIdOrThrow(clientId);
         return passwordEncoder.matches(password, client.getPassword());
     }
 
@@ -70,7 +67,7 @@ public class ClientService implements UserDetailsService {
     }
 
     @Override
-    public UserDetails loadUserByUsername(String userIdentifier) throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(String userIdentifier) {
         String username = userIdentifier;
         if (userIdentifier.matches("^(\\+7|8)\\d{10}$")) {
             Optional<Client> client = repository.findByPhone(userIdentifier);
@@ -78,6 +75,6 @@ public class ClientService implements UserDetailsService {
         }
 
         return repository.findByUsername(username)
-            .orElseThrow(() -> new UsernameNotFoundException("Пользователь не найден"));
+            .orElseThrow(() -> new BadCredentialsException("Пользователь не найден"));
     }
 }

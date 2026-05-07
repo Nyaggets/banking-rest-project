@@ -2,9 +2,9 @@ package com.banking.Banking.Service;
 
 import com.banking.Banking.Entity.Card;
 import com.banking.Banking.Entity.UserAttempts;
-import com.banking.Banking.validation.CardNotFoundException;
 import com.banking.Banking.Entity.Client;
 import com.banking.Banking.Repository.CardRepository;
+import com.banking.Banking.validation.RequestLimitException;
 import com.google.crypto.tink.Aead;
 import com.google.crypto.tink.CleartextKeysetHandle;
 import com.google.crypto.tink.JsonKeysetReader;
@@ -13,18 +13,16 @@ import com.google.crypto.tink.aead.AeadConfig;
 import com.google.crypto.tink.aead.AeadFactory;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
 import lombok.Setter;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.AccessDeniedException;
 import java.security.*;
 import java.time.Clock;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
@@ -52,29 +50,28 @@ public class CardService {
         this.keySet = keySet;
     }
 
+    private Aead AeadSetUp() throws GeneralSecurityException, IOException {
+        AeadConfig.register();
+        byte[] keysetJsonBytes = Base64.getDecoder().decode(keySet);
+        KeysetHandle keysetHandle = CleartextKeysetHandle.read(JsonKeysetReader.withBytes(keysetJsonBytes));
+        return AeadFactory.getPrimitive(keysetHandle);
+    }
+
     public String encodeString(String line, Long clientId) {
         try {
-            AeadConfig.register();
-            byte[] keysetJsonBytes = Base64.getDecoder().decode(keySet);
-            KeysetHandle keysetHandle = CleartextKeysetHandle.read(JsonKeysetReader.withBytes(keysetJsonBytes));
-            Aead aead = AeadFactory.getPrimitive(keysetHandle);
-
+            Aead aead = AeadSetUp();
             byte[] cipherText = aead.encrypt(line.getBytes(), clientId.toString().getBytes());
             return Base64.getEncoder().encodeToString(cipherText);
         } catch (GeneralSecurityException | IOException e) {
-            throw new RuntimeException("Ошибка шифрования данных " + e.getMessage());
+            throw new RuntimeException("Ошибка шифрования данных");
         }
     }
 
     public String decodeString(String lineBase64, Long clientId) {
         try {
-            AeadConfig.register();
-            byte[] keysetJsonBytes = Base64.getDecoder().decode(keySet);
-            KeysetHandle keysetHandle = CleartextKeysetHandle.read(JsonKeysetReader.withBytes(keysetJsonBytes));
-            Aead aead = AeadFactory.getPrimitive(keysetHandle);
-
+            Aead aead = AeadSetUp();
             byte[] cipherText = Base64.getDecoder().decode(lineBase64);
-            var decodedLine = aead.decrypt(cipherText, clientId.toString().getBytes());
+            byte[] decodedLine = aead.decrypt(cipherText, clientId.toString().getBytes());
             return new String(decodedLine);
         } catch (GeneralSecurityException | IOException e) {
             throw new RuntimeException("Ошибка дешифрования данных");
@@ -118,10 +115,7 @@ public class CardService {
     }
 
     public Card createCard(Long clientId){
-        Client client = clientService.findById(clientId);
-        if (client == null)
-            throw new EntityNotFoundException("Пользователь не найден");
-
+        Client client = clientService.findByIdOrThrow(clientId);
         String cardNumber = generateCardNumber();
         while (repository.findByCardNumber(cardNumber).isPresent())
             cardNumber = generateCardNumber();
@@ -151,7 +145,7 @@ public class CardService {
 
     public Card findByIdOrThrow(Long id) {
         return repository.findById(id)
-                .orElseThrow(() -> new CardNotFoundException("Карта не найдена"));
+                .orElseThrow(() -> new EntityNotFoundException("Карта не найдена"));
     }
 
     public Card findByCardNumberHash(String number) {
@@ -159,14 +153,13 @@ public class CardService {
         return repository.findByCardNumberHash(numberHash).orElse(null);
     }
 
-    public Card findHiddenNumberHash(String last4) {
-        String numberHash = generateSha256Hash(last4);
-        return repository.findHiddenNumber(numberHash).orElse(null);
+    public Card findByLast4(String last4) {
+        return repository.findByLast4(last4).orElse(null);
     }
 
     public Card findByCardNumberOrThrow(String number) {
         return repository.findByCardNumber(number)
-                .orElseThrow(() -> new CardNotFoundException("Карта не найдена по номеру"));
+                .orElseThrow(() -> new EntityNotFoundException("Карта с данным номером не найдена"));
     }
 
     public Card findByCardIdentifier(String identifier) {
@@ -178,30 +171,29 @@ public class CardService {
         else if (identifier.matches("^\\d{20}$"))
             card = findByCardNumberHash(identifier);
         else if (identifier.matches("^\\d{4}$"))
-            card = findHiddenNumberHash(identifier);
+            card = findByLast4(identifier);
         else
             card = findById(Long.valueOf(identifier));
         return card;
     }
 
-    public List<Card> findByClientId(Long id){
-        if (clientService.findById(id) == null){
-            throw new EntityNotFoundException("Пользователь не найден");
-        }
-        return repository.findAllByClientId(id).stream()
+    public List<Card> findByClientId(Long clientId){
+        clientService.findByIdOrThrow(clientId);
+        return repository.findAllByClientId(clientId).stream()
                 .sorted(Comparator.comparing(Card::getBalance).reversed())
                 .toList();
     }
 
     public boolean deleteCard(Long id){
-        if (repository.findById(id).orElse(null) == null){
+        if (repository.findById(id).orElse(null) == null)
             return false;
-        }
+
         repository.deleteById(id);
         return true;
     }
 
-    public Map<String, String> revealCardDetails(Long clientId, String password, Long cardId){
+    public Map<String, String> revealCardDetails(Long clientId, String password, Long cardId) throws RequestLimitException, AccessDeniedException {
+        findByIdOrThrow(cardId);
         Instant attemptTime = clock.instant();
         UserAttempts userAttempts = revealCount.compute(clientId, (id, current) -> {
             if (current == null || attemptTime.isAfter(current.expiresAt()))
@@ -210,12 +202,12 @@ public class CardService {
         });
 
         if (userAttempts.attemptsLeft() == 0)
-            throw new RuntimeException("Лимит попыток исчерпан. Попробуйте ещё раз после " + userAttempts.expiresAt());
+            throw new RequestLimitException("Лимит попыток исчерпан.", userAttempts.expiresAt());
 
         if (!clientService.checkPassword(password, clientId)) {
             revealCount.computeIfPresent(clientId, (id, current) ->
                     new UserAttempts(current.attemptsLeft() - 1, current.expiresAt()));
-            throw new BadCredentialsException("Неверный пароль. Осталось попыток: " + userAttempts.attemptsLeft());
+            throw new AccessDeniedException("Неверный пароль. Осталось попыток: " + userAttempts.attemptsLeft());
         }
 
         Card card = findByIdOrThrow(cardId);

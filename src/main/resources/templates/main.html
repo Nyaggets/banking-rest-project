@@ -18,7 +18,7 @@
       <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasNavbar">
         <div class="offcanvas-header">
           <h5 class="offcanvas-title">Меню</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+          <button type="button" class="btn-close" errors-bs-dismiss="offcanvas" aria-label="Close"></button>
         </div>
         <div class="offcanvas-body">
           <ul class="navbar-nav">
@@ -26,7 +26,7 @@
               <a href="main" class="nav-link">Главная</a>
             </li>
             <li class="nav-item">
-              <a href="transfer" class="nav-link">Перевести</a>
+              <a href="transfer?type=EXTERNAL" class="nav-link">Перевести</a>
             </li>
             <li class="nav-item">
               <a href="analitics" class="nav-link">Аналитика</a>
@@ -35,7 +35,7 @@
         </div>
       </div>
       <div class="side-actions">
-      <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar" aria-controls="offcanvasNavbar" aria-expanded="false" aria-label="Toggle navigation">
+      <button class="navbar-toggler" type="button" errors-bs-toggle="offcanvas" errors-bs-target="#offcanvasNavbar" aria-controls="offcanvasNavbar" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="profile-actions">
@@ -60,10 +60,10 @@
             <h3 class="fast-actions-title">Быстрые действия</h3>
             <ul class="fast-actions-list">
               <li>
-                <button type="button" class="secondary-btn"><a href="transfer">Перевести</a></button>
+                <button type="button" class="secondary-btn"><a href="transfer?type=EXTERNAL">Перевести</a></button>
               </li>
               <li>
-                <button type="button" class="secondary-btn"><a href="transfer">Пополнить</a></button>
+                <button type="button" class="secondary-btn"><a href="transfer?type=INTERNAL">Пополнить</a></button>
               </li>
               <li>
                 <button type="button" class="secondary-btn"><a href="#">Снять</a></button>

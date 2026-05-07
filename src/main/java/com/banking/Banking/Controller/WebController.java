@@ -1,17 +1,19 @@
 package com.banking.Banking.Controller;
 
 import com.banking.Banking.Dto.ClientDtoRequest;
+import com.banking.Banking.Dto.ClientDtoResponse;
 import com.banking.Banking.Dto.TransactionDtoResponse;
 import com.banking.Banking.Entity.Client;
 import com.banking.Banking.Entity.Transaction;
 import com.banking.Banking.Mapper.CardMapper;
 import com.banking.Banking.Mapper.ClientMapper;
 import com.banking.Banking.Mapper.TransactionMapper;
-import com.banking.Banking.Repository.CardRepository;
 import com.banking.Banking.Service.CardService;
 import com.banking.Banking.Service.ClientService;
 import com.banking.Banking.Service.TransactionService;
+import com.banking.Banking.validation.RequestLimitException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -21,13 +23,13 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.nio.file.AccessDeniedException;
 import java.security.Principal;
 import java.util.List;
 import java.util.Map;
 
 @Controller
 public class WebController {
-    private final CardRepository repo;
     private final CardService cardService;
     private final ClientService clientService;
     private final TransactionService transactionService;
@@ -35,9 +37,8 @@ public class WebController {
     private final ClientMapper clientMapper;
     private final TransactionMapper transactionMapper;
     @Autowired
-    public WebController(CardRepository repo, CardService cardService, ClientService clientService, TransactionService transactionService,
+    public WebController(CardService cardService, ClientService clientService, TransactionService transactionService,
                          CardMapper cardMapper, ClientMapper clientMapper, TransactionMapper transactionMapper) {
-        this.repo = repo;
         this.cardService = cardService;
         this.clientService = clientService;
         this.transactionService = transactionService;
@@ -49,10 +50,7 @@ public class WebController {
     @GetMapping("clients/{clientId}/history")
     @ResponseBody
     public ResponseEntity<List<TransactionDtoResponse>> history(@PathVariable Long clientId){
-        Client client = clientService.findById(clientId);
-        if (client == null){
-            return ResponseEntity.notFound().build();
-        }
+        Client client = clientService.findByIdOrThrow(clientId);
         List<Transaction> transactions = transactionService.findByClientId(clientId);
 
         return ResponseEntity.ok(transactionMapper.toDtoList(transactions));
@@ -60,22 +58,18 @@ public class WebController {
 
     @GetMapping("clients/me")
     @ResponseBody
-    public ResponseEntity<Client> getCurrentUser(Authentication auth){
+    public ResponseEntity<ClientDtoResponse> getCurrentUser(Authentication auth){
         if (auth == null || auth instanceof AnonymousAuthenticationToken || !auth.isAuthenticated()){
             return ResponseEntity.notFound().build();
         }
         Client client = clientService.findByUsername(auth.getName());
-        return ResponseEntity.ok(client);
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .body(clientMapper.toDtoResponse(client));
     }
 
     @GetMapping("/login")
     public String loginPage(){
-        var v = repo.findAll();
-        v.forEach(c -> {
-            var cvv = cardService.generateCVV();
-            c.setCvv(cardService.encodeString(cvv, c.getClient().getId()));
-            c.setCvvHash(cardService.generateSha256Hash(cvv));
-        });
         return "login";
     }
 
@@ -102,7 +96,7 @@ public class WebController {
     @GetMapping("/profile")
     public String profilePage(Model model, Principal principal){
         Client client = clientService.findByUsername(principal.getName());
-        model.addAttribute("client", clientMapper.toDtoResponse(client  ));
+        model.addAttribute("client", clientMapper.toDtoResponse(client));
         return "profile";
     }
 
@@ -111,34 +105,17 @@ public class WebController {
         return "card";
     }
 
-    @PostMapping("/signin")
-    public String signinClient(@ModelAttribute("newClient") ClientDtoRequest newClientDto){
-        Client newClient = clientMapper.fromDtoRequest(newClientDto);
-        if (!clientService.createClient(newClient)){
-            return "signin";
-        }
-        return "redirect:/login";
-    }
-
     @PreAuthorize("isAuthenticated()")
     @PostMapping("card/{cardId}/card-details")
-    public ResponseEntity<?> revealCardDetails(Authentication auth, @PathVariable String cardId, @RequestBody Map<String, String> requestBody) {
+    public ResponseEntity<?> revealCardDetails(Authentication auth, @PathVariable String cardId,
+                                               @RequestBody Map<String, String> requestBody)
+                                                throws RequestLimitException, AccessDeniedException {
         Client client = clientService.findByUsername(auth.getName());
         if (client == null)
-            return ResponseEntity.badRequest().body("Не нашли клиента");
-        try {
-            Map<String, String> details = cardService.revealCardDetails(client.getId(), requestBody.get("password"), Long.valueOf(cardId));
-            return ResponseEntity.ok()
-                    .header("Cache-Control", "no-store, no-cache, must-revalidate")
-                    .header("Pragma", "no-cache")
-                    .header("X-Content-Type-Options", "nosniff")
-                    .body(details);
-        }
-        catch (BadCredentialsException ex) {
-            return ResponseEntity.status(401).build();
-        }
-        catch (RuntimeException ex) {
-            return ResponseEntity.status(429).build();
-        }
+            throw new BadCredentialsException("Пользователь не найден");
+        Map<String, String> details = cardService.revealCardDetails(client.getId(), requestBody.get("password"), Long.valueOf(cardId));
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .body(details);
     }
 }

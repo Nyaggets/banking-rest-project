@@ -44,32 +44,8 @@ public class ClientController {
 
     @GetMapping("search/{id}")
     public ResponseEntity<ClientDtoResponse> findById(@PathVariable("id") Long id){
-        Client client = clientService.findById(id);
-        if (client == null){
-            return ResponseEntity.notFound().build();
-        }
+        Client client = clientService.findByIdOrThrow(id);
         return ResponseEntity.ok(clientMapper.toDtoResponse(client));
-    }
-
-    @PostMapping("/login/{phone}")
-    public ResponseEntity<ClientDtoResponse> loginByPhone(@PathVariable("phone") String phone){
-        Client client = clientService.findByPhone(phone);
-        if (client == null){
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(clientMapper.toDtoResponse(client));
-    }
-
-    @PostMapping("/register")
-    public ResponseEntity<ClientDtoResponse> singUpClient(@RequestBody ClientDtoRequest clientDtoRequest){
-        Client newClient = clientMapper.fromDtoRequest(clientDtoRequest);
-        if (clientService.findByPhone(newClient.getPhone()) != null){
-            return ResponseEntity.badRequest().build();
-        }
-        if (!clientService.createClient(newClient)){
-            return ResponseEntity.badRequest().build();
-        }
-        return new ResponseEntity<>(clientMapper.toDtoResponse(newClient), HttpStatus.CREATED);
     }
 
     @DeleteMapping("/{id}/remove")

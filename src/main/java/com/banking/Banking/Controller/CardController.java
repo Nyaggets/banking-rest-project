@@ -5,14 +5,18 @@ import com.banking.Banking.Entity.Card;
 import com.banking.Banking.Entity.Client;
 import com.banking.Banking.Mapper.CardMapper;
 import com.banking.Banking.Service.CardService;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@PreAuthorize("isAuthenticated()")
 @RestController
 @RequestMapping("clients/{clientId}/cards")
 public class CardController {
@@ -35,19 +39,17 @@ public class CardController {
     @ResponseBody
     public ResponseEntity<CardDtoResponse> findById(@PathVariable Long clientId,
                                                     @RequestParam String id){
-        Card card = cardService.findById(Long.valueOf(id));
-        if (card == null){
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(mapper.toDto(card));
+        Card card = cardService.findByIdOrThrow(Long.valueOf(id));
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .body(mapper.toDto(card));
     }
 
     @GetMapping("search")
     public ResponseEntity<CardDtoResponse> findByCardNumber(@RequestParam String number){
         Card card = cardService.findByCardNumberHash(number);
-        if (card == null){
-            return ResponseEntity.badRequest().build();
-        }
+        if (card == null)
+            throw new EntityNotFoundException("Карта по данному номеру не найдена");
         return ResponseEntity.ok(mapper.toDto(card));
     }
 

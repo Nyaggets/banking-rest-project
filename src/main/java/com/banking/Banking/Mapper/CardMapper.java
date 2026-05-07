@@ -2,12 +2,8 @@ package com.banking.Banking.Mapper;
 
 import com.banking.Banking.Dto.CardDtoResponse;
 import com.banking.Banking.Entity.Card;
-import com.banking.Banking.Service.CardService;
-import com.banking.Banking.validation.CardNotFoundException;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.Named;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 

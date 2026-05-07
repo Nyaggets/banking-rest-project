@@ -21,7 +21,7 @@ cards.forEach(card => {
     const transferBtn = cardElem.querySelectorAll('.transfer-btn')
     transferBtn.forEach(btn => {
         btn.addEventListener('click', () => {
-            window.location.assign(`${URL_BASE}/transfer?from=${card.id}`)
+            window.location.assign(`${URL_BASE}/transfer?type=EXTERNAL&from=${card.id}`)
         })
     })
 })

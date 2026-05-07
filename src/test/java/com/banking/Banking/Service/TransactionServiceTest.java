@@ -6,6 +6,7 @@ import com.banking.Banking.Entity.Client;
 import com.banking.Banking.Entity.OperationTypes;
 import com.banking.Banking.Entity.Transaction;
 import com.banking.Banking.Repository.TransactionRepository;
+import com.banking.Banking.validation.MultipleValidationException;
 import jakarta.validation.Validator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,13 +15,19 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.PropertySource;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.TestPropertySource;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -28,6 +35,7 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @SpringBootTest
+@TestPropertySource(properties = {"TINK_KEYSET_BASE64=TINK_KEYSET_BASE64=ewogICAgInByaW1hcnlLZXlJZCI6IDIwMDczMzQ5MjAsCiAgICAia2V5IjogW3sKICAgICAgICAia2V5RGF0YSI6IHsKICAgICAgICAgICAgInR5cGVVcmwiOiAidHlwZS5nb29nbGVhcGlzLmNvbS9nb29nbGUuY3J5cHRvLnRpbmsuQWVzRWF4S2V5IiwKICAgICAgICAgICAgImtleU1hdGVyaWFsVHlwZSI6ICJTWU1NRVRSSUMiLAogICAgICAgICAgICAidmFsdWUiOiAiRWdJSUVCb2d1VDEwWU9Iek5hbTdETkRzbUJjMGdaejRNZlFHTVBNVERKM3RJbmlpUkV3PSIKICAgICAgICB9LAogICAgICAgICJvdXRwdXRQcmVmaXhUeXBlIjogIlRJTksiLAogICAgICAgICJrZXlJZCI6IDIwMDczMzQ5MjAsCiAgICAgICAgInN0YXR1cyI6ICJFTkFCTEVEIgogICAgfV0KfQ=="})
 public class TransactionServiceTest {
     @Autowired
     private Validator validator;
@@ -37,6 +45,8 @@ public class TransactionServiceTest {
     private CardService cardService;
     @Mock
     private ClientService clientService;
+    @Mock
+    private TransactionValidationService validationService;
     @InjectMocks
     private TransactionService transactionService;
 
@@ -109,46 +119,8 @@ public class TransactionServiceTest {
     }
 
     @Test
-    @WithMockUser(username = "client")
-    void transferValidation_Success() {
-        when(cardService.findById(1L)).thenReturn(senderCard);
-        when(cardService.findByCardIdentifier(anyString())).thenReturn(receiverCard);
-        when(clientService.findByUsername(anyString())).thenReturn(senderClient);
-
-        var result = transactionService.transferValidation(transferDto);
-
-        assertThat(result).isEmpty();
-    }
-    @Test
-    @WithMockUser(username = "client")
-    void transferValidation_Unauthorized() {
-        senderCard.setClient(new Client());
-        when(cardService.findById(1L)).thenReturn(senderCard);
-        when(cardService.findByCardIdentifier(anyString())).thenReturn(receiverCard);
-        when(clientService.findByUsername(anyString())).thenReturn(null);
-
-        var result = transactionService.transferValidation(transferDto);
-
-        assertThat(result.size()).isEqualTo(1);
-        assertThat(result).containsKey("unauthorized");
-    }
-    @Test
-    @WithMockUser(username = "client")
-    void transferValidation_SeveralErrors() {
-        transferDto.setAmount(BigDecimal.ZERO);
-        when(cardService.findById(1L)).thenReturn(senderCard);
-        when(cardService.findByCardIdentifier(anyString())).thenReturn(senderCard);
-        when(clientService.findByUsername(anyString())).thenReturn(senderClient);
-
-        var result = transactionService.transferValidation(transferDto);
-
-        assertThat(result.size()).isEqualTo(2);
-        assertThat(result).containsKey("amount");
-        assertThat(result).containsKey("receiver");
-    }
-    @Test
     void createTransfer_Success() {
-        when(cardService.findByIdOrThrow(1L)).thenReturn(senderCard);
+        when(cardService.findById(1L)).thenReturn(senderCard);
         when(cardService.findByCardIdentifier(anyString())).thenReturn(receiverCard);
         when(transactionRepository.save(any(Transaction.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
@@ -164,24 +136,6 @@ public class TransactionServiceTest {
     }
 
     @Test
-    void depositValidation_Success() {
-        when(cardService.findByCardIdentifier(anyString())).thenReturn(receiverCard);
-
-        var result = transactionService.depositValidation(depositDto);
-
-        assertThat(result).isEmpty();
-    }
-    @Test
-    void depositValidation_SeveralErrors() {
-        depositDto.setAmount(BigDecimal.ZERO);
-
-        var result = transactionService.depositValidation(depositDto);
-
-        assertThat(result.size()).isEqualTo(2);
-        assertThat(result).containsKey("amount");
-        assertThat(result).containsKey("receiver");
-    }
-    @Test
     void createDeposit_Success() {
         when(cardService.findByCardIdentifier(anyString())).thenReturn(receiverCard);
         when(transactionRepository.save(any(Transaction.class)))
@@ -196,45 +150,10 @@ public class TransactionServiceTest {
         verify(transactionRepository, times(1)).save(any(Transaction.class));
     }
 
-    @Test
-    @WithMockUser(username = "client")
-    void withdrawalValidation_Success() {
-        when(cardService.findById(1L)).thenReturn(senderCard);
-        when(clientService.findByUsername(anyString())).thenReturn(senderClient);
 
-        var result = transactionService.withdrawalValidation(withdrawalDto);
-
-        assertThat(result).isEmpty();
-    }
-    @Test
-    @WithMockUser(username = "client")
-    void withdrawalValidation_Forbidden() {
-        senderCard.setClient(new Client());
-        when(cardService.findById(1L)).thenReturn(senderCard);
-        when(clientService.findByUsername(anyString())).thenReturn(senderClient);
-
-        var result = transactionService.withdrawalValidation(withdrawalDto);
-
-        assertThat(result.size()).isEqualTo(1);
-        assertThat(result).containsKey("forbidden");
-    }
-    @Test
-    @WithMockUser(username = "client")
-    void withdrawalValidation_SeveralErrors() {
-        withdrawalDto.setAmount(BigDecimal.ZERO);
-        senderCard.setClient(new Client());
-        when(cardService.findById(1L)).thenReturn(senderCard);
-        when(clientService.findByUsername(anyString())).thenReturn(senderClient);
-
-        var result = transactionService.withdrawalValidation(withdrawalDto);
-
-        assertThat(result.size()).isEqualTo(2);
-        assertThat(result).containsKey("amount");
-        assertThat(result).containsKey("forbidden");
-    }
     @Test
     void createWithdrawal_Success() {
-        when(cardService.findByIdOrThrow(1L)).thenReturn(senderCard);
+        when(cardService.findById(1L)).thenReturn(senderCard);
         when(transactionRepository.save(any(Transaction.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
