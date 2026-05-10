@@ -1,9 +1,9 @@
 package com.banking.Banking.Controller;
 
-import com.banking.Banking.Dto.ClientDtoRequest;
 import com.banking.Banking.Dto.ClientDtoResponse;
 import com.banking.Banking.Dto.TransactionDtoResponse;
 import com.banking.Banking.Entity.Client;
+import com.banking.Banking.Entity.OperationTypes;
 import com.banking.Banking.Entity.Transaction;
 import com.banking.Banking.Mapper.CardMapper;
 import com.banking.Banking.Mapper.ClientMapper;
@@ -12,7 +12,9 @@ import com.banking.Banking.Service.CardService;
 import com.banking.Banking.Service.ClientService;
 import com.banking.Banking.Service.TransactionService;
 import com.banking.Banking.validation.RequestLimitException;
+import jakarta.annotation.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -25,6 +27,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.nio.file.AccessDeniedException;
 import java.security.Principal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -49,10 +52,11 @@ public class WebController {
 
     @GetMapping("clients/{clientId}/history")
     @ResponseBody
-    public ResponseEntity<List<TransactionDtoResponse>> history(@PathVariable Long clientId){
-        Client client = clientService.findByIdOrThrow(clientId);
-        List<Transaction> transactions = transactionService.findByClientId(clientId);
-
+    public ResponseEntity<List<TransactionDtoResponse>> history(@PathVariable Long clientId, @Nullable @RequestParam Long cardId,
+                                                                @Nullable @RequestParam OperationTypes type,
+                                                                @Nullable @RequestParam String start,
+                                                                @Nullable @RequestParam String end) throws AccessDeniedException {
+        List<Transaction> transactions = transactionService.findTransactions(clientId, cardId, type, start, end);
         return ResponseEntity.ok(transactionMapper.toDtoList(transactions));
     }
 

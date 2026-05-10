@@ -162,6 +162,11 @@ public class CardService {
                 .orElseThrow(() -> new EntityNotFoundException("Карта с данным номером не найдена"));
     }
 
+    public boolean belongsToClient(Long clientId, Long cardId) {
+        Card card = findByIdOrThrow(cardId);
+        return card.getClient().getId().equals(clientId);
+    }
+
     public Card findByCardIdentifier(String identifier) {
         Card card;
         if (identifier.matches("^(\\+7|8)\\d{10}$")) {

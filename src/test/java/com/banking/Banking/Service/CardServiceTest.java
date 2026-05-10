@@ -12,6 +12,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.BadCredentialsException;
 
+import java.nio.file.AccessDeniedException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -95,7 +96,7 @@ public class CardServiceTest {
     }
 
     @Test
-    public void RevealAttempts_Success() throws RequestLimitException {
+    public void RevealAttempts_Success() throws RequestLimitException, AccessDeniedException {
         when(clientService.checkPassword(anyString(), anyLong())).thenReturn(true);
         when(cardRepository.findById(1L)).thenReturn(Optional.of(card));
 
@@ -118,7 +119,7 @@ public class CardServiceTest {
     }
 
     @Test
-    public void RevealAttempts_TimeLimitTest() throws RequestLimitException {
+    public void RevealAttempts_TimeLimitTest() throws RequestLimitException, AccessDeniedException {
         when(cardRepository.findById(clientId)).thenReturn(Optional.of(card));
         when(clientService.checkPassword(anyString(), anyLong())).thenReturn(false);
 

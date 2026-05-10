@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.nio.file.AccessDeniedException;
 import java.util.HashMap;
@@ -56,6 +57,13 @@ public class ExceptionHandlerController {
     @ExceptionHandler(MultipleValidationException.class)
     public ResponseEntity<Response> MultipleValidationHandler(MultipleValidationException ex) {
         return ResponseEntity.status(400).body(new Response("TRANSFER ERROR", ex.getErrors()));
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Response> MethodArgumentTypeMismatchHandler(MethodArgumentTypeMismatchException ex) {
+        HashMap<String, String> errors = new HashMap<>();
+        errors.put("message", "Некорректное значение параметра '%s'".formatted(ex.getName()));
+        return ResponseEntity.status(400).body(new Response("TYPE MISMATCH", errors));
     }
 
     private record Response(String code, HashMap<String, String> errors) {
