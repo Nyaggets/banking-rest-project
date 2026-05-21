@@ -1,21 +1,24 @@
 package com.banking.Banking.Service;
 
+import com.banking.Banking.Configuration.QuerySpec;
 import com.banking.Banking.Dto.TransactionDtoRequest;
 import com.banking.Banking.Entity.Card;
 import com.banking.Banking.Entity.OperationTypes;
 import com.banking.Banking.Entity.Transaction;
+import com.banking.Banking.Mapper.TransactionMapper;
 import com.banking.Banking.Repository.TransactionRepository;
 import jakarta.annotation.Nullable;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.MethodParameter;
+import org.springframework.data.domain.*;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
-import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.math.BigDecimal;
 import java.nio.file.AccessDeniedException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
@@ -31,6 +34,9 @@ public class TransactionService {
     private ClientService clientService;
     @Autowired
     private TransactionValidationService validationService;
+    @Autowired
+    private TransactionMapper mapper;
+    private final int PAGE_SIZE = 5;
 
     public BigDecimal calculateCommission(BigDecimal amount) {
         return amount.compareTo(new BigDecimal("100000")) < 0
@@ -102,55 +108,44 @@ public class TransactionService {
         return repository.findByCardId(cardId);
     }
 
-
-    public List<Transaction> findTransactions(Long clientId) {
+    public Page<Transaction> findTransactions(Long clientId, int pageNum) {
+        Pageable pageable = PageRequest.of(pageNum, PAGE_SIZE, Sort.by(Sort.Direction.DESC, "timestamp"));
         clientService.findByIdOrThrow(clientId);
-        List<Card> cards = cardService.findByClientId(clientId);
-        return cards.stream()
-                .flatMap(card -> repository.findByCardId(card.getId()).stream())
-                .sorted(Comparator.comparing(Transaction::getTimestamp).reversed())
-                .distinct()
+        List<Long> cards = cardService.findByClientId(clientId).stream()
+                .map(Card::getId)
                 .toList();
+        return repository.findAll(Specification.where(QuerySpec.belongsInCards(cards)), pageable);
     }
 
-    public List<Transaction> findTransactions(Long clientId, @Nullable Long cardId, @Nullable OperationTypes type,
-                                              @Nullable String start, @Nullable String end) throws AccessDeniedException {
+    public Page<Transaction> findTransactions(Long clientId, int pageNum, @Nullable OperationTypes type,
+                  @Nullable Long cardId, @Nullable String start, @Nullable String end) throws AccessDeniedException {
         clientService.findByIdOrThrow(clientId);
         if (cardId != null && !cardService.belongsToClient(clientId, cardId))
             throw new AccessDeniedException("Доступ к карте запрещен");
 
-        List<Card> cards = cardService.findByClientId(clientId);
-        var transactions = cards.stream()
-                    .flatMap(card -> repository.findByCardId(card.getId()).stream())
-                    .sorted(Comparator.comparing(Transaction::getTimestamp).reversed())
-                    .distinct();
-        if (cardId != null)
-            transactions = transactions.filter(transaction -> {
-                if (transaction.getSenderCard() != null && transaction.getReceiverCard() != null)
-                    return cardId.equals(transaction.getSenderCard().getId()) ||
-                           cardId.equals(transaction.getReceiverCard().getId());
-                if (transaction.getSenderCard() != null)
-                    return cardId.equals(transaction.getSenderCard().getId());
-                if (transaction.getReceiverCard() != null)
-                    return cardId.equals(transaction.getReceiverCard().getId());
-                return false;
-                });
-        if (type != null)
-            transactions = transactions.filter(transaction -> transaction.getType().equals(type));
-        if (start != null && end != null) {
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-            String field = "start";
-            try {
-                LocalDateTime startDate = LocalDate.parse(start, formatter).atStartOfDay();
-                field = "end";
-                LocalDateTime endDate = LocalDate.parse(end, formatter).atStartOfDay();
-                transactions = transactions.filter(transaction -> transaction.getTimestamp().isAfter(startDate) &&
-                        transaction.getTimestamp().isBefore(endDate));
-            }
-            catch (DateTimeParseException ex) {
-                throw new RuntimeException("Некорректное значение параметра '%s'".formatted(field));
-            }
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        String field = "start";
+        LocalDateTime startDate;
+        LocalDateTime endDate;
+        try {
+            startDate = start != null ? LocalDate.parse(start, formatter).atStartOfDay() : null;
+            field = "end";
+            endDate = end != null ? LocalDate.parse(end, formatter).atTime(LocalTime.MAX) : null;
         }
-        return transactions.toList();
+        catch (DateTimeParseException ex) {
+            throw new RuntimeException("Некорректное значение параметра '%s'".formatted(field));
+        }
+
+        List<Long> cards = cardService.findByClientId(clientId).stream()
+                .map(Card::getId)
+                .toList();
+        Pageable pageable = PageRequest.of(pageNum, PAGE_SIZE, Sort.by(Sort.Direction.DESC, "timestamp"));
+        Specification<Transaction> spec = Specification.unrestricted();
+        if (!cards.isEmpty()) spec = spec.and(QuerySpec.belongsInCards(cards));
+        if (type != null) spec = spec.and(QuerySpec.hasType(type));
+        if (cardId != null) spec = spec.and(QuerySpec.belongsToCard(cardId));
+        if (start != null && end != null) spec = spec.and(QuerySpec.timestampBetween(startDate, endDate));
+        System.out.println(startDate + " " + endDate);
+        return repository.findAll(spec, pageable);
     }
 }

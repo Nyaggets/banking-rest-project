@@ -1,10 +1,12 @@
 package com.banking.Banking.Service;
 
 import com.banking.Banking.Dto.TransactionDtoRequest;
+import com.banking.Banking.Dto.TransactionDtoResponse;
 import com.banking.Banking.Entity.Card;
 import com.banking.Banking.Entity.Client;
 import com.banking.Banking.Entity.OperationTypes;
 import com.banking.Banking.Entity.Transaction;
+import com.banking.Banking.Mapper.TransactionMapper;
 import com.banking.Banking.Repository.TransactionRepository;
 import jakarta.validation.Validator;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,8 +16,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.TestPropertySource;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.SliceImpl;
 
 import java.math.BigDecimal;
 import java.nio.file.AccessDeniedException;
@@ -30,8 +34,6 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-@SpringBootTest
-@TestPropertySource(properties = {"TINK_KEYSET_BASE64=TINK_KEYSET_BASE64=ewogICAgInByaW1hcnlLZXlJZCI6IDIwMDczMzQ5MjAsCiAgICAia2V5IjogW3sKICAgICAgICAia2V5RGF0YSI6IHsKICAgICAgICAgICAgInR5cGVVcmwiOiAidHlwZS5nb29nbGVhcGlzLmNvbS9nb29nbGUuY3J5cHRvLnRpbmsuQWVzRWF4S2V5IiwKICAgICAgICAgICAgImtleU1hdGVyaWFsVHlwZSI6ICJTWU1NRVRSSUMiLAogICAgICAgICAgICAidmFsdWUiOiAiRWdJSUVCb2d1VDEwWU9Iek5hbTdETkRzbUJjMGdaejRNZlFHTVBNVERKM3RJbmlpUkV3PSIKICAgICAgICB9LAogICAgICAgICJvdXRwdXRQcmVmaXhUeXBlIjogIlRJTksiLAogICAgICAgICJrZXlJZCI6IDIwMDczMzQ5MjAsCiAgICAgICAgInN0YXR1cyI6ICJFTkFCTEVEIgogICAgfV0KfQ=="})
 public class TransactionServiceTest {
     @Autowired
     private Validator validator;
@@ -43,6 +45,8 @@ public class TransactionServiceTest {
     private ClientService clientService;
     @Mock
     private TransactionValidationService validationService;
+    @Mock
+    private TransactionMapper mapper;
     @InjectMocks
     private TransactionService transactionService;
 
@@ -61,6 +65,7 @@ public class TransactionServiceTest {
     private Transaction timestampDepositMinus2;
     private List<Transaction> transactions;
     private LocalDateTime fixedDate;
+    private Pageable pageable;
 
     @BeforeEach
     void setUp() {
@@ -145,6 +150,7 @@ public class TransactionServiceTest {
                 .build();
         transactions = List.of(transferSender, transferReceiver, depositSender, depositReceiver,
                 withdrawalSender, withdrawalReceiver, timestampDepositMinus1, timestampDepositMinus2);
+        pageable = PageRequest.of(0, 2);
     }
 
     @Test
@@ -162,9 +168,8 @@ public class TransactionServiceTest {
     @Test
     void findTransactions_SuccessByClientId() {
         when(cardService.findByClientId(1L)).thenReturn(List.of(senderCard));
-        when(transactionRepository.findByCardId(1L)).thenReturn(List.of());
 
-        List<Transaction> clientTransactions = transactionService.findTransactions(1L);
+        Slice<TransactionDtoResponse> clientTransactions = transactionService.findTransactions(1L, 0);
 
         assertThat(clientTransactions).isNotNull();
         verify(cardService).findByClientId(1L);
@@ -176,10 +181,10 @@ public class TransactionServiceTest {
         when(cardService.belongsToClient(1L, 1L)).thenReturn(true);
         when(transactionRepository.findByCardId(1L)).thenReturn(transactions);
 
-        List<Transaction> clientTransactions = transactionService
-                .findTransactions(1L, 1L, null, null, null);
+        var clientTransactions = transactionService
+                .findTransactions(1L, 1, null, 1L, null, null);
 
-        assertThat(clientTransactions.size()).isEqualTo(3);
+        assertThat(clientTransactions.getContent().size()).isEqualTo(3);
     }
 
     @Test
@@ -187,16 +192,14 @@ public class TransactionServiceTest {
         when(cardService.findByClientId(1L)).thenReturn(List.of(senderCard, receiverCard));
         when(transactionRepository.findByCardId(1L)).thenReturn(transactions);
 
-        List<Transaction> transferTransactions = transactionService
-                .findTransactions(1L, null, OperationTypes.TRANSFER, null, null);
-        System.out.println();
-        List<Transaction> depositTransactions = transactionService
-                .findTransactions(1L, null, OperationTypes.DEPOSIT, null, null);
-        System.out.println();
-        List<Transaction> withdrawalTransactions = transactionService
-                .findTransactions(1L, null, OperationTypes.WITHDRAWAL, null, null);
+        var transferTransactions = transactionService
+                .findTransactions(1L, 1, OperationTypes.TRANSFER, null, null, null);
+        var depositTransactions = transactionService
+                .findTransactions(1L, 1, OperationTypes.DEPOSIT,null,  null, null);
+        var withdrawalTransactions = transactionService
+                .findTransactions(1L, 1, OperationTypes.WITHDRAWAL, null, null, null);
 
-        assertThat(transferTransactions).contains(transferSender, transferReceiver);
+        assertThat(transferTransactions.getContent()).contains(transferSender, transferReceiver);
         assertThat(depositTransactions).contains(depositSender, depositReceiver, timestampDepositMinus1, timestampDepositMinus2);
         assertThat(withdrawalTransactions).contains(withdrawalSender, withdrawalReceiver);
     }
@@ -212,6 +215,19 @@ public class TransactionServiceTest {
 
         assertThat(clientTransactions).contains(timestampDepositMinus1, timestampDepositMinus2);
         assertThat(clientTransactions).hasSize(2);
+    }
+
+    @Test
+    void findTransactions_SliceLol() {
+        when(cardService.findByClientId(1L)).thenReturn(List.of(senderCard, receiverCard));
+        when(transactionRepository.findAll(anyList(), any())).thenReturn(new SliceImpl<>(transactions, pageable, false));
+        when(mapper.toDtoList(anyList())).thenReturn(List.of(new TransactionDtoResponse(), new TransactionDtoResponse()));
+
+        Slice<TransactionDtoResponse> sliceResult = transactionService.findTransactions(1L, 0);
+
+        assertThat(sliceResult.getContent()).hasSize(2);
+        assertThat(sliceResult.getPageable().getPageSize()).isEqualTo(2);
+        assertThat(sliceResult.getPageable().getOffset()).isEqualTo(0);
     }
 
     @Test

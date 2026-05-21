@@ -16,43 +16,6 @@ const getData = async(url) => {
 
 const client = await getData(`${URL_BASE}/clients/me`)
 const cards = Array.from(await getData(`${URL_BASE}/clients/${client.id}/cards`))
-const history = Array.from(await getData(`${URL_BASE}/clients/${client.id}/history`))
+const { content: history, totalPages} = await getData(`${URL_BASE}/api/history`)
 
-history.forEach(transaction => {
-    switch (transaction.type) {
-        case 'WITHDRAWAL':
-            transaction.type = 'Оплата товаров и услуг'
-            transaction.direction = 'out'
-            transaction.counterpartyName = transaction.merchant
-            break;
-
-        case 'DEPOSIT':
-            transaction.type = 'Зачисление'
-            transaction.direction = 'in'
-            transaction.counterpartyName = transaction.source
-            break;
-
-        case 'TRANSFER':
-            if (transaction.receiverDetails.id == transaction.senderDetails.id) {
-                transaction.direction = 'between'
-                transaction.type = 'Перевод между своими'
-                transaction.counterpartyName = client.name
-                transaction.counterpartyNumber = transaction.senderCardNumber
-            }
-            else if (transaction.receiverDetails.id == client.id) {
-                transaction.direction = 'in'
-                transaction.type = 'Входящий перевод'
-                transaction.counterpartyName = transaction.senderDetails.name
-                transaction.counterpartyNumber = transaction.senderCardNumber
-            }
-            else if (transaction.senderDetails.id == client.id) {
-                transaction.direction = 'out'
-                transaction.type = 'Перевод'
-                transaction.counterpartyName = transaction.receiverDetails.name
-                transaction.counterpartyNumber = transaction.receiverCardNumber
-            }
-            break;
-    }
-})
-
-export { URL_BASE, getData, client, cards, history }
+export { URL_BASE, getData, client, cards, history, totalPages }

@@ -4,7 +4,6 @@ import com.banking.Banking.Dto.ClientDtoResponse;
 import com.banking.Banking.Dto.TransactionDtoResponse;
 import com.banking.Banking.Entity.Client;
 import com.banking.Banking.Entity.OperationTypes;
-import com.banking.Banking.Entity.Transaction;
 import com.banking.Banking.Mapper.CardMapper;
 import com.banking.Banking.Mapper.ClientMapper;
 import com.banking.Banking.Mapper.TransactionMapper;
@@ -15,6 +14,7 @@ import com.banking.Banking.validation.RequestLimitException;
 import jakarta.annotation.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -27,8 +27,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.nio.file.AccessDeniedException;
 import java.security.Principal;
-import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Map;
 
 @Controller
@@ -50,14 +48,18 @@ public class WebController {
         this.transactionMapper = transactionMapper;
     }
 
-    @GetMapping("clients/{clientId}/history")
+    @GetMapping("api/history")
     @ResponseBody
-    public ResponseEntity<List<TransactionDtoResponse>> history(@PathVariable Long clientId, @Nullable @RequestParam Long cardId,
-                                                                @Nullable @RequestParam OperationTypes type,
-                                                                @Nullable @RequestParam String start,
-                                                                @Nullable @RequestParam String end) throws AccessDeniedException {
-        List<Transaction> transactions = transactionService.findTransactions(clientId, cardId, type, start, end);
-        return ResponseEntity.ok(transactionMapper.toDtoList(transactions));
+    public ResponseEntity<Page> history(Authentication auth, @RequestParam(defaultValue = "0") int page,
+                                          @Nullable @RequestParam Long cardId,
+                                          @Nullable @RequestParam OperationTypes type,
+                                          @Nullable @RequestParam String start,
+                                          @Nullable @RequestParam String end) throws AccessDeniedException {
+        Client client = clientService.findByUsername(auth.getName());
+        var transactions = transactionService.findTransactions(client.getId(), page, type, cardId, start, end);
+        var dtos = transactionMapper.toDtoList(transactions.getContent());
+        var dtoPage = new PageImpl<>(dtos, transactions.getPageable(), transactions.getTotalElements());
+        return ResponseEntity.ok(dtoPage);
     }
 
     @GetMapping("clients/me")

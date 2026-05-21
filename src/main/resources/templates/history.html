@@ -4,9 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://getbootstrap.com/docs/5.3/assets/css/docs.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-  <link rel="shortcut icon" href="#" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <link href="../static/css/style.css" rel="stylesheet">
   <title>История</title>
 </head>
@@ -50,12 +49,42 @@
     <div class="main-container container">
       <section class="history-container">
         <h2>История</h2>
+
+        <div id="filters">
+          <select name="card" id="counterparty-select">
+            <option value="">Все карты</option>
+          </select>
+
+          <select name="type-select" id="type-select">
+            <option value="">Все операции</option>
+            <option value="TRANSFER">Переводы</option>
+            <option value="DEPOSIT">Пополнения</option>
+            <option value="WITHDRAWAL">Расходы</option>
+          </select>
+
+          <select name="period-select" id="period-select">
+            <option value="">Всё время</option>
+            <option value="WEEK">Неделя</option>
+            <option value="MONTH">Месяц</option>
+            <option value="SIX_MONTHS">6 месяцев</option>
+            <option value="PERIOD">Выбрать период</option>
+          </select>
+          <input type="text" id="date-range-picker" hidden>
+        </div>
+
+        <div id="history-msg" hidden></div>
         <ul id="history-list"></ul>
+        <nav aria-label="Page navigation example" id="pagination-nav" class="mt-1">
+          <ul class="pagination">
+            <div id="btns" class="d-flex"></div>
+          </ul>
+        </nav>
       </section>
     </div>
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script type="module" src="/static/js/history.js"></script>
 </body> 
 </html>

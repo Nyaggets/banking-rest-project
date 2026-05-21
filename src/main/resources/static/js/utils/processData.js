@@ -1,8 +1,49 @@
-import { history } from './getData.js'
+import { client } from "./getData.js"
+
+const renderTransactions = (elements) => {
+    elements.forEach(transaction => {
+        switch (transaction.type) {
+            case 'WITHDRAWAL':
+                transaction.type = 'Оплата товаров и услуг'
+                transaction.direction = 'out'
+                transaction.counterpartyName = transaction.merchant
+                break;
+
+            case 'DEPOSIT':
+                transaction.type = 'Зачисление'
+                transaction.direction = 'in'
+                transaction.counterpartyName = transaction.source
+                break;
+
+            case 'TRANSFER':
+                if (transaction.receiverDetails.id == transaction.senderDetails.id) {
+                    transaction.direction = 'between'
+                    transaction.type = 'Перевод между своими'
+                    transaction.counterpartyName = client.name
+                    transaction.counterpartyNumber = transaction.senderCardNumber
+                }
+                else if (transaction.receiverDetails.id == client.id) {
+                    transaction.direction = 'in'
+                    transaction.type = 'Входящий перевод'
+                    transaction.counterpartyName = transaction.senderDetails.name
+                    transaction.counterpartyNumber = transaction.senderCardNumber
+                }
+                else if (transaction.senderDetails.id == client.id) {
+                    transaction.direction = 'out'
+                    transaction.type = 'Перевод'
+                    transaction.counterpartyName = transaction.receiverDetails.name
+                    transaction.counterpartyNumber = transaction.receiverCardNumber
+                }
+                break;
+        }
+    })
+}
 
 const showHistory = (transactions, historyList, length = transactions.length) => {
-    for (let i = 0; i < length && i < transactions.length ; i++) {
-        const transaction = history[i];
+    renderTransactions(transactions)
+
+    historyList.innerHTML = ''
+    transactions.forEach(transaction => {
         const transactionElem = document.createElement('li')
         historyList.appendChild(transactionElem)
         let signIcon
@@ -22,7 +63,7 @@ const showHistory = (transactions, historyList, length = transactions.length) =>
                 <span class="transaction-main"><h3>${transaction.counterpartyName}</h3>
                 <h3 class="transaction-amount">${signIcon} ${transaction.totalAmount}₽</h3></span>
             </div>`
-    }
+    })
 }
 
 const formatDate = (date) => {
@@ -53,7 +94,6 @@ const processResponse = async (response) => {
     }
     else if (response.status == 429) {
         const { errors: { field, message, expiresAt } } = await response.json()
-        console.log(field, message, expiresAt)
         document.querySelector(`[error-for="${field}"]`).hidden = false
         document.querySelector(`[error-for="${field}"]`).textContent = `${message} Повторите ещё раз после ${new Date(expiresAt).toLocaleTimeString([], {timeStyle: 'short'})}`
     }

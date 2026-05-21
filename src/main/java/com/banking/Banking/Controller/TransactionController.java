@@ -11,6 +11,8 @@ import com.banking.Banking.validation.TransferGroup;
 import com.banking.Banking.validation.WithdrawalGroup;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -109,5 +111,11 @@ public class TransactionController {
     @GetMapping
     public List<TransactionDtoResponse> findAllByCardId(@PathVariable Long cardId){
         return mapper.toDtoList(transactionService.findByCardId(cardId));
+    }
+
+    @GetMapping("/{clientId}")
+    public ResponseEntity<?> slice(@PathVariable Long clientId) {
+        Pageable pageable = PageRequest.of(0, 2);
+        return ResponseEntity.ok(transactionService.findTransactions(clientId, 0));
     }
 }

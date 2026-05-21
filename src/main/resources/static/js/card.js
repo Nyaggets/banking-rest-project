@@ -1,8 +1,8 @@
-import { URL_BASE, client, getData } from './utils/getData.js'
+import { URL_BASE, client, getData, history, totalPages } from './utils/getData.js'
 import { showHistory, formatDate, processResponse } from './utils/processData.js'
 
-const url = window.location.search
-const cardId = new URLSearchParams(url).get('id')
+const url = new URLSearchParams(window.location.search)
+const cardId = url.get('id')
 
 const card = await getData(`${URL_BASE}/clients/${client.id}/cards/card?id=${cardId}`)
 document.getElementById('card-container').innerHTML += `<h3 id='card-number'>${card.hiddenNumber}</h3>
@@ -44,6 +44,7 @@ if (document.getElementById('password-conf-btn')) {
     })
 }
 
+document.getElementById('card-history-link').href = `${URL_BASE}/history?cardId=${cardId}`
+
 const cardHistory = document.getElementById('card-history')
-const history = Array.from(await getData(`${URL_BASE}/cards/${cardId}/transactions`))
 showHistory(history, cardHistory)
