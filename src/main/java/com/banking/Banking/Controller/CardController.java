@@ -37,8 +37,7 @@ public class CardController {
 
     @GetMapping("/card")
     @ResponseBody
-    public ResponseEntity<CardDtoResponse> findById(@PathVariable Long clientId,
-                                                    @RequestParam String id){
+    public ResponseEntity<CardDtoResponse> findById(@PathVariable Long clientId, @RequestParam String id){
         Card card = cardService.findByIdOrThrow(Long.valueOf(id));
         return ResponseEntity.ok()
                 .cacheControl(CacheControl.noStore())
@@ -72,6 +71,4 @@ public class CardController {
         }
         return ResponseEntity.ok().build();
     }
-
-
 }

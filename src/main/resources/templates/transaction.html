@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link href="../static/css/style.css" rel="stylesheet">
+  <title>Детали операции</title>
+</head>
+
+<body>
+  <header class="header container">
+    <nav class="navbar navbar-expand-lg">
+      <a class="navbar-brand nav-link" href="main">Банк</a>
+      <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasNavbar">
+        <div class="offcanvas-header">
+          <h5 class="offcanvas-title">Меню</h5>
+          <button type="button" class="btn-close" errors-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+          <ul class="navbar-nav">
+            <li class="nav-item">
+              <a href="main" class="nav-link">Главная</a>
+            </li>
+            <li class="nav-item">
+              <a href="transfer" class="nav-link">Перевести</a>
+            </li>
+            <li class="nav-item">
+              <a href="analitics" class="nav-link">Аналитика</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div class="side-actions">
+        <button class="navbar-toggler" type="button" errors-bs-toggle="offcanvas" errors-bs-target="#offcanvasNavbar"
+          aria-controls="offcanvasNavbar" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="profile-actions">
+          <a href="logout"><i class="fa fa-sign-out fa-flip-horizontal" aria-hidden="true"></i></a>
+          <a href="profile"><i class="fa fa-user" aria-hidden="true"></i></a>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <div class="main-container container">
+      <h2>Детали операции</h2>
+      <div id="operation-title-container" class="mt-4">
+        <h1 id="amount"></h1>
+        <h1 id="operation-title"></h1>
+      </div>
+
+      <hr class="mt-4 mb-5">
+
+      <div class="row gy-5">
+        <div class="col-12 col-md-6">
+          <p class="detail-label caption mb-1"><i class="fa-solid fa-calendar me-2"></i>Дата и время</p>
+          <h3 id="date" class="mb-0"></h3>
+        </div>
+
+        <div class="col-12 col-md-6">
+          <p class="detail-label caption mb-1"><i class="fa-solid fa-percent me-2"></i>Комиссия</p>
+          <h3 id="commission" class="mb-0"></h3>
+        </div>
+
+        <div class="col-12 col-md-6" id="counterparty-container"></div>
+
+        <div class="col-12 col-md-6" id="message-container"></div>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script type="module" src="/static/js/transaction.js"></script>
+</body>
+
+</html>

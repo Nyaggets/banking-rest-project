@@ -8,12 +8,16 @@ import com.banking.Banking.Entity.Transaction;
 import com.banking.Banking.Mapper.TransactionMapper;
 import com.banking.Banking.Repository.TransactionRepository;
 import jakarta.annotation.Nullable;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.stereotype.Service;
 
+import javax.swing.text.html.parser.Entity;
 import java.math.BigDecimal;
 import java.nio.file.AccessDeniedException;
 import java.time.LocalDate;
@@ -108,6 +112,17 @@ public class TransactionService {
         return repository.findByCardId(cardId);
     }
 
+    public Transaction findById(Long transactionId, Authentication auth) throws AccessDeniedException {
+        var transaction = repository.findById(transactionId).orElseThrow(() -> new EntityNotFoundException("Операция не найдена"));
+        var client = clientService.findByUsername(auth.getName());
+        if (client == null)
+            throw new RuntimeException("Пользователь не найден");
+        if (client.getId() != transaction.getReceiverCard().getClient().getId() &&
+            client.getId() != transaction.getSenderCard().getClient().getId())
+            throw new AccessDeniedException("Операция не принадлежит пользователю");
+        return transaction;
+    }
+
     public Page<Transaction> findTransactions(Long clientId, int pageNum) {
         Pageable pageable = PageRequest.of(pageNum, PAGE_SIZE, Sort.by(Sort.Direction.DESC, "timestamp"));
         clientService.findByIdOrThrow(clientId);
@@ -145,7 +160,6 @@ public class TransactionService {
         if (type != null) spec = spec.and(QuerySpec.hasType(type));
         if (cardId != null) spec = spec.and(QuerySpec.belongsToCard(cardId));
         if (start != null && end != null) spec = spec.and(QuerySpec.timestampBetween(startDate, endDate));
-        System.out.println(startDate + " " + endDate);
         return repository.findAll(spec, pageable);
     }
 }

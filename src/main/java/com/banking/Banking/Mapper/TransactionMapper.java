@@ -11,7 +11,8 @@ import java.util.List;
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface TransactionMapper {
     @Mapping(target = "senderCardId", source = "senderCard.id")
-    @Mapping(target = "receiverIdentifier", source = "receiverCard.cardNumber")
+    @Mapping(target="receiverIdentifier", expression = "java(transaction.getHiddenReceiver())")
+    @Mapping(target="senderCardNumber", expression = "java(transaction.getHiddenSender())")
     @Mapping(target = "senderDetails", source = "senderCard.client")
     @Mapping(target = "receiverDetails", source = "receiverCard.client")
     TransactionDtoResponse toDto(Transaction transaction);

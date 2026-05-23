@@ -99,6 +99,11 @@ public class WebController {
         return "history";
     }
 
+    @GetMapping("/transaction")
+    public String transactionPage(@RequestParam Long operationId){
+        return "transaction";
+    }
+
     @GetMapping("/profile")
     public String profilePage(Model model, Principal principal){
         Client client = clientService.findByUsername(principal.getName());

@@ -16,19 +16,21 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.nio.file.AccessDeniedException;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 @PreAuthorize("isAuthenticated()")
 @RestController
-@RequestMapping("/cards/{cardId}/transactions")
+@RequestMapping("/cards")
 public class TransactionController {
     @Autowired
     private TransactionService transactionService;
@@ -60,7 +62,7 @@ public class TransactionController {
         return null;
     }
 
-    @PostMapping("/commission")
+    @PostMapping("/{cardId}/transactions/commission")
     public ResponseEntity<?> calculateCommission(@RequestParam String amount) {
         if (amount.isEmpty())
             return ResponseEntity.ok(BigDecimal.ZERO);
@@ -72,7 +74,7 @@ public class TransactionController {
         }
     }
 
-    @PostMapping("/transfer")
+    @PostMapping("/{cardId}/transactions/transfer")
     public ResponseEntity<?> createTransfer(@Validated(TransferGroup.class)
                                             @RequestBody TransactionDtoRequest dtoRequest,
                                             BindingResult result) {
@@ -81,7 +83,7 @@ public class TransactionController {
         return ResponseEntity.ok().build();
     }
 
-    @PostMapping("/deposit")
+    @PostMapping("/{cardId}/transactions/deposit")
     public ResponseEntity<?> createDeposit(@Validated(DepositGroup.class)
                                             @RequestBody TransactionDtoRequest depositDto,
                                             BindingResult result) {
@@ -95,7 +97,7 @@ public class TransactionController {
         }
     }
 
-    @PostMapping("/withdrawal")
+    @PostMapping("/{cardId}/transactions/withdrawal")
     public ResponseEntity<?> createWithdrawal(@Validated(WithdrawalGroup.class)
                                                @RequestBody TransactionDtoRequest withdrawalDto,
                                                 BindingResult result) {
@@ -108,14 +110,15 @@ public class TransactionController {
         }
     }
 
-    @GetMapping
-    public List<TransactionDtoResponse> findAllByCardId(@PathVariable Long cardId){
-        return mapper.toDtoList(transactionService.findByCardId(cardId));
-    }
-
-    @GetMapping("/{clientId}")
+    @GetMapping("/{cardId}/transactions/{clientId}")
     public ResponseEntity<?> slice(@PathVariable Long clientId) {
         Pageable pageable = PageRequest.of(0, 2);
         return ResponseEntity.ok(transactionService.findTransactions(clientId, 0));
+    }
+
+    @GetMapping("/transactions")
+    public ResponseEntity<?> transactionDetails(@RequestParam Long operationId, Authentication auth) throws AccessDeniedException {
+        var transaction = transactionService.findById(operationId, auth);
+        return ResponseEntity.ok(mapper.toDto(transaction));
     }
 }

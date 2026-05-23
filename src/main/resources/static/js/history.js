@@ -1,5 +1,5 @@
 import { URL_BASE, client, history, totalPages, getData, cards } from './utils/getData.js'
-import { showHistory } from './utils/processData.js'
+import { showHistory, formatDate } from './utils/processData.js'
 
 const url = new URLSearchParams(window.location.search)
 let pagesCount = totalPages
@@ -19,30 +19,68 @@ const currentParams = {
 }
 const NotNullParams = () => Object.fromEntries(Object.entries(currentParams).filter(([key, value]) => value != null))
 
+const selectedPeriodEl = document.getElementById('selected-period')
+const showSelectedPeriod = () => {
+    const params = NotNullParams()
+        if (params.start && params.end) {
+            const startFormat = formatDate(params.start)
+            const endFormat = formatDate(params.end)
+            selectedPeriodEl.innerHTML = `Выбранный период: ${startFormat} — ${endFormat}`
+        }
+        else
+            selectedPeriodEl.innerHTML == ''
+}
+
 const reloadPage = async () => {
     const currentServerUtl = buildUrlWithParams(`${URL_BASE}/api/history`, NotNullParams())
     const { content: paginationList, totalPages: newTotalPages } = await getData(currentServerUtl)
     pagesCount = newTotalPages
     const msgElem = document.getElementById('history-msg')
+    showSelectedPeriod()
+    msgElem.innerHTML = ''
     if (paginationList.length == 0) {
+        selectedPeriodEl.innerHTML = ''
         msgElem.hidden = false
         const title = document.createElement('h3')
         title.innerText = "Транзакции не найдены"
         const subtitle = document.createElement('p')
         subtitle.innerText = 'Сбросьте или попробуйте другие фильтры'
         subtitle.classList.add('caption')
+
+        const btn = document.createElement('button')
+        btn.classList.add('main-btn', 'mt-4')
+        btn.id = 'clear-filters-btn'
+        btn.innerText = 'Сбросить фильтры'
+        btn.addEventListener('click', clearFilters)
+
         msgElem.appendChild(title)
         msgElem.appendChild(subtitle)
+        msgElem.appendChild(btn)
     }
-    else { 
+    else {
         msgElem.hidden = true
-        msgElem.innerHTML = ''
-    }
+    }    
     showHistory(paginationList, historyList)
     generatePagination()
     const currentUtl = buildUrlWithParams(`${URL_BASE}/history`, NotNullParams())
     window.history.pushState(NotNullParams(), '', currentUtl)
 }   
+
+const clearFilters = () => {
+    currentParams.cardId = null;
+    currentParams.page = null;
+    currentParams.type = null;
+    currentParams.start = null;
+    currentParams.end = null;
+
+    showSelectedPeriod.innerHTML = ''
+    document.getElementById('counterparty-select').value = '';
+    document.getElementById('type-select').value = '';
+    document.getElementById('period-select').value = '';
+    if (fp) fp.clear();
+
+    reloadPage();
+}
 
 const buildUrlWithParams = (baseUrl) => {
     const newUrl = new URL(baseUrl)

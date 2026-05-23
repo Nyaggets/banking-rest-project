@@ -63,4 +63,16 @@ public class Transaction {
     public int hashCode() {
         return Objects.hashCode(id);
     }
+
+    public String getHiddenSender() {
+        if (this.getSenderCard() == null)
+            return null;
+        return "****" + this.getSenderCard().getLast4();
+    }
+
+    public String getHiddenReceiver() {
+        if (this.getReceiverCard() == null)
+            return null;
+        return "****" + this.getReceiverCard().getLast4();
+    }
 }
