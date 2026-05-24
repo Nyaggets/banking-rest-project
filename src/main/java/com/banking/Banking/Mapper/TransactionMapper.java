@@ -10,15 +10,14 @@ import java.util.List;
 
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface TransactionMapper {
-    @Mapping(target = "senderCardId", source = "senderCard.id")
-    @Mapping(target="receiverIdentifier", expression = "java(transaction.getHiddenReceiver())")
-    @Mapping(target="senderCardNumber", expression = "java(transaction.getHiddenSender())")
-    @Mapping(target = "senderDetails", source = "senderCard.client")
-    @Mapping(target = "receiverDetails", source = "receiverCard.client")
+    @Mapping(target = "clientCardId", source = "clientCard.id")
+    @Mapping(target="clientHiddenNumber", expression = "java(transaction.getHiddenCard())")
+    @Mapping(target="direction", expression = "java(transaction.getDirection())")
+    @Mapping(target="counterPartyHiddenNumber", expression = "java(\"****\" + transaction.getCounterPartyHiddenNumber())")
     TransactionDtoResponse toDto(Transaction transaction);
-    @Mapping(target = "senderCardId", source = "senderCard.id")
-    @Mapping(target = "receiverIdentifier", source = "receiverCard.cardNumber")
-    @Mapping(target = "senderDetails", source = "senderCard.client")
-    @Mapping(target = "receiverDetails", source = "receiverCard.client")
+    @Mapping(target = "clientCardId", source = "clientCard.id")
+    @Mapping(target="clientHiddenNumber", expression = "java(transaction.getHiddenCard())")
+    @Mapping(target="direction", expression = "java(transaction.getDirection())")
+    @Mapping(target="counterPartyHiddenNumber", expression = "java(\"****\" + transaction.getCounterPartyHiddenNumber())")
     List<TransactionDtoResponse> toDtoList(List<Transaction> transactionList);
 }

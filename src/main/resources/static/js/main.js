@@ -26,5 +26,9 @@ cards.forEach(card => {
     })
 })
 
+document.getElementById('history-btn').addEventListener('click', () => {
+    window.location.assign(`${URL_BASE}/history`)
+})
+
 const recentList = document.getElementById('recent-list')
 showHistory(history, recentList, RECENT_HISTORY_LENGTH)

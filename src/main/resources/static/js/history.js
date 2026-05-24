@@ -13,11 +13,12 @@ const nextLink = document.getElementById('next-link')
 const currentParams = {
     page: url.get('page'),
     cardId: url.get('cardId'),
-    type: url.get('type'),
+    types: url.get('types'),
     start: url.get('start'),
     end: url.get('end')        
 }
-const NotNullParams = () => Object.fromEntries(Object.entries(currentParams).filter(([key, value]) => value != null))
+const NotNullParams = () => Object.fromEntries(Object.entries(currentParams).filter(([key, value]) => 
+    value != null && (!Array.isArray(value) || value.length > 0)))
 
 const selectedPeriodEl = document.getElementById('selected-period')
 const showSelectedPeriod = () => {
@@ -69,7 +70,7 @@ const reloadPage = async () => {
 const clearFilters = () => {
     currentParams.cardId = null;
     currentParams.page = null;
-    currentParams.type = null;
+    currentParams.types = null;
     currentParams.start = null;
     currentParams.end = null;
 
@@ -77,7 +78,7 @@ const clearFilters = () => {
     document.getElementById('counterparty-select').value = '';
     document.getElementById('type-select').value = '';
     document.getElementById('period-select').value = '';
-    if (fp) fp.clear();
+    fp.clear();
 
     reloadPage();
 }
@@ -85,7 +86,11 @@ const clearFilters = () => {
 const buildUrlWithParams = (baseUrl) => {
     const newUrl = new URL(baseUrl)
     Object.entries(NotNullParams()).forEach(([key, value]) => {
-        newUrl.searchParams.set(key, value)
+        if (Array.isArray(value)) {
+            value.forEach(v => newUrl.searchParams.append(key, v))
+        } else {
+            newUrl.searchParams.set(key, value)
+        }
     })
     return newUrl
 }
@@ -128,12 +133,17 @@ paginationContainer.addEventListener('click', async (e) => {
     reloadPage()
 })
 
+const types = {
+  'transfer': ['TRANSFER_OUT', 'TRANSFER_IN'],
+  'deposit':    ['DEPOSIT', 'TRANSFER_IN'],
+  'withdrawal':  ['WITHDRAWAL', 'TRANSFER_OUT']
+}
 typeSelect.addEventListener('change', async () => {
     currentParams.page = 0
     if (!typeSelect.value)
-        currentParams.type = null
+        currentParams.types = null
     else
-        currentParams.type = typeSelect.value
+        currentParams.types = types[typeSelect.value] || []
     reloadPage()
 })
 

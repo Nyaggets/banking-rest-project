@@ -20,21 +20,17 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @NoArgsConstructor
 public class TransactionDtoRequest {
-    @Null(groups = {TransferGroup.class, DepositGroup.class}, message = "{field.invalidOperation}")
-    @NotNull(groups = {WithdrawalGroup.class}, message = "{field.required}")
-    String merchant;
-
-    @Null(groups = {TransferGroup.class, WithdrawalGroup.class}, message = "{field.invalidOperation}")
-    @NotNull(groups = {DepositGroup.class}, message = "{field.required}")
-    String source;
-
     @Null(groups = {DepositGroup.class}, message = "{field.invalidOperation}")
     @NotNull(groups = {TransferGroup.class, WithdrawalGroup.class}, message = "{field.required}")
     Long senderCardId;
 
+    @Null(groups = {TransferGroup.class}, message = "{field.invalidOperation}")
+    @NotNull(groups = {WithdrawalGroup.class, DepositGroup.class}, message = "{field.required}")
+    String counterParty;
+
     @Null(groups = {WithdrawalGroup.class}, message = "{field.invalidOperation}")
     @NotNull(groups = {TransferGroup.class, DepositGroup.class}, message = "{field.required}")
-    @Pattern(regexp = "^(\\d{1,4}|(\\+7|8)\\d{10})$", message = "{cardOrPhone.invalidPattern}", groups = {DepositGroup.class, TransferGroup.class})
+    @Pattern(regexp = "^(\\d{4}|(\\+7|8)\\d{10}|\\d*)$", message = "{cardOrPhone.invalidPattern}", groups = {DepositGroup.class, TransferGroup.class})
     String receiverIdentifier;
 
     @NotNull(message = "{field.required}")

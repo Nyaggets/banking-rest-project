@@ -71,14 +71,14 @@ public class TransactionDtoRequestTest {
                 .build();
 
         depositDto = TransactionDtoRequest.builder()
-                .source("source")
+                .counterParty("source")
                 .receiverIdentifier("22222222222222222222")
                 .amount(new BigDecimal("100"))
                 .build();
 
         withdrawalDto = TransactionDtoRequest.builder()
                 .senderCardId(1L)
-                .merchant("merchant")
+                .counterParty("merchant")
                 .amount(new BigDecimal("100"))
                 .build();
     }
@@ -100,7 +100,7 @@ public class TransactionDtoRequestTest {
     }
     @Test
     void transferValidation_InvalidFiled() {
-        transferDto.setMerchant(""); //поле, которое должно быть null в transfer операции
+        transferDto.setCounterParty(""); //поле, которое должно быть null в transfer операции
         var transferResult = validator.validate(transferDto, TransferGroup.class, Default.class);
         System.out.println(transferResult);
 
@@ -115,7 +115,7 @@ public class TransactionDtoRequestTest {
     }
     @Test
     void depositValidation_InvalidData() {
-        depositDto.setSource(null);
+        depositDto.setCounterParty(null);
         depositDto.setReceiverIdentifier(null);
         depositDto.setAmount(new BigDecimal(4).negate());
 
@@ -125,7 +125,7 @@ public class TransactionDtoRequestTest {
     }
     @Test
     void depositValidation_InvalidFiled() {
-        depositDto.setMerchant(""); //поле, которое должно быть null в deposit операции
+        depositDto.setCounterParty(""); //поле, которое должно быть null в deposit операции
         var depositResult = validator.validate(depositDto, DepositGroup.class, Default.class);
 
         assertThat(depositResult.size()).isEqualTo(1);
@@ -138,7 +138,7 @@ public class TransactionDtoRequestTest {
     }
     @Test
     void withdrawalValidation_InvalidData() {
-        withdrawalDto.setMerchant(null);
+        withdrawalDto.setCounterParty(null);
         withdrawalDto.setSenderCardId(null);
         withdrawalDto.setAmount(new BigDecimal(4).negate());
 

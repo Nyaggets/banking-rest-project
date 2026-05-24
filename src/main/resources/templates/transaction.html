@@ -28,7 +28,7 @@
               <a href="transfer" class="nav-link">Перевести</a>
             </li>
             <li class="nav-item">
-              <a href="analitics" class="nav-link">Аналитика</a>
+              <a href="history" class="nav-link">История</a>
             </li>
           </ul>
         </div>
@@ -39,8 +39,8 @@
           <span class="navbar-toggler-icon"></span>
         </button>
         <div class="profile-actions">
-          <a href="logout"><i class="fa fa-sign-out fa-flip-horizontal" aria-hidden="true"></i></a>
-          <a href="profile"><i class="fa fa-user" aria-hidden="true"></i></a>
+          <a href="logout" class="nav-link"><i class="fa fa-sign-out fa-flip-horizontal" aria-hidden="true"></i></a>
+          <a href="profile" class="nav-link"><i class="fa fa-user" aria-hidden="true"></i></a>
         </div>
       </div>
     </nav>
@@ -56,20 +56,20 @@
 
       <hr class="mt-4 mb-5">
 
-      <div class="row gy-5">
-        <div class="col-12 col-md-6">
+      <div class="row">
+        <div class="col-12 col-md-6 mb-5">
+          <div id="counterparty-container" class="mb-4"></div>
+          <div id="client-container"></div>
+        </div>
+
+        <div class="col-12 col-md-6 mb-5">
           <p class="detail-label caption mb-1"><i class="fa-solid fa-calendar me-2"></i>Дата и время</p>
           <h3 id="date" class="mb-0"></h3>
         </div>
 
-        <div class="col-12 col-md-6">
-          <p class="detail-label caption mb-1"><i class="fa-solid fa-percent me-2"></i>Комиссия</p>
-          <h3 id="commission" class="mb-0"></h3>
-        </div>
+        <div class="col-12 col-md-6 mb-5" id="commission"></div>
 
-        <div class="col-12 col-md-6" id="counterparty-container"></div>
-
-        <div class="col-12 col-md-6" id="message-container"></div>
+        <div class="col-12 col-md-6 mb-5" id="message-container"></div>
       </div>
     </div>
   </main>

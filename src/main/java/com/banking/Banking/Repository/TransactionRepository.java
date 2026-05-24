@@ -13,8 +13,8 @@ import java.util.List;
 public interface TransactionRepository extends JpaRepository<Transaction, Long>, JpaSpecificationExecutor<Transaction> {
     @Query("""
         SELECT DISTINCT t FROM Transaction t
-        LEFT JOIN t.senderCard s LEFT JOIN t.receiverCard r
-        WHERE s.id = :cardId OR r.id = :cardId
+        LEFT JOIN t.clientCard c
+        WHERE c.id = :cardId
     """)
     List<Transaction> findByCardId(Long cardId);
     Page<Transaction> findAll(Specification<Transaction> spec, Pageable pageable);

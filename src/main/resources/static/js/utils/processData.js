@@ -1,48 +1,26 @@
 import { URL_BASE, client } from "./getData.js"
 
 const renderTransaction = (transaction) => {
-    switch (transaction.type) {
-        case 'WITHDRAWAL':
-            transaction.typeRu = 'Оплата товаров и услуг'
-            transaction.direction = 'out'
-            transaction.counterpartyName = transaction.merchant
-            break;
-
-        case 'DEPOSIT':
-            transaction.typeRu = 'Зачисление'
-            transaction.direction = 'in'
-            transaction.counterpartyName = transaction.source
-            break;
-
-        case 'TRANSFER':
-            if (transaction.receiverDetails.id == transaction.senderDetails.id) {
-                transaction.direction = 'between'
-                transaction.typeRu = 'Перевод между своими'
-                transaction.counterpartyName = client.name
-                transaction.counterpartyNumber = transaction.senderCardNumber
-            }
-            else if (transaction.receiverDetails.id == client.id) {
-                transaction.direction = 'in'
-                transaction.typeRu = 'Входящий перевод'
-                transaction.counterpartyName = transaction.senderDetails.name
-                transaction.counterpartyNumber = transaction.senderCardNumber
-            }
-            else if (transaction.senderDetails.id == client.id) {
-                transaction.direction = 'out'
-                transaction.typeRu = 'Перевод'
-                transaction.counterpartyName = transaction.receiverDetails.name
-                transaction.counterpartyNumber = transaction.receiverCardNumber
-            }
-            break;
-    }
     switch (transaction.direction) {
         case 'in':
+            if (transaction.type == 'DEPOSIT') 
+                transaction.typeRu = 'Зачисление'
+            else if (transaction.type == 'TRANSFER_IN')
+                transaction.typeRu = 'Входящий перевод'
             transaction.signIcon = 'plus'
             break
+
         case 'out':
+            if (transaction.type == 'WITHDRAWAL') 
+                transaction.typeRu = 'Списание'
+            else if (transaction.type == 'TRANSFER_OUT')
+                transaction.typeRu = 'Перевод'
             transaction.signIcon = 'minus'
             break
+
         case 'between':
+            transaction.typeRu = 'Перевод между своими'
+            transaction.counterpartyName = client.name
             transaction.signIcon = 'refresh'
             break
     }
@@ -57,7 +35,7 @@ const showHistory = (transactions, historyList, length = transactions.length) =>
         const signIcon = `<i class="fa fa-${transaction.signIcon}" aria-hidden="true"></i>`
         transactionElem.innerHTML = `<div class="transaction direction-${transaction.direction}" data-id=${transaction.id}>
                 <p class="caption">${transaction.typeRu}  —  ${formatDate(transaction.timestamp)}</p>
-                <span class="transaction-main"><h3>${transaction.counterpartyName}</h3>
+                <span class="transaction-main"><h3>${transaction.counterPartyName}</h3>
                 <h3 class="transaction-amount">${signIcon} ${transaction.totalAmount}₽</h3></span>
             </div>`
     })

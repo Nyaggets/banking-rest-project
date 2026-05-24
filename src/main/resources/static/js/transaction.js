@@ -8,11 +8,12 @@ if (response.ok) {
     transaction = await response.json()
     renderTransaction(transaction)
 }
+console.log(transaction)
 
 const createInfoBlock = (icon, labelText, valueText, container) => {
   const label = document.createElement('p')
   label.classList.add('detail-label', 'caption', 'mb-1')
-  label.innerHTML = `<i class="${icon} me-2"></i>${labelText}`
+  label.innerHTML = `<i class="fa ${icon} me-2"></i>${labelText}`
   const title = document.createElement('h3')
   title.classList.add('mb-0')
   title.innerText = valueText
@@ -24,26 +25,35 @@ const createInfoBlock = (icon, labelText, valueText, container) => {
 document.getElementById('operation-title').innerHTML = transaction.typeRu
 document.getElementById('amount').innerText = `${formatAmount(transaction.amount.toString())} ₽`
 const commissionEl = document.getElementById('commission')
-const commisionText = transaction.commission != 0 ? `${formatAmount(transaction.commission.toString())} ₽` : 'Нет комисии'
-commissionEl.innerText = commisionText
+const commisionText = transaction.commission && transaction.commission != 0 ? `${formatAmount(transaction.commission.toString())} ₽` : 'Нет комисии'
+createInfoBlock('fa-solid fa-percent', 'Комиссия', commisionText, commissionEl)
 if (transaction.commission == 0)
     commissionEl.classList.add('grey-text')
 
-const cardsContainer = document.getElementById('counterparty-container')
-console.log(transaction)
-cardsContainer.innerHTML = '' 
-if (transaction.direction === 'out') {
-  createInfoBlock('fa fa-credit-card text-muted', 'Карта списания', transaction.senderCardNumber, cardsContainer)
+const counterpartyEl = document.getElementById('counterparty-container')
+const clientEl = document.getElementById('client-container')
+counterpartyEl.innerHTML = '' 
+const formatCounterpartyInfo = () => {
+  const name = transaction.counterPartyName ? ` (${transaction.counterPartyName})` : ''
+  return `${transaction.counterPartyHiddenNumber}${name}`
+}
+commissionEl.hidden = (transaction.type !== 'WITHDRAWAL')
+const isOut = transaction.type === 'TRANSFER_OUT'
+if (transaction.type === 'WITHDRAWAL') {
+  createInfoBlock('fa-arrow-down', 'Получатель', transaction.counterPartyName, counterpartyEl)
+  createInfoBlock('fa-credit-card', 'Карта списания', transaction.clientHiddenNumber, clientEl)
 } 
-else if (transaction.direction === 'in') {
-  createInfoBlock('fa fa-credit-card text-muted', 'Карта зачисления', transaction.receiverIdentifier, cardsContainer)
+else if (transaction.type === 'DEPOSIT') {
+  createInfoBlock('fa-arrow-up', 'Отправитель', transaction.counterPartyName, counterpartyEl)
+  createInfoBlock('fa-credit-card', 'Карта зачисления', transaction.clientHiddenNumber, clientEl)
 } 
-else if (transaction.type == 'TRANSFER') { 
-  createInfoBlock('fa fa-credit-card text-muted', 'Карта списания', transaction.senderCardNumber, cardsContainer)
-  const secondCard = document.createElement('div')
-  secondCard.classList.add('mt-4')
-  cardsContainer.appendChild(secondCard)
-  createInfoBlock('fa fa-credit-card text-muted', 'Карта зачисления', transaction.receiverIdentifier, secondCard)
+else if (transaction.type.includes('TRANSFER') && transaction.direction != 'between') {
+  createInfoBlock('fa-credit-card', 'Карта списания', isOut ? transaction.clientHiddenNumber : formatCounterpartyInfo(), counterpartyEl)
+  createInfoBlock('fa-credit-card', 'Карта зачисления', isOut ? formatCounterpartyInfo() : transaction.clientHiddenNumber, clientEl)
+}
+else {
+  createInfoBlock('fa-credit-card', 'Карта списания', isOut ? transaction.clientHiddenNumber : transaction.counterPartyHiddenNumber, counterpartyEl)
+  createInfoBlock('fa-credit-card', 'Карта зачисления', isOut ? transaction.counterPartyHiddenNumber : transaction.clientHiddenNumber, clientEl)
 }
 
 document.getElementById('date').innerText = 

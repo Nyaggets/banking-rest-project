@@ -9,20 +9,18 @@ import java.time.LocalDateTime;
 @Data
 public class TransactionDtoResponse {
     Long id;
+    String direction;
     OperationTypes type;
-    String merchant;
-    String source;
     BigDecimal amount;
     BigDecimal commission;
     BigDecimal totalAmount;
     LocalDateTime timestamp;
     String description;
+    String isInternal;
 
-    Long senderCardId;
-    String senderCardNumber;
-    ClientDtoResponse senderDetails;
+    Long clientCardId;
+    String clientHiddenNumber;
 
-    Long receiverCardId;
-    String receiverIdentifier;
-    ClientDtoResponse receiverDetails;
+    String counterPartyName;
+    String counterPartyHiddenNumber;
 }

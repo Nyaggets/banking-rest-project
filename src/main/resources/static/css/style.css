@@ -34,6 +34,20 @@ h1 {
   font-size: var(--font-size-title);
   font-weight: 800;
 }
+.nav-link {
+  font-size: 20px;
+  color: var(--color-accent) !important;
+  padding: 8px;
+  border-bottom: 2px solid transparent;
+  -o-transition: all ease 0.3s;
+  -moz-transition: all ease 0.3s;
+  -webkit-transition: all ease 0.3s;
+  transition: all ease 0.3s;
+}
+.nav-link:hover, .navbar-brand:hover {
+  color: var(--color-text) !important;
+  border-color: var(--color-text);
+}
 h2, .navbar-brand {
   font-family: var(--font-family-geologica);
   font-size: var(--font-size-secondary-title);
@@ -72,7 +86,6 @@ button {
 }
 button:hover {
   transform: translateY(-4px);
-  /* box-shadow: 0 4px 6px rgba(159, 132, 121, 0.2); */
   transform: scale(1.05);
 }
 input, select {
@@ -205,19 +218,6 @@ section:not(:first-child) {
 }
 .offcanvas {
   background-color: var(--color-background);
-}
-.nav-link {
-  color: var(--color-accent) !important;
-  padding: 8px;
-  border-bottom: 2px solid transparent;
-  -o-transition: all ease 0.3s;
-  -moz-transition: all ease 0.3s;
-  -webkit-transition: all ease 0.3s;
-  transition: all ease 0.3s;
-}
-.nav-link:hover, .navbar-brand:hover {
-  color: var(--color-text) !important;
-  border-color: var(--color-text);
 }
 .profile-actions, .side-actions {
   display: flex;
@@ -447,7 +447,7 @@ section:not(:first-child) {
 #operation-title-container > * {
   color: var(--color-text);
 }
-.grey-text {
+.grey-text > * {
   color: var(--color-accent);
 }
 #history-list {

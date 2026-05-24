@@ -29,7 +29,7 @@
               <a href="transfer?type=EXTERNAL" class="nav-link">Перевести</a>
             </li>
             <li class="nav-item">
-              <a href="analitics" class="nav-link">Аналитика</a>
+              <a href="history" class="nav-link">История</a>
             </li>
           </ul>
         </div>
@@ -39,8 +39,8 @@
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="profile-actions">
-        <a href="logout"><i class="fa fa-sign-out fa-flip-horizontal" aria-hidden="true"></i></a>
-        <a href="profile"><i class="fa fa-user" aria-hidden="true"></i></a>
+        <a href="logout" class="nav-link"><i class="fa fa-sign-out fa-flip-horizontal" aria-hidden="true"></i></a>
+        <a href="profile" class="nav-link"><i class="fa fa-user" aria-hidden="true"></i></a>
       </div>
     </div>
     </nav>   
@@ -49,10 +49,7 @@
   <main>
     <div class="main-container container">
       <section class="section-card">
-        <div class="history-header">
-          <h2>Кошелек</h2>
-          <a href="history" class="link" id="new-card-btn">Добавить карту</a>
-        </div>
+        <h2>Кошелек</h2>
         <div class="row">
           <ul id="card-list" class="col-8 col-sm-12 col-md-8 col-lg-9"></ul>
           
@@ -63,7 +60,7 @@
                 <button type="button" class="secondary-btn"><a href="transfer?type=EXTERNAL">Перевести</a></button>
               </li>
               <li>
-                <button type="button" class="secondary-btn"><a href="transfer?type=INTERNAL">Пополнить</a></button>
+                <button type="button" class="secondary-btn"><a href="transfer?type=INTERNAL">Перевод между своими</a></button>
               </li>
               <li>
                 <button type="button" class="secondary-btn"><a href="#">Снять</a></button>
@@ -79,6 +76,8 @@
           <a href="history" class="link">Вся история</a>
         </div>
         <ul id="recent-list" class="col-auto"></ul>
+
+        <button class="main-btn mt-4 d-flex mx-auto" id="history-btn">Вся история</button>
       </section>
     </div>
   </main>

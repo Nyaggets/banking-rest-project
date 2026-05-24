@@ -4,11 +4,11 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
-import org.hibernate.annotations.ColumnDefault;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Objects;
+import java.util.UUID;
 
 @Entity
 @AllArgsConstructor
@@ -26,30 +26,26 @@ public class Transaction {
     @Column(name = "operation_type")
     @Enumerated(EnumType.STRING)
     OperationTypes type;
-    @ColumnDefault("null")
-    String merchant;
-    @ColumnDefault("null")
-    String source;
+    @Column(name = "transfer_id")
+    UUID transferId;
+    @Column(name = "is_internal")
+    Boolean isInternal;
     @ManyToOne
-    @JoinColumn(name = "sender_card_id")
-    @ColumnDefault("null")
-    Card senderCard;
-    @ManyToOne
-    @JoinColumn(name = "receiver_card_id")
-    @ColumnDefault("null")
-    Card receiverCard;
+    @JoinColumn(name = "client_card_id")
+    @NotNull
+    Card clientCard;
+    @NotNull
+    String counterPartyName;
+    String counterPartyHiddenNumber;
     @Positive(message = "Сумма перевода должна быть больше 0")
     BigDecimal amount;
     @PositiveOrZero(message = "Сумма комиссии должна быть больше или равна 0")
-    @ColumnDefault("0")
-    BigDecimal commission;
+    BigDecimal commission = BigDecimal.ZERO;
     @Column(name = "total_amount")
     @Positive(message = "Сумма перевода должна быть больше 0")
-    @ColumnDefault("0")
     BigDecimal totalAmount;
     @PastOrPresent(message = "Дата перевода должна быть не позже текущей")
     LocalDateTime timestamp;
-    @ColumnDefault("null")
     String description;
 
     @Override
@@ -64,15 +60,16 @@ public class Transaction {
         return Objects.hashCode(id);
     }
 
-    public String getHiddenSender() {
-        if (this.getSenderCard() == null)
-            return null;
-        return "****" + this.getSenderCard().getLast4();
+    public String getHiddenCard() {
+        return "****" + this.getClientCard().getLast4();
     }
 
-    public String getHiddenReceiver() {
-        if (this.getReceiverCard() == null)
-            return null;
-        return "****" + this.getReceiverCard().getLast4();
+    public String getDirection() {
+        if (this.isInternal)
+            return "between";
+        return switch (this.type) {
+            case DEPOSIT, TRANSFER_IN -> "in";
+            case WITHDRAWAL, TRANSFER_OUT -> "out";
+        };
     }
 }

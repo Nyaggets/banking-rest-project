@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.nio.file.AccessDeniedException;
 import java.security.Principal;
+import java.util.List;
 import java.util.Map;
 
 @Controller
@@ -52,11 +53,11 @@ public class WebController {
     @ResponseBody
     public ResponseEntity<Page> history(Authentication auth, @RequestParam(defaultValue = "0") int page,
                                           @Nullable @RequestParam Long cardId,
-                                          @Nullable @RequestParam OperationTypes type,
+                                          @Nullable @RequestParam List<OperationTypes> types,
                                           @Nullable @RequestParam String start,
                                           @Nullable @RequestParam String end) throws AccessDeniedException {
         Client client = clientService.findByUsername(auth.getName());
-        var transactions = transactionService.findTransactions(client.getId(), page, type, cardId, start, end);
+        var transactions = transactionService.findTransactions(client.getId(), page, types, cardId, start, end);
         var dtos = transactionMapper.toDtoList(transactions.getContent());
         var dtoPage = new PageImpl<>(dtos, transactions.getPageable(), transactions.getTotalElements());
         return ResponseEntity.ok(dtoPage);

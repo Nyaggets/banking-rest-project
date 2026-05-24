@@ -14,10 +14,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.stereotype.Service;
 
-import javax.swing.text.html.parser.Entity;
 import java.math.BigDecimal;
 import java.nio.file.AccessDeniedException;
 import java.time.LocalDate;
@@ -49,25 +47,43 @@ public class TransactionService {
     }
 
     public Transaction createTransfer(TransactionDtoRequest transactionDto) {
-        validationService.validateOperation(OperationTypes.TRANSFER, transactionDto);
+        validationService.validateOperation(OperationTypes.TRANSFER_OUT, transactionDto);
 
+        UUID uuid = UUID.randomUUID();
         Card senderCard = cardService.findById(transactionDto.getSenderCardId());
         Card receiverCard = cardService.findByCardIdentifier(transactionDto.getReceiverIdentifier());
+        boolean isInternal = senderCard.getClient().getId() == receiverCard.getClient().getId();
         BigDecimal commission = calculateCommission(transactionDto.getAmount());
-        Transaction transaction = Transaction.builder()
-                .type(OperationTypes.TRANSFER)
-                .senderCard(senderCard)
-                .receiverCard(receiverCard)
+        Transaction transactionOut = Transaction.builder()
+                .type(OperationTypes.TRANSFER_OUT)
+                .isInternal(isInternal)
+                .transferId(uuid)
+                .clientCard(senderCard)
+                .counterPartyName(receiverCard.getClientName())
+                .counterPartyHiddenNumber(receiverCard.getLast4())
                 .amount(transactionDto.getAmount())
                 .commission(commission)
                 .totalAmount(transactionDto.getAmount().add(commission))
                 .description(transactionDto.getDescription())
                 .timestamp(LocalDateTime.now())
                 .build();
-        BigDecimal senderBalance = transaction.getSenderCard().getBalance();
-        transaction.getSenderCard().setBalance(senderBalance.subtract(transaction.getTotalAmount()));
-        receiverCard.setBalance(receiverCard.getBalance().add(transaction.getAmount()));
-        return repository.save(transaction);
+        Transaction transactionIn = Transaction.builder()
+                .type(OperationTypes.TRANSFER_IN)
+                .isInternal(isInternal)
+                .transferId(uuid)
+                .clientCard(receiverCard)
+                .counterPartyName(senderCard.getClientName())
+                .counterPartyHiddenNumber(senderCard.getLast4())
+                .amount(transactionDto.getAmount())
+                .totalAmount(transactionDto.getAmount())
+                .description(transactionDto.getDescription())
+                .timestamp(LocalDateTime.now())
+                .build();
+        BigDecimal senderBalance = senderCard.getBalance();
+        senderCard.setBalance(senderBalance.subtract(transactionOut.getTotalAmount()));
+        receiverCard.setBalance(receiverCard.getBalance().add(transactionIn.getAmount()));
+        repository.save(transactionIn);
+        return repository.save(transactionOut);
     }
 
     public Transaction createWithdrawal(TransactionDtoRequest transactionDto) {
@@ -77,8 +93,9 @@ public class TransactionService {
         BigDecimal commission = calculateCommission(transactionDto.getAmount());
         Transaction transaction = Transaction.builder()
                 .type(OperationTypes.WITHDRAWAL)
-                .senderCard(senderCard)
-                .merchant(transactionDto.getMerchant())
+                .isInternal(false)
+                .clientCard(senderCard)
+                .counterPartyName(transactionDto.getCounterParty())
                 .amount(transactionDto.getAmount())
                 .commission(commission)
                 .totalAmount(transactionDto.getAmount().add(commission))
@@ -96,8 +113,9 @@ public class TransactionService {
         Card receiverCard = cardService.findByCardIdentifier(transactionDto.getReceiverIdentifier());
         Transaction transaction = Transaction.builder()
                 .type(OperationTypes.DEPOSIT)
-                .source(transactionDto.getSource())
-                .receiverCard(receiverCard)
+                .isInternal(false)
+                .clientCard(receiverCard)
+                .counterPartyName(transactionDto.getCounterParty())
                 .amount(transactionDto.getAmount())
                 .totalAmount(transactionDto.getAmount())
                 .description(transactionDto.getDescription())
@@ -117,8 +135,7 @@ public class TransactionService {
         var client = clientService.findByUsername(auth.getName());
         if (client == null)
             throw new RuntimeException("Пользователь не найден");
-        if (client.getId() != transaction.getReceiverCard().getClient().getId() &&
-            client.getId() != transaction.getSenderCard().getClient().getId())
+        if (client.getId() != transaction.getClientCard().getClient().getId())
             throw new AccessDeniedException("Операция не принадлежит пользователю");
         return transaction;
     }
@@ -132,7 +149,7 @@ public class TransactionService {
         return repository.findAll(Specification.where(QuerySpec.belongsInCards(cards)), pageable);
     }
 
-    public Page<Transaction> findTransactions(Long clientId, int pageNum, @Nullable OperationTypes type,
+    public Page<Transaction> findTransactions(Long clientId, int pageNum, @Nullable List<OperationTypes> types,
                   @Nullable Long cardId, @Nullable String start, @Nullable String end) throws AccessDeniedException {
         clientService.findByIdOrThrow(clientId);
         if (cardId != null && !cardService.belongsToClient(clientId, cardId))
@@ -157,7 +174,7 @@ public class TransactionService {
         Pageable pageable = PageRequest.of(pageNum, PAGE_SIZE, Sort.by(Sort.Direction.DESC, "timestamp"));
         Specification<Transaction> spec = Specification.unrestricted();
         if (!cards.isEmpty()) spec = spec.and(QuerySpec.belongsInCards(cards));
-        if (type != null) spec = spec.and(QuerySpec.hasType(type));
+        if (types != null) spec = spec.and(QuerySpec.hasType(types));
         if (cardId != null) spec = spec.and(QuerySpec.belongsToCard(cardId));
         if (start != null && end != null) spec = spec.and(QuerySpec.timestampBetween(startDate, endDate));
         return repository.findAll(spec, pageable);

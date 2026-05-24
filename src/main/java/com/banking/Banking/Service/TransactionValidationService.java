@@ -87,7 +87,7 @@ public class TransactionValidationService {
 
     public void validateOperation(OperationTypes type, TransactionDtoRequest dtoRequest) {
         var transactionError = switch (type) {
-            case OperationTypes.TRANSFER -> transferValidation(dtoRequest);
+            case OperationTypes.TRANSFER_OUT, OperationTypes.TRANSFER_IN -> transferValidation(dtoRequest);
             case OperationTypes.WITHDRAWAL -> withdrawalValidation(dtoRequest);
             case OperationTypes.DEPOSIT -> depositValidation(dtoRequest);
         };
