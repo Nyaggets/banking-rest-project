@@ -1,22 +1,26 @@
 import { URL_BASE, client, getData, history, totalPages } from './utils/getData.js'
-import { showHistory, formatDate, processResponse } from './utils/processData.js'
+import { showHistory, formatDate, formatAmount, processResponse } from './utils/processData.js'
 
 const url = new URLSearchParams(window.location.search)
 const cardId = url.get('id')
 
-const card = await getData(`${URL_BASE}/clients/${client.id}/cards/card?id=${cardId}`)
+const card = await getData(`${URL_BASE}/clients/${client.id}/cards?id=${cardId}`)
 document.getElementById('card-container').innerHTML += `<h3 id='card-number'>${card.hiddenNumber}</h3>
     <h3 id='cvv'>***</h3>
-    <h2>${card.balance}₽</h2>
+    <h2>${formatAmount(card.balance.toString())}₽</h2>
     <h3>${formatDate(card.expiredDate)}</h3>
     <button type='btn' class='secondary-btn' data-bs-toggle="modal" data-bs-target="#confirm-modal">Показать</button>`
-
 document.getElementById('transfer-btn').addEventListener('click', function() {
     window.location.assign(`${URL_BASE}/transfer?type=EXTERNAL&from=${cardId}`)
 })
 document.getElementById('replenish-btn').addEventListener('click', function() {
     window.location.assign(`${URL_BASE}/transfer?type=INTERNAL&to=${cardId}`)
 })
+
+const stats = await getData(`${URL_BASE}/clients/${client.id}/cards/${cardId}/stats`)
+document.getElementById('month-income').innerHTML = `<i class="fa fa-plus" aria-hidden="true"></i> ${formatAmount(stats.income.toString())}₽`
+document.getElementById('month-outcome').innerHTML = `<i class="fa fa-minus" aria-hidden="true"></i> ${formatAmount(stats.outcome.toString())}₽`
+document.getElementById('month-name').innerText  = `Статистика за ${new Date().toLocaleString('ru', {month: 'long'})}`
 
 const modalEl = document.getElementById('confirm-modal')
 const modalInput = document.getElementById('password-input')

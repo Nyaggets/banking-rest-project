@@ -6,10 +6,10 @@ const search = new URLSearchParams(url)
 let urlSenderCard
 let urlReceiverCard
 if (search.has('from')) {
-    urlSenderCard = await getData(`${URL_BASE}/clients/${client.id}/cards/card?id=${search.get('from')}`)
+    urlSenderCard = await getData(`${URL_BASE}/clients/${client.id}/cards?id=${search.get('from')}`)
 }
 else if (search.has('to')) {
-    urlReceiverCard = await getData(`${URL_BASE}/clients/${client.id}/cards/card?id=${search.get('to')}`)
+    urlReceiverCard = await getData(`${URL_BASE}/clients/${client.id}/cards?id=${search.get('to')}`)
     document.getElementById('receiver').value = urlReceiverCard.hiddenNumber
 }
 const senderSelect = document.getElementById('sender-cards-select')

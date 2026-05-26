@@ -1,8 +1,10 @@
 package com.banking.Banking.Service;
 
 import com.banking.Banking.Configuration.QuerySpec;
+import com.banking.Banking.Dto.CardStatsDto;
 import com.banking.Banking.Dto.TransactionDtoRequest;
 import com.banking.Banking.Entity.Card;
+import com.banking.Banking.Entity.Client;
 import com.banking.Banking.Entity.OperationTypes;
 import com.banking.Banking.Entity.Transaction;
 import com.banking.Banking.Mapper.TransactionMapper;
@@ -178,5 +180,23 @@ public class TransactionService {
         if (cardId != null) spec = spec.and(QuerySpec.belongsToCard(cardId));
         if (start != null && end != null) spec = spec.and(QuerySpec.timestampBetween(startDate, endDate));
         return repository.findAll(spec, pageable);
+    }
+
+    public CardStatsDto getMonthlyStats(Long cardId, Long clientId) throws AccessDeniedException {
+        clientService.findByIdOrThrow(clientId);
+        if (!cardService.belongsToClient(clientId, cardId))
+            throw new AccessDeniedException("Доступ к карте запрещен");
+        LocalDate start = LocalDate.of(LocalDate.now().getYear(), LocalDate.now().getMonthValue(), 1);
+        LocalDate end = start.plusMonths(1);
+        var transactions = repository.findAll().stream().filter(tr ->
+                tr.getTimestamp().isAfter(start.atStartOfDay()) && tr.getTimestamp().isBefore(end.atTime(LocalTime.MAX)) && !tr.getIsInternal()).toList();
+        CardStatsDto stats = new CardStatsDto(BigDecimal.ZERO, BigDecimal.ZERO);
+        transactions.forEach(tr -> {
+            if (tr.getType().equals(OperationTypes.TRANSFER_IN) || tr.getType().equals(OperationTypes.DEPOSIT))
+                stats.setIncome(stats.getIncome().add(tr.getTotalAmount()));
+            else if (tr.getType().equals(OperationTypes.TRANSFER_OUT) || tr.getType().equals(OperationTypes.WITHDRAWAL))
+                stats.setOutcome(stats.getOutcome().add(tr.getTotalAmount()));
+        });
+        return stats;
     }
 }
