@@ -6,6 +6,5 @@ import lombok.Data;
 public class ClientDtoResponse {
     Long id;
     String phone;
-    String username;
-    String name;
+    String login;
 }

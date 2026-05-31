@@ -1,6 +1,6 @@
-import { URL_BASE, client, history, totalPages, getData, cards } from './utils/getData.js'
-import { showHistory, formatDate } from './utils/processData.js'
+import { URL_BASE, client, history, totalPages, getData, cards, showHistory, formatDate, showClientLogin } from './utils/sharedData.js'
 
+showClientLogin()
 const url = new URLSearchParams(window.location.search)
 let pagesCount = totalPages
 const historyList = document.getElementById('history-list')

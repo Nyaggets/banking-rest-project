@@ -15,14 +15,11 @@
       <a class="navbar-brand nav-link" href="main">Банк</a>
       <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasNavbar">
         <div class="offcanvas-header">
-          <h5 class="offcanvas-title">Меню</h5>
-          <button type="button" class="btn-close" errors-bs-dismiss="offcanvas" aria-label="Close"></button>
+          <a class="offcanvas-title nav-link" href="main">Банк</a> 
+          <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
         </div>
         <div class="offcanvas-body">
           <ul class="navbar-nav">
-            <li class="nav-item">
-              <a href="main" class="nav-link">Главная</a>
-            </li>
             <li class="nav-item">
               <a href="transfer" class="nav-link">Перевести</a>
             </li>
@@ -33,12 +30,12 @@
         </div>
       </div>
       <div class="side-actions">
-      <button class="navbar-toggler" type="button" errors-bs-toggle="offcanvas" errors-bs-target="#offcanvasNavbar" aria-controls="offcanvasNavbar" aria-expanded="false" aria-label="Toggle navigation">
+      <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar" aria-controls="offcanvasNavbar" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="profile-actions">
+        <a href="profile" class="nav-link"><i class="fa fa-user" aria-hidden="true"></i><label id="profile-login"></label></a>
         <a href="logout" class="nav-link"><i class="fa fa-sign-out fa-flip-horizontal p-0" aria-hidden="true"></i></a>
-        <a href="profile" class="nav-link"><i class="fa fa-user" aria-hidden="true"></i></a>
       </div>
     </div>
     </nav>   
@@ -75,20 +72,13 @@
           <h2 id="month-outcome"></h2>
         </div>
 
-        <div class="fast-actions container">
+        <aside class="fast-actions">
           <h3 class="fast-actions-title">Быстрые действия</h3>
-          <ul class="fast-actions-list">
-            <li>
-              <button id="transfer-btn" type="button" class="secondary-btn">Перевести</button>
-            </li>
-            <li>
-              <button id="replenish-btn" type="button" class="secondary-btn">Перевод между своими</button>
-            </li>
-            <li>
-              <button type="button" class="secondary-btn"><a href="#">Снять</a></button>
-            </li>
-          </ul>
-        </div>
+          <div class="fast-actions-list">
+            <button type="button" class="secondary-btn"><a href="transfer?type=EXTERNAL">Перевести</a></button>
+            <button type="button" class="secondary-btn"><a href="transfer?type=INTERNAL">Перевод между своими</a></button>
+          </div>
+        </aside>
       </section>
 
       <section id="card-history col">

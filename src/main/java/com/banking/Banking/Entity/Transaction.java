@@ -52,6 +52,8 @@ public class Transaction {
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         Transaction that = (Transaction) o;
+        if (((Transaction) o).transferId != null)
+            return Objects.equals(transferId, that.transferId);
         return Objects.equals(id, that.id);
     }
 

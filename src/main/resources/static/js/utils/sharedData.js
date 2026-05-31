@@ -1,4 +1,24 @@
-import { URL_BASE, client } from "./getData.js"
+const URL_BASE = 'http://localhost:8080';
+
+const getData = async(url) => {
+    const response = await fetch(url);
+    if (response.ok) {
+        return response.json()
+    }
+    else {
+        const errorMap = await response.json()
+        Object.entries(errorMap).forEach(([field, message]) => {
+            document.querySelector(`[name="${field}"]`).classList.add('error')
+            document.querySelector(`[data-error-for="${field}"]`).textContent = message
+        })
+    }
+}
+
+const client = await getData(`${URL_BASE}/clients/me`)
+const cards = Array.from(await getData(`${URL_BASE}/clients/${client.id}/cards`))
+const { content: history, totalPages} = await getData(`${URL_BASE}/api/history`)
+
+const showClientLogin = () => { document.getElementById('profile-login').innerText = client.login }
 
 const renderTransaction = (transaction) => {
     switch (transaction.direction) {
@@ -35,8 +55,10 @@ const showHistory = (transactions, historyList, length = transactions.length) =>
         const signIcon = `<i class="fa fa-${transaction.signIcon}" aria-hidden="true"></i>`
         transactionElem.innerHTML = `<div class="transaction direction-${transaction.direction}" data-id=${transaction.id}>
                 <p class="caption">${transaction.typeRu}  —  ${formatDate(transaction.timestamp)}</p>
-                <span class="transaction-main"><h3>${transaction.counterPartyName}</h3>
-                <h3 class="transaction-amount">${signIcon} ${transaction.totalAmount}₽</h3></span>
+                <span class="transaction-main d-flex align-items-center">
+                    <h3 class="flex-grow-1">${transaction.counterPartyName}</h3>
+                    <h3 class="transaction-amount flex-shrink-0 text-nowrap ms-2">${signIcon} ${formatAmount(transaction.totalAmount)}₽</h3>
+                </span>
             </div>`
     })
     const transactionElems = document.querySelectorAll('.transaction')
@@ -56,7 +78,7 @@ const formatDate = (date) => {
     else if (yesterday.setHours(0, 0, 0, 0) == formattedDate)
         return 'Вчера'
     else 
-        return `${new Date(date).toLocaleDateString('ru-RU')}`
+        return new Intl.DateTimeFormat('ru', {dateStyle: 'short', timeStyle: 'short'}).format(new Date(date))
 }
 
 const processResponse = async (response) => {
@@ -89,6 +111,7 @@ const showToast = (title, description) => {
 }
 
 const formatAmount = (amount) => {
+    amount = amount.toString();
     const cleanedString = amount.replace(/[^\d.,]/g, '').replace(/\./g, ',')
     const parts = cleanedString.split('.')
     const decimalLmited = parts[1] ?  '.' + parts[1].slice(0, 2) : '';
@@ -96,4 +119,5 @@ const formatAmount = (amount) => {
     return mainPart + decimalLmited
 }
 
-export { showHistory, formatDate, processResponse, formatAmount, showToast, renderTransaction }
+export { URL_BASE, getData, client, cards, history, totalPages, showHistory, formatDate, processResponse, 
+    formatAmount, showToast, renderTransaction, showClientLogin }

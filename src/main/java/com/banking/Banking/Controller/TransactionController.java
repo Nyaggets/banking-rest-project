@@ -23,7 +23,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
-import java.nio.file.AccessDeniedException;
+import org.springframework.security.access.AccessDeniedException;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -78,7 +78,10 @@ public class TransactionController {
     public ResponseEntity<?> createTransfer(@Validated(TransferGroup.class)
                                             @RequestBody TransactionDtoRequest dtoRequest,
                                             BindingResult result) {
-        validateBindingResult(result);
+        ResponseEntity<Map<Object, String>> errorResponse = validateBindingResult(result);
+        if (errorResponse != null)
+            return ResponseEntity.badRequest().body(errorResponse);
+
         transactionService.createTransfer(dtoRequest);
         return ResponseEntity.ok().build();
     }
@@ -87,7 +90,10 @@ public class TransactionController {
     public ResponseEntity<?> createDeposit(@Validated(DepositGroup.class)
                                             @RequestBody TransactionDtoRequest depositDto,
                                             BindingResult result) {
-        validateBindingResult(result);
+        ResponseEntity<Map<Object, String>> errorResponse = validateBindingResult(result);
+        if (errorResponse != null)
+            return ResponseEntity.badRequest().body(errorResponse);
+
         try {
             transactionService.createDeposit(depositDto);
             return ResponseEntity.ok().build();
@@ -101,7 +107,10 @@ public class TransactionController {
     public ResponseEntity<?> createWithdrawal(@Validated(WithdrawalGroup.class)
                                                @RequestBody TransactionDtoRequest withdrawalDto,
                                                 BindingResult result) {
-        validateBindingResult(result);
+        ResponseEntity<Map<Object, String>> errorResponse = validateBindingResult(result);
+        if (errorResponse != null)
+            return ResponseEntity.badRequest().body(errorResponse);
+
         try {
             transactionService.createWithdrawal(withdrawalDto);
             return ResponseEntity.ok().build();

@@ -1,7 +1,6 @@
 package com.banking.Banking.Controller;
 
 import com.banking.Banking.Dto.ClientDtoResponse;
-import com.banking.Banking.Dto.TransactionDtoResponse;
 import com.banking.Banking.Entity.Client;
 import com.banking.Banking.Entity.OperationTypes;
 import com.banking.Banking.Mapper.CardMapper;
@@ -21,12 +20,11 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
-import java.nio.file.AccessDeniedException;
-import java.security.Principal;
+import org.springframework.security.access.AccessDeniedException;
 import java.util.List;
 import java.util.Map;
 
@@ -38,15 +36,17 @@ public class WebController {
     private final CardMapper cardMapper;
     private final ClientMapper clientMapper;
     private final TransactionMapper transactionMapper;
+    private final PasswordEncoder encoder;
     @Autowired
     public WebController(CardService cardService, ClientService clientService, TransactionService transactionService,
-                         CardMapper cardMapper, ClientMapper clientMapper, TransactionMapper transactionMapper) {
+                         CardMapper cardMapper, ClientMapper clientMapper, TransactionMapper transactionMapper, PasswordEncoder encoder) {
         this.cardService = cardService;
         this.clientService = clientService;
         this.transactionService = transactionService;
         this.cardMapper = cardMapper;
         this.clientMapper = clientMapper;
         this.transactionMapper = transactionMapper;
+        this.encoder = encoder;
     }
 
     @GetMapping("api/history")
@@ -56,7 +56,7 @@ public class WebController {
                                           @Nullable @RequestParam List<OperationTypes> types,
                                           @Nullable @RequestParam String start,
                                           @Nullable @RequestParam String end) throws AccessDeniedException {
-        Client client = clientService.findByUsername(auth.getName());
+        Client client = clientService.findByLogin(auth.getName());
         var transactions = transactionService.findTransactions(client.getId(), page, types, cardId, start, end);
         var dtos = transactionMapper.toDtoList(transactions.getContent());
         var dtoPage = new PageImpl<>(dtos, transactions.getPageable(), transactions.getTotalElements());
@@ -66,17 +66,16 @@ public class WebController {
     @GetMapping("clients/me")
     @ResponseBody
     public ResponseEntity<ClientDtoResponse> getCurrentUser(Authentication auth){
-        if (auth == null || auth instanceof AnonymousAuthenticationToken || !auth.isAuthenticated()){
+        if (auth == null || auth instanceof AnonymousAuthenticationToken || !auth.isAuthenticated())
             return ResponseEntity.notFound().build();
-        }
-        Client client = clientService.findByUsername(auth.getName());
+        Client client = clientService.findByLogin(auth.getName());
         return ResponseEntity.ok()
                 .cacheControl(CacheControl.noStore())
                 .body(clientMapper.toDtoResponse(client));
     }
 
     @GetMapping("/login")
-    public String loginPage(){
+    public String loginPage() {
         return "login";
     }
 
@@ -106,9 +105,7 @@ public class WebController {
     }
 
     @GetMapping("/profile")
-    public String profilePage(Model model, Principal principal){
-        Client client = clientService.findByUsername(principal.getName());
-        model.addAttribute("client", clientMapper.toDtoResponse(client));
+    public String profilePage(){
         return "profile";
     }
 
@@ -118,11 +115,11 @@ public class WebController {
     }
 
     @PreAuthorize("isAuthenticated()")
-    @PostMapping("card/{cardId}/card-details")
+    @PostMapping("cards/{cardId}/card-details")
     public ResponseEntity<?> revealCardDetails(Authentication auth, @PathVariable String cardId,
                                                @RequestBody Map<String, String> requestBody)
                                                 throws RequestLimitException, AccessDeniedException {
-        Client client = clientService.findByUsername(auth.getName());
+        Client client = clientService.findByLogin(auth.getName());
         if (client == null)
             throw new BadCredentialsException("Пользователь не найден");
         Map<String, String> details = cardService.revealCardDetails(client.getId(), requestBody.get("password"), Long.valueOf(cardId));

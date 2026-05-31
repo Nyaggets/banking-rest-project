@@ -1,107 +1,40 @@
 package com.banking.Banking.Service;
 
 import com.banking.Banking.Entity.Card;
-import com.banking.Banking.Entity.UserAttempts;
 import com.banking.Banking.Entity.Client;
 import com.banking.Banking.Repository.CardRepository;
 import com.banking.Banking.validation.RequestLimitException;
-import com.google.crypto.tink.Aead;
-import com.google.crypto.tink.CleartextKeysetHandle;
-import com.google.crypto.tink.JsonKeysetReader;
-import com.google.crypto.tink.KeysetHandle;
-import com.google.crypto.tink.aead.AeadConfig;
-import com.google.crypto.tink.aead.AeadFactory;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
-import lombok.Setter;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
 import java.math.BigDecimal;
-import java.nio.file.AccessDeniedException;
-import java.security.*;
-import java.time.Clock;
-import java.time.Instant;
+
+import org.springframework.security.access.AccessDeniedException;
+
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 
 @Service
 @Transactional
 public class CardService {
     private final CardRepository repository;
     private final ClientService clientService;
-    private final String keySet;
-    private final Integer DETAILS_REVEAL_ATTEMPTS = 3;
-    @Setter
-    private Clock clock;
-    private ScheduledExecutorService timerService = Executors.newSingleThreadScheduledExecutor();
-    private Map<Long, UserAttempts> revealCount = new ConcurrentHashMap<>();
+    private final EncodeService encodeService;
+    private final VerifyIdentityService attemptsCount;
 
-    public CardService(Clock clock, CardRepository repository, ClientService clientService, @Value("${TINK_KEYSET_BASE64}") String keySet) {
-        this.clock = clock;
+    public CardService(CardRepository repository, ClientService clientService, EncodeService encodeService, VerifyIdentityService attemptsCount) {
         this.repository = repository;
         this.clientService = clientService;
-        this.keySet = keySet;
-    }
-
-    private Aead AeadSetUp() throws GeneralSecurityException, IOException {
-        AeadConfig.register();
-        byte[] keysetJsonBytes = Base64.getDecoder().decode(keySet);
-        KeysetHandle keysetHandle = CleartextKeysetHandle.read(JsonKeysetReader.withBytes(keysetJsonBytes));
-        return AeadFactory.getPrimitive(keysetHandle);
-    }
-
-    public String encodeString(String line, Long clientId) {
-        try {
-            Aead aead = AeadSetUp();
-            byte[] cipherText = aead.encrypt(line.getBytes(), clientId.toString().getBytes());
-            return Base64.getEncoder().encodeToString(cipherText);
-        } catch (GeneralSecurityException | IOException e) {
-            throw new RuntimeException("Ошибка шифрования данных");
-        }
-    }
-
-    public String decodeString(String lineBase64, Long clientId) {
-        try {
-            Aead aead = AeadSetUp();
-            byte[] cipherText = Base64.getDecoder().decode(lineBase64);
-            byte[] decodedLine = aead.decrypt(cipherText, clientId.toString().getBytes());
-            return new String(decodedLine);
-        } catch (GeneralSecurityException | IOException e) {
-            throw new RuntimeException("Ошибка дешифрования данных");
-        }
-    }
-
-    public String generateSha256Hash(String line) {
-        MessageDigest digest;
-        try {
-            digest = MessageDigest.getInstance("SHA-256");
-        }
-        catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("Ошибка генерации данных карты");
-        }
-        byte[] hashBytes = digest.digest(line.getBytes());
-        StringBuilder resultString = new StringBuilder();
-        for (byte b : hashBytes) {
-            String hex = Integer.toHexString(0xff & b);
-            if (hex.length() == 1) resultString.append("0");
-            resultString.append(hex);
-        }
-        return resultString.toString();
+        this.encodeService = encodeService;
+        this.attemptsCount = attemptsCount;
     }
 
     public String generateCardNumber(){
         StringBuilder numberBase = new StringBuilder("123456");
         Random random = new Random();
-        for (int i = 0; i < 14; i++){
+        for (int i = 0; i < 14; i++)
             numberBase.append(random.nextInt(10));
-        }
         return numberBase.toString();
     }
 
@@ -127,14 +60,14 @@ public class CardService {
         Card card = Card.builder()
                         .client(client)
                         .clientName(client.getName())
-                        .cardNumber(encodeString(cardNumber, clientId))
-                        .cvv(encodeString(cvv, clientId))
+                        .cardNumber(encodeService.encodeString(cardNumber, clientId))
+                        .cvv(encodeService.encodeString(cvv, clientId))
                         .balance(BigDecimal.ZERO)
                         .createdDate(LocalDate.now())
                         .expiredDate(LocalDate.now().plusYears(7))
                         .last4(cardNumber.substring(16))
-                        .cardNumberHash(generateSha256Hash(cardNumber))
-                        .cvvHash(generateSha256Hash(cvv))
+                        .cardNumberHash(encodeService.generateSha256Hash(cardNumber))
+                        .cvvHash(encodeService.generateSha256Hash(cvv))
                         .build();
         return repository.save(card);
     }
@@ -143,13 +76,18 @@ public class CardService {
         return repository.findById(id).orElse(null);
     }
 
+    public Card saveFindById(Long clientId, Long cardId) {
+        belongsToClient(clientId, cardId);
+        return findByIdOrThrow(cardId);
+    }
+
     public Card findByIdOrThrow(Long id) {
         return repository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Карта не найдена"));
     }
 
     public Card findByCardNumberHash(String number) {
-        String numberHash = generateSha256Hash(number);
+        String numberHash = encodeService.generateSha256Hash(number);
         return repository.findByCardNumberHash(numberHash).orElse(null);
     }
 
@@ -199,26 +137,11 @@ public class CardService {
 
     public Map<String, String> revealCardDetails(Long clientId, String password, Long cardId) throws RequestLimitException, AccessDeniedException {
         findByIdOrThrow(cardId);
-        Instant attemptTime = clock.instant();
-        UserAttempts userAttempts = revealCount.compute(clientId, (id, current) -> {
-            if (current == null || attemptTime.isAfter(current.expiresAt()))
-                return new UserAttempts(DETAILS_REVEAL_ATTEMPTS, attemptTime.plus(1, ChronoUnit.HOURS));
-            return current;
-        });
-
-        if (userAttempts.attemptsLeft() == 0)
-            throw new RequestLimitException("Лимит попыток исчерпан.", userAttempts.expiresAt());
-
-        if (!clientService.checkPassword(password, clientId)) {
-            revealCount.computeIfPresent(clientId, (id, current) ->
-                    new UserAttempts(current.attemptsLeft() - 1, current.expiresAt()));
-            throw new AccessDeniedException("Неверный пароль. Осталось попыток: " + userAttempts.attemptsLeft());
-        }
-
+        attemptsCount.throwIfAttemptLimit(clientId, password, clientService.checkPassword(password, clientId));
         Card card = findByIdOrThrow(cardId);
         return new HashMap<>() {{
-            put("cvv", decodeString(card.getCvv(), clientId));
-            put("cardNumber", decodeString(card.getCardNumber(), clientId));
+            put("cvv", encodeService.decodeString(card.getCvv(), clientId));
+            put("cardNumber", encodeService.decodeString(card.getCardNumber(), clientId));
         }};
     }
 }

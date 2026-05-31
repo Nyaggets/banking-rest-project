@@ -4,7 +4,6 @@ import com.banking.Banking.Configuration.QuerySpec;
 import com.banking.Banking.Dto.CardStatsDto;
 import com.banking.Banking.Dto.TransactionDtoRequest;
 import com.banking.Banking.Entity.Card;
-import com.banking.Banking.Entity.Client;
 import com.banking.Banking.Entity.OperationTypes;
 import com.banking.Banking.Entity.Transaction;
 import com.banking.Banking.Mapper.TransactionMapper;
@@ -19,7 +18,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.nio.file.AccessDeniedException;
+import org.springframework.security.access.AccessDeniedException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -54,6 +53,8 @@ public class TransactionService {
         UUID uuid = UUID.randomUUID();
         Card senderCard = cardService.findById(transactionDto.getSenderCardId());
         Card receiverCard = cardService.findByCardIdentifier(transactionDto.getReceiverIdentifier());
+        System.out.println(senderCard.getClient().toString());
+        System.out.println(receiverCard.getClient().toString());
         boolean isInternal = senderCard.getClient().getId() == receiverCard.getClient().getId();
         BigDecimal commission = calculateCommission(transactionDto.getAmount());
         Transaction transactionOut = Transaction.builder()
@@ -134,7 +135,7 @@ public class TransactionService {
 
     public Transaction findById(Long transactionId, Authentication auth) throws AccessDeniedException {
         var transaction = repository.findById(transactionId).orElseThrow(() -> new EntityNotFoundException("Операция не найдена"));
-        var client = clientService.findByUsername(auth.getName());
+        var client = clientService.findByLogin(auth.getName());
         if (client == null)
             throw new RuntimeException("Пользователь не найден");
         if (client.getId() != transaction.getClientCard().getClient().getId())

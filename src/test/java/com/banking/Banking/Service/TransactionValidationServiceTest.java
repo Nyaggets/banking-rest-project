@@ -11,23 +11,24 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.test.context.annotation.SecurityTestExecutionListeners;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.math.BigDecimal;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
-@ExtendWith(MockitoExtension.class)
-@SpringBootTest
-@TestPropertySource(properties = {"TINK_KEYSET_BASE64=TINK_KEYSET_BASE64=ewogICAgInByaW1hcnlLZXlJZCI6IDIwMDczMzQ5MjAsCiAgICAia2V5IjogW3sKICAgICAgICAia2V5RGF0YSI6IHsKICAgICAgICAgICAgInR5cGVVcmwiOiAidHlwZS5nb29nbGVhcGlzLmNvbS9nb29nbGUuY3J5cHRvLnRpbmsuQWVzRWF4S2V5IiwKICAgICAgICAgICAgImtleU1hdGVyaWFsVHlwZSI6ICJTWU1NRVRSSUMiLAogICAgICAgICAgICAidmFsdWUiOiAiRWdJSUVCb2d1VDEwWU9Iek5hbTdETkRzbUJjMGdaejRNZlFHTVBNVERKM3RJbmlpUkV3PSIKICAgICAgICB9LAogICAgICAgICJvdXRwdXRQcmVmaXhUeXBlIjogIlRJTksiLAogICAgICAgICJrZXlJZCI6IDIwMDczMzQ5MjAsCiAgICAgICAgInN0YXR1cyI6ICJFTkFCTEVEIgogICAgfV0KfQ=="})
+@ExtendWith({MockitoExtension.class, SpringExtension.class})
+@SecurityTestExecutionListeners
 public class TransactionValidationServiceTest {
+    private static final String CLIENT_LOGIN = "client";
+    private static final String RECEIVER_LAST4 = "2222";
+    private static final BigDecimal VALID_AMOUNT = new BigDecimal("100");
+
     @Mock
     private CardService cardService;
     @Mock
@@ -44,109 +45,126 @@ public class TransactionValidationServiceTest {
 
     @BeforeEach
     void setUp() {
-        senderClient = new Client();
-        senderClient.setId(1L);
+        senderClient = Client.builder()
+                .id(1L)
+                .login(CLIENT_LOGIN)
+                .build();
+
+        Client receiverClient = Client.builder()
+                .id(2L)
+                .build();
 
         senderCard = Card.builder()
                 .id(1L)
                 .client(senderClient)
                 .balance(new BigDecimal("1000"))
-                .cardNumber("1111")
+                .last4("1111")
                 .build();
 
         receiverCard = Card.builder()
                 .id(2L)
-                .client(new Client())
+                .client(receiverClient)
                 .balance(new BigDecimal("500"))
-                .cardNumber("2222")
+                .last4(RECEIVER_LAST4)
                 .build();
 
         transferDto = TransactionDtoRequest.builder()
-                .senderCardId(1L)
-                .receiverIdentifier("2222")
-                .amount(new BigDecimal("100"))
+                .senderCardId(senderCard.getId())
+                .receiverIdentifier(RECEIVER_LAST4)
+                .amount(VALID_AMOUNT)
                 .build();
 
         depositDto = TransactionDtoRequest.builder()
-                .source("source")
-                .receiverIdentifier("2222")
-                .amount(new BigDecimal("100"))
+                .counterParty("source")
+                .receiverIdentifier(RECEIVER_LAST4)
+                .amount(VALID_AMOUNT)
                 .build();
 
         withdrawalDto = TransactionDtoRequest.builder()
-                .senderCardId(1L)
-                .merchant("merchant")
-                .amount(new BigDecimal("100"))
+                .senderCardId(senderCard.getId())
+                .counterParty("merchant")
+                .amount(VALID_AMOUNT)
                 .build();
     }
 
     @Test
-    @WithMockUser(username = "client")
+    @WithMockUser(username = CLIENT_LOGIN)
     void transferValidation_Success() {
-        when(clientService.findByUsername(anyString())).thenReturn(senderClient);
+        when(clientService.findByLogin(CLIENT_LOGIN)).thenReturn(senderClient);
         when(cardService.findByIdOrThrow(senderCard.getId())).thenReturn(senderCard);
-        when(cardService.findByCardIdentifier(anyString())).thenReturn(receiverCard);
+        when(cardService.findByCardIdentifier(RECEIVER_LAST4)).thenReturn(receiverCard);
 
-        assertDoesNotThrow(() -> validationService.validateOperation(OperationTypes.TRANSFER, transferDto));
+        assertDoesNotThrow(() -> validationService.validateOperation(OperationTypes.TRANSFER_OUT, transferDto));
     }
+
     @Test
-    @WithMockUser(username = "client")
+    @WithMockUser(username = CLIENT_LOGIN)
     void transferValidation_Unauthorized() {
-        senderCard.setClient(new Client());
-        assertThrows(BadCredentialsException.class, () -> validationService.validateOperation(OperationTypes.TRANSFER, transferDto));
+        when(clientService.findByLogin(CLIENT_LOGIN)).thenReturn(null);
+
+        assertThrows(BadCredentialsException.class,
+                () -> validationService.validateOperation(OperationTypes.TRANSFER_OUT, transferDto));
     }
+
     @Test
-    @WithMockUser(username = "client")
+    @WithMockUser(username = CLIENT_LOGIN)
     void transferValidation_ReceiverAmountErrors() {
         transferDto.setAmount(BigDecimal.ZERO);
-        when(cardService.findByIdOrThrow(1L)).thenReturn(senderCard);
-        when(cardService.findByCardIdentifier(anyString())).thenReturn(senderCard);
-        when(clientService.findByUsername(anyString())).thenReturn(senderClient);
+        when(clientService.findByLogin(CLIENT_LOGIN)).thenReturn(senderClient);
+        when(cardService.findByIdOrThrow(senderCard.getId())).thenReturn(senderCard);
+        when(cardService.findByCardIdentifier(RECEIVER_LAST4)).thenReturn(senderCard);
 
-        var errors = assertThrows(MultipleValidationException.class, () -> validationService.validateOperation(OperationTypes.TRANSFER, transferDto));
+        var errors = assertThrows(MultipleValidationException.class,
+                () -> validationService.validateOperation(OperationTypes.TRANSFER_OUT, transferDto));
         assertTrue(errors.getErrors().containsKey("receiver"));
         assertTrue(errors.getErrors().containsKey("amount"));
     }
 
     @Test
     void depositValidation_Success() {
-        when(cardService.findByCardIdentifier(anyString())).thenReturn(receiverCard);
+        when(cardService.findByCardIdentifier(RECEIVER_LAST4)).thenReturn(receiverCard);
 
         assertDoesNotThrow(() -> validationService.validateOperation(OperationTypes.DEPOSIT, depositDto));
     }
+
     @Test
     void depositValidation_ReceiverError() {
-        depositDto.setAmount(BigDecimal.ZERO);
+        when(cardService.findByCardIdentifier(RECEIVER_LAST4)).thenReturn(null);
 
-        var errors = assertThrows(MultipleValidationException.class, () -> validationService.validateOperation(OperationTypes.DEPOSIT, depositDto));
+        var errors = assertThrows(MultipleValidationException.class,
+                () -> validationService.validateOperation(OperationTypes.DEPOSIT, depositDto));
         assertTrue(errors.getErrors().containsKey("receiver"));
     }
 
     @Test
-    @WithMockUser(username = "client")
+    @WithMockUser(username = CLIENT_LOGIN)
     void withdrawalValidation_Success() {
-        when(clientService.findByUsername(anyString())).thenReturn(senderClient);
+        when(clientService.findByLogin(CLIENT_LOGIN)).thenReturn(senderClient);
         when(cardService.findByIdOrThrow(senderCard.getId())).thenReturn(senderCard);
 
         assertDoesNotThrow(() -> validationService.validateOperation(OperationTypes.WITHDRAWAL, withdrawalDto));
     }
+
     @Test
-    @WithMockUser(username = "client")
+    @WithMockUser(username = CLIENT_LOGIN)
     void withdrawalValidation_Forbidden() {
         senderCard.setClient(new Client());
-        when(cardService.findByIdOrThrow(1L)).thenReturn(senderCard);
-        when(clientService.findByUsername(anyString())).thenReturn(senderClient);
+        when(clientService.findByLogin(CLIENT_LOGIN)).thenReturn(senderClient);
+        when(cardService.findByIdOrThrow(senderCard.getId())).thenReturn(senderCard);
 
-        assertThrows(AccessDeniedException.class, () -> validationService.validateOperation(OperationTypes.WITHDRAWAL, withdrawalDto));
+        assertThrows(AccessDeniedException.class,
+                () -> validationService.validateOperation(OperationTypes.WITHDRAWAL, withdrawalDto));
     }
+
     @Test
-    @WithMockUser(username = "client")
+    @WithMockUser(username = CLIENT_LOGIN)
     void withdrawalValidation_AmountError() {
         withdrawalDto.setAmount(BigDecimal.ZERO);
-        when(cardService.findByIdOrThrow(1L)).thenReturn(senderCard);
-        when(clientService.findByUsername(anyString())).thenReturn(senderClient);
+        when(clientService.findByLogin(CLIENT_LOGIN)).thenReturn(senderClient);
+        when(cardService.findByIdOrThrow(senderCard.getId())).thenReturn(senderCard);
 
-        var errors = assertThrows(MultipleValidationException.class, () -> validationService.validateOperation(OperationTypes.WITHDRAWAL, withdrawalDto));
+        var errors = assertThrows(MultipleValidationException.class,
+                () -> validationService.validateOperation(OperationTypes.WITHDRAWAL, withdrawalDto));
         assertTrue(errors.getErrors().containsKey("amount"));
     }
 }

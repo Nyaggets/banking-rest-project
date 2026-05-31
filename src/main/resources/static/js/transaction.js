@@ -1,6 +1,6 @@
-import { URL_BASE } from "./utils/getData.js"
-import { renderTransaction, formatAmount, formatDate } from "./utils/processData.js"
+import { URL_BASE, renderTransaction, formatAmount, formatDate, showClientLogin } from "./utils/sharedData.js"
 
+showClientLogin()
 const operationId = new URLSearchParams(window.location.search).get('operationId')
 const response = await fetch(`${URL_BASE}/cards/transactions?operationId=${operationId}`)
 let transaction
@@ -8,7 +8,6 @@ if (response.ok) {
     transaction = await response.json()
     renderTransaction(transaction)
 }
-console.log(transaction)
 
 const createInfoBlock = (icon, labelText, valueText, container) => {
   const label = document.createElement('p')
@@ -23,9 +22,9 @@ const createInfoBlock = (icon, labelText, valueText, container) => {
 }
 
 document.getElementById('operation-title').innerHTML = transaction.typeRu
-document.getElementById('amount').innerText = `${formatAmount(transaction.amount.toString())} ₽`
+document.getElementById('amount').innerText = `${formatAmount(transaction.amount)} ₽`
 const commissionEl = document.getElementById('commission')
-const commisionText = transaction.commission && transaction.commission != 0 ? `${formatAmount(transaction.commission.toString())} ₽` : 'Нет комисии'
+const commisionText = transaction.commission && transaction.commission != 0 ? `${formatAmount(transaction.commission)} ₽` : 'Нет комисии'
 createInfoBlock('fa-solid fa-percent', 'Комиссия', commisionText, commissionEl)
 if (transaction.commission == 0)
     commissionEl.classList.add('grey-text')

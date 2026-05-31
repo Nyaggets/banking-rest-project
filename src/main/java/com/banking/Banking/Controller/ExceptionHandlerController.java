@@ -3,6 +3,7 @@ package com.banking.Banking.Controller;
 import com.banking.Banking.validation.MultipleValidationException;
 import com.banking.Banking.validation.RequestLimitException;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.persistence.NonUniqueResultException;
 import org.apache.naming.EjbRef;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -10,7 +11,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
-import java.nio.file.AccessDeniedException;
+import org.springframework.security.access.AccessDeniedException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +23,13 @@ public class ExceptionHandlerController {
         HashMap<String, String> errors = new HashMap<>();
         errors.put("card", ex.getMessage());
         return ResponseEntity.status(401).body(new Response("UNAUTHORIZED", errors));
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Response> IllegalArgumentHandler(IllegalArgumentException ex) {
+        HashMap<String, String> errors = new HashMap<>();
+        errors.put("card", ex.getMessage());
+            return ResponseEntity.status(422).body(new Response("DUBLICATE", errors));
     }
 
     @ExceptionHandler(EntityNotFoundException.class)

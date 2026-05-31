@@ -3,51 +3,151 @@
 
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="../static/css/style.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link href="../static/css/style.css" rel="stylesheet">
   <title>Профиль</title>
 </head>
 
 <body>
-  <header class="header">
-    <nav class="header-nav">
-      <div class="logo-container">
-        <a href="main">
-          <h2 class="logo-title">Банк</h2>
-        </a>
+  <header class="header container">
+    <nav class="navbar navbar-expand-lg">
+      <a class="navbar-brand nav-link" href="main">Банк</a>
+      <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasNavbar">
+        <div class="offcanvas-header">
+          <a class="offcanvas-title nav-link" href="main">Банк</a> 
+          <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+          <ul class="navbar-nav">
+            <li class="nav-item">
+              <a href="transfer" class="nav-link">Перевести</a>
+            </li>
+            <li class="nav-item">
+              <a href="history" class="nav-link">История</a>
+            </li>
+          </ul>
+        </div>
       </div>
-      <ul class="nav nav-underline">
-        <li class="nav-item">
-          <a href="main" class="nav-link">Главная</a>
-        </li>
-        <li class="nav-item">
-          <a href="transfer" class="nav-link">Перевести</a>
-        </li>
-        <li class="nav-item">
-          <a href="history" class="nav-link">История</a>
-        </li>
-      </ul>
-      <div class="container-actions">
-        <a href="profile" class="nav-link">профиль</a>
-        <a href="logout" class="nav-link">выйти</a>
+      <div class="side-actions">
+      <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar" aria-controls="offcanvasNavbar" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="profile-actions">
+        <a href="profile" class="nav-link"><i class="fa fa-user" aria-hidden="true"></i><label id="profile-login"></label></a>
+        <a href="logout" class="nav-link active"><i class="fa fa-sign-out fa-flip-horizontal p-0" aria-hidden="true"></i></a>
       </div>
-    </nav>
+    </div>
+    </nav>   
   </header>
 
   <main>
-    <div class="main-container">
-      <div class="profile-container">
-        <h3>Профиль</h3>
-        <h1 id="client-name"></h1>
+    <div class="modal fade" id="confirm-modal" tabindex="-1" aria-labelledby="confirm-modal-label" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="confirm-modal-label">Подтверждение личности</h5>
+            <button type="button" class="btn-close" errors-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <label for="password-input">Введите пароль от аккаунта</label>
+            <input type="password" name="confirm-password" id="password-input">
+            <div error-for="sender" class="error-msg" id="confirm-error" hidden></div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="secondary-btn" errors-bs-dismiss="modal">Отмена</button>
+            <button type="button" class="main-btn" id="password-conf-btn">Подтвердить</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
-        <h2>Уведомления</h2>
-        <p>Номер уведомлений</p>
-        <p id="client-phone"></p>
-        <p><input type="checkbox">Уведомления по картам и платежам</p>
+    <div class="main-container container">
+      <h2 id="profile-header">Профиль</h2>
+
+      <div class="row" id="profile-container">
+        <div class="col-md-6">
+          <section>
+            <h3>Личные данные</h3>
+            <form id="data-form">
+              <div class="mb-3">
+                <label class="caption">Телефон</label> 
+                <input type="text" id="phone" pattern="[0-9]*">
+                <div error-for="phone" class="error-msg" hidden></div>
+              </div>
+              <div class="mb-3">
+                <label class="caption">Логин</label> 
+                <input type="text" id="login">
+                <div error-for="login" class="error-msg" hidden></div>
+              </div>
+              <button type="button" class="secondary-btn" id="change-data-btn">Сохранить изменения</button>
+            </form>
+          </section>
+
+          <section>
+            <h3>Безопасность</h3>
+            <button class="secondary-btn" type="button" data-bs-toggle="collapse" data-bs-target="#passwordCollapse" aria-expanded="false">
+              Изменить пароль
+            </button>
+            <div class="collapse mt-3" id="passwordCollapse">
+              <form id="password-form" class="d-flex flex-column gap-2">
+                <div class="mb-3">
+                  <label class="caption">Текущий пароль</label> 
+                  <input type="password" id="old-password" name="oldPassword" placeholder="Текущий пароль" required>
+                  <div error-for="oldPassword" class="error-msg" hidden></div>
+                </div>
+                <div class="mb-3">
+                  <label class="caption">Новый пароль</label> 
+                  <input type="password" id="new-password" name="newPassword" placeholder="Новый пароль" required>
+                  <div error-for="newPassword" class="error-msg" hidden></div>
+                </div>
+                <div class="mb-3">
+                  <label class="caption">Подтверждение пароля</label> 
+                  <input type="password" id="conf-password" name="passwordConf" placeholder="Подтвердите новый пароль" required>
+                  <div error-for="passwordConf" class="error-msg" hidden></div>
+                </div>  
+                <button type="button" class="secondary-btn" id="change-password-btn">Сохранить изменения</button>
+              </form>
+            </div>
+          </section>
+        </div>
+        
+        <div class="col-md-6">
+          <h3>Данные паспорта</h3>
+          <button class="secondary-btn" id="passport-collapse-btn" type="button">
+            Показать
+          </button>
+          <div class="collapse" id="passport-collpase">
+            <div class="passport">
+              <div class="mb-3">
+                <label class="caption">Серия</label> 
+                <p id="series"></p>
+              </div>
+              <div class="mb-3">
+                <label class="caption">Номер</label> 
+                <p id="number"></p>
+              </div>
+              <div class="mb-3">
+                <label class="caption">Код департамента</label> 
+                <p id="department-code"></p>
+              </div>
+              <div class="mb-3">
+                <label class="caption">Выдан</label> 
+                <p id="issued-by" class="d-flex flex-wrap"></p>
+              </div>
+              <div class="mb-3">
+                <label class="caption">Дата выдачи</label> 
+                <p id="issue-date"></p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </main>
 
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script type="module" src="/static/js/profile.js"></script>
 </body>
 </html>

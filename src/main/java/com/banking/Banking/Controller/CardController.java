@@ -16,7 +16,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.nio.file.AccessDeniedException;
+import org.springframework.security.access.AccessDeniedException;
 import java.util.List;
 
 @PreAuthorize("isAuthenticated()")
@@ -31,16 +31,20 @@ public class CardController {
     private CardMapper mapper;
 
     @GetMapping
-    @ResponseBody
-    public ResponseEntity<CardDtoResponse> findById(@PathVariable Long clientId, @RequestParam String id) {
-        Card card = cardService.findByIdOrThrow(Long.valueOf(id));
+    public ResponseEntity<List<CardDtoResponse>> findByClientId(@PathVariable Long clientId) {
         return ResponseEntity.ok()
                 .cacheControl(CacheControl.noStore())
-                .body(mapper.toDto(card));
+                .body(mapper.toListDto(cardService.findByClientId(clientId)));
+    }
+
+    @GetMapping("/{cardId}")
+    public ResponseEntity<CardDtoResponse> findByCardId(@PathVariable Long clientId, @PathVariable Long cardId) {
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .body(mapper.toDto(cardService.saveFindById(clientId, cardId)));
     }
 
     @GetMapping("{id}/stats")
-    @ResponseBody
     public ResponseEntity<CardStatsDto> cardStats(@PathVariable Long clientId, @PathVariable Long id) throws AccessDeniedException {
         return ResponseEntity.ok()
                 .cacheControl(CacheControl.noStore())

@@ -1,7 +1,7 @@
-import { URL_BASE, cards, history } from './utils/getData.js'
-import { showHistory, formatAmount } from './utils/processData.js'
+import { URL_BASE, cards, history, showHistory, formatAmount, showClientLogin } from './utils/sharedData.js'
 const RECENT_HISTORY_LENGTH = 5
 
+showClientLogin()
 const cardList = document.getElementById('card-list')
 cards.forEach(card => {
     const cardElem = document.createElement('li')
@@ -9,7 +9,7 @@ cards.forEach(card => {
     cardElem.innerHTML =
         `<div class="card-item">
             <h3>${card.hiddenNumber}</h3>
-            <h2>${formatAmount(card.balance.toString())}₽</h2>
+            <h2>${formatAmount(card.balance)}₽</h2>
             <button class="secondary-btn transfer-btn">Перевести</button>
         </div>`
 

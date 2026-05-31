@@ -10,13 +10,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.util.DigestUtils;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Optional;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -43,10 +38,10 @@ public class ClientServiceTest {
         final String phone = "89022214880";
         Client client = new Client();
         client.setId(1L);
-        client.setUsername(username);
+        client.setLogin(username);
         Card card = Card.builder().cardNumber(cardNumber).clientName(username).build();
 
-        when(clientRepository.findByUsername(username)).thenReturn(Optional.of(client));
+        when(clientRepository.findByLogin(username)).thenReturn(Optional.of(client));
         when(clientRepository.findByPhone(phone)).thenReturn(Optional.of(client));
         when(cardRepository.findByCardNumber(cardNumber)).thenReturn(Optional.of(card));
 

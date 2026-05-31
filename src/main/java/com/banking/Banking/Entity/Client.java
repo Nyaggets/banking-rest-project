@@ -8,6 +8,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 
@@ -18,20 +19,43 @@ import java.util.List;
 @Getter
 @Setter
 @Table(name = "client")
+@Builder
 public class Client implements UserDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "client_id")
     Long id;
+    @Size(min = 11, max = 11)
     String phone;
+    @Size(min = 5, max = 40)
+    String surname;
+    @Size(min = 2, max = 20)
     String name;
+    @Size(min = 7, max = 30)
+    String patronymic;
     String password;
-    String username;
+    @Size(min = 4, max = 20)
+    String login;
     String authority;
+    @Column(name = "passport_series")
+    String passportSeries;
+    @Column(name = "passport_number")
+    String passportNumber;
+    @Column(name = "passport_issue_date")
+    String passportIssueDate;
+    @Column(name = "passport_issued_by")
+    String passportIssuedBy;
+    @Column(name = "passport_department_code")
+    String passportDepartmentCode;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority(this.authority));
+    }
+
+    @Override
+    public String getUsername() {
+        return this.login;
     }
 
     @Override
@@ -52,5 +76,12 @@ public class Client implements UserDetails {
     @Override
     public boolean isEnabled() {
         return true;
+    }
+
+    public String getFullName() {
+        StringBuilder fullName = new StringBuilder(String.format("%s %s", this.surname, this.name));
+        return this.patronymic == null
+                ? fullName.append(String.format(" %s", this.patronymic)).toString()
+                : fullName.toString();
     }
 }

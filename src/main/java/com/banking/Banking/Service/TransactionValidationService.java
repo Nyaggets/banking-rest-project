@@ -14,7 +14,6 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
 
 @Service
@@ -35,7 +34,7 @@ public class TransactionValidationService {
 
     private boolean clientSenderValidation(Card senderCard, HashMap<String, String> errors) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        Client client = clientService.findByUsername(auth.getName());
+        Client client = clientService.findByLogin(auth.getName());
         if (client == null)
             throw new BadCredentialsException("Пользователь не найден");
         if (senderCard == null) {

@@ -1,15 +1,15 @@
-import { URL_BASE, cards, client, getData } from './utils/getData.js'
-import { processResponse, formatAmount, showToast } from './utils/processData.js'
+import { URL_BASE, cards, client, getData, processResponse, formatAmount, showToast, showClientLogin } from './utils/sharedData.js'
 
+showClientLogin()
 const url = window.location.search
 const search = new URLSearchParams(url)
 let urlSenderCard
 let urlReceiverCard
 if (search.has('from')) {
-    urlSenderCard = await getData(`${URL_BASE}/clients/${client.id}/cards?id=${search.get('from')}`)
+    urlSenderCard = await getData(`${URL_BASE}/clients/${client.id}/cards/${search.get('from')}`)
 }
 else if (search.has('to')) {
-    urlReceiverCard = await getData(`${URL_BASE}/clients/${client.id}/cards?id=${search.get('to')}`)
+    urlReceiverCard = await getData(`${URL_BASE}/clients/${client.id}/cards/${search.get('to')}`)
     document.getElementById('receiver').value = urlReceiverCard.hiddenNumber
 }
 const senderSelect = document.getElementById('sender-cards-select')
@@ -24,7 +24,8 @@ if (search.has('type')) {
         document.querySelector('.external-rec').remove()
         const internalSelect = document.querySelector('.internal-rec')
         cards.forEach((card, key) => {
-            internalSelect[key] = new Option(`${card.hiddenNumber} ${card.balance}₽`, card.id, false, (urlReceiverCard && card.id == urlReceiverCard.id))
+            internalSelect[key] = new Option(`${card.hiddenNumber} ${formatAmount(card.balance)}₽`, card.id, 
+            false, (urlReceiverCard && card.id == urlReceiverCard.id))
         })
 
         internalSelect.addEventListener('change', () => {
@@ -58,7 +59,7 @@ const calcCommission = async (amountInputEl) => {
         const commissionFormatted = formatAmount(commission)
         commissionEl.innerText = `Комиссия: ${commissionFormatted}₽`
         const totalAmount = parseFloat(cleanedAmount) + parseFloat(commission)
-        const totalAmountFormatted = formatAmount(totalAmount.toString())
+        const totalAmountFormatted = formatAmount(totalAmount)
         document.getElementById('transfer-btn').innerText = `Перевести ${totalAmountFormatted} ${totalAmountFormatted ? '₽' : ''}`
     }
 }

@@ -4,6 +4,7 @@ import com.banking.Banking.Entity.OperationTypes;
 import com.banking.Banking.Entity.Transaction;
 import jakarta.annotation.Nullable;
 import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDateTime;
@@ -12,12 +13,19 @@ import java.util.List;
 public class QuerySpec {
     public static Specification<Transaction> hasType(List<OperationTypes> types) {
         return (root, query, criteriaBuilder) -> {
-            if (types.contains(OperationTypes.TRANSFER_IN) && types.contains(OperationTypes.TRANSFER_OUT))
-                return root.get("type").in(types);
-            return criteriaBuilder.and(
-                    root.get("type").in(types),
-                    criteriaBuilder.isFalse(root.get("isInternal"))
+            Predicate typeIn = root.get("type").in(types);
+            if (!types.contains(OperationTypes.TRANSFER_IN) && !types.contains(OperationTypes.TRANSFER_OUT))
+                return typeIn;
+
+            Predicate isInternalTransferIn = criteriaBuilder.and(
+                    criteriaBuilder.equal(root.get("type"), OperationTypes.TRANSFER_IN),
+                    criteriaBuilder.equal(root.get("isInternal"), true)
             );
+            return criteriaBuilder.and(
+                    typeIn,
+                    criteriaBuilder.not(isInternalTransferIn)
+            );
+
         };
     }
     public static Specification<Transaction> belongsInCards(List<Long> cardIds) {
