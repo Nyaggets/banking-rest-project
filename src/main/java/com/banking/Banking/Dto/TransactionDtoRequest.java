@@ -1,13 +1,8 @@
 package com.banking.Banking.Dto;
 
-import com.banking.Banking.validation.DepositGroup;
 import com.banking.Banking.validation.TransferGroup;
-import com.banking.Banking.validation.WithdrawalGroup;
 import jakarta.annotation.Nullable;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Null;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -20,23 +15,22 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @NoArgsConstructor
 public class TransactionDtoRequest {
-    @Null(groups = {DepositGroup.class}, message = "{field.invalidOperation}")
-    @NotNull(groups = {TransferGroup.class, WithdrawalGroup.class}, message = "{field.required}")
-    Long senderCardId;
+    @NotNull(message = "{field.required}")
+    Long clientCardId;
 
-    @Null(groups = {TransferGroup.class}, message = "{field.invalidOperation}")
-    @NotNull(groups = {WithdrawalGroup.class, DepositGroup.class}, message = "{field.required}")
-    String counterParty;
+    @NotNull(message = "{field.required}")
+    @Pattern(regexp = "^(\\d{4}|(\\+7|8)\\d{10}|\\d*)$", message = "{cardOrPhone.invalidPattern}")
+    String counterPartyCardId;
 
-    @Null(groups = {WithdrawalGroup.class}, message = "{field.invalidOperation}")
-    @NotNull(groups = {TransferGroup.class, DepositGroup.class}, message = "{field.required}")
-    @Pattern(regexp = "^(\\d{4}|(\\+7|8)\\d{10}|\\d*)$", message = "{cardOrPhone.invalidPattern}", groups = {DepositGroup.class, TransferGroup.class})
-    String receiverIdentifier;
+    @NotNull(message = "{field.required}")
+    @Pattern(regexp = "^(\\d{4}|(\\+7|8)\\d{10}|\\d*)$", message = "{cardOrPhone.invalidPattern}")
+    String counterPartyIdentifier;
 
     @NotNull(message = "{field.required}")
     @Positive(message = "{amount.invalid}")
     BigDecimal amount;
 
     @Nullable
+    @Pattern(regexp = "^[a-zA-Zа-яёА-ЯЁ0-9\\s\\p{Punct}]{0,50}$", groups = {TransferGroup.class}, message = "{description.invalid}")
     String description;
 }

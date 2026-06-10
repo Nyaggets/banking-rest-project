@@ -10,17 +10,37 @@
 </head>
 
 <body>
-  <header class="header container">
-    <a class="navbar-brand" href="main">Банк</a>
+  <div id="spinner" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; 
+  align-items: center; background: #fcfcfc; z-index: 9999;">
+    <div class="spinner-grow text-primary" role="status" style="width: 3rem; height: 3rem; background-color: #f67737;">
+      <span class="visually-hidden">Загрузка...</span>
+    </div>
+  </div>
+
+  <header class="header container-md">
+    <nav class="navbar navbar-expand-lg">
+      <a class="navbar-brand nav-link" href="main">Банк</a>
+    </div>
+    </nav>   
   </header>
 
   <main>
+    <div class="toast position-fixed mt-3 top-0 start-50 translate-middle-x" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="true" data-bs-delay="1500">
+      <div class="toast-header">
+        <strong class="me-auto" id="toast-header"></strong>
+        <small>Только что</small>
+        <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+      <div class="toast-body" id="toast-body">
+      </div>
+    </div>
+
     <div class="auth-container container">
       <h1 class="greeting">Здравствуйте</h1>
       <h2 class="auth-title">Вход</h2>
       <form id="auth-form" class="auth-form" method="post" action="/login">
-        <input type="text" name="username" id="username" class="input" placeholder="Логин/телефон" required>
-        <input type="password" name="password" id="password" class="input" placeholder="Пароль" required>
+        <input type="text" name="username" id="username" class="input" placeholder="Логин/телефон" maxlength="100" required>
+        <input type="password" name="password" id="password" class="input" placeholder="Пароль" maxlength="100" required>
         <div id="error-msg" class="error-msg" hidden></div>
         <button type="submit" id="auth-button" class="main-btn">Войти</button>
       </form>

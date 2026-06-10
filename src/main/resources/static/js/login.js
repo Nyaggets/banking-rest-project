@@ -1,6 +1,9 @@
-const loginForm = document.getElementById('auth-form')
-const error = document.getElementById('error-msg')
+import { showSpinner } from '/js/utils/sharedFunctions.js'
+
+showSpinner()
+
 if (new URLSearchParams(window.location.search).has('error')) {
+    const error = document.getElementById('error-msg')
     error.hidden = false
-    error.textContent = "Неверный логин или пароль"
+    error.innerText = "Неверный логин или пароль"
 }

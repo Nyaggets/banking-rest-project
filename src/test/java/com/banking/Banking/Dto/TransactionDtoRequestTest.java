@@ -65,7 +65,7 @@ public class TransactionDtoRequestTest {
                 .build();
 
         transferDto = TransactionDtoRequest.builder()
-                .senderCardId(1L)
+                .clientCardId(1L)
                 .receiverIdentifier("22222222222222222222")
                 .amount(new BigDecimal("100"))
                 .build();
@@ -77,7 +77,7 @@ public class TransactionDtoRequestTest {
                 .build();
 
         withdrawalDto = TransactionDtoRequest.builder()
-                .senderCardId(1L)
+                .clientCardId(1L)
                 .counterParty("merchant")
                 .amount(new BigDecimal("100"))
                 .build();
@@ -90,7 +90,7 @@ public class TransactionDtoRequestTest {
     }
     @Test
     void transferValidation_InvalidData() {
-        transferDto.setSenderCardId(null);
+        transferDto.setClientCardId(null);
         transferDto.setReceiverIdentifier(null);
         transferDto.setAmount(new BigDecimal(4).negate());
 
@@ -139,7 +139,7 @@ public class TransactionDtoRequestTest {
     @Test
     void withdrawalValidation_InvalidData() {
         withdrawalDto.setCounterParty(null);
-        withdrawalDto.setSenderCardId(null);
+        withdrawalDto.setClientCardId(null);
         withdrawalDto.setAmount(new BigDecimal(4).negate());
 
         var withdrawalResult = validator.validate(withdrawalDto, WithdrawalGroup.class, Default.class);

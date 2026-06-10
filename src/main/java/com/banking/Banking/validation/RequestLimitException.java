@@ -5,7 +5,7 @@ import lombok.Getter;
 import java.time.Instant;
 
 @Getter
-public class RequestLimitException extends Exception {
+public class RequestLimitException extends RuntimeException {
     private final String message;
     private final Instant expiresAt;
 

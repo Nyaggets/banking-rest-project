@@ -10,59 +10,76 @@
 </head>
 
 <body>
-  <header class="header container">
-    <nav class="navbar navbar-expand-lg">
-      <a class="navbar-brand nav-link" href="main">Банк</a>
-      <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasNavbar">
-        <div class="offcanvas-header">
-          <a class="offcanvas-title nav-link" href="main">Банк</a> 
-          <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+  <div id="spinner" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; 
+  align-items: center; background: #fcfcfc; z-index: 9999;">
+    <div class="spinner-grow text-primary" role="status" style="width: 3rem; height: 3rem; background-color: #f67737;">
+      <span class="visually-hidden">Загрузка...</span>
+    </div>
+  </div>
+
+  <div class="toast position-fixed mt-3 top-0 start-50 translate-middle-x" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="true" data-bs-delay="1500">
+    <div class="toast-header">
+      <strong class="me-auto" id="toast-header"></strong>
+      <small>Только что</small>
+      <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+    <div class="toast-body" id="toast-body">
+    </div>
+  </div>
+
+  <div class="modal fade" id="confirm-modal" tabindex="-1" aria-labelledby="confirm-modal-label" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="confirm-modal-label">Подтверждение личности</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
-        <div class="offcanvas-body">
-          <ul class="navbar-nav">
-            <li class="nav-item">
-              <a href="transfer" class="nav-link">Перевести</a>
-            </li>
-            <li class="nav-item">
-              <a href="history" class="nav-link">История</a>
-            </li>
-          </ul>
+        <div class="modal-body">
+          <form id="password-conf-form">
+            <label for="password-input">Введите пароль от аккаунта</label>
+            <input type="password" name="confirm-password" id="password-input" maxlength="100" required>
+            <div error-for="client" class="error-msg" id="confirm-error" hidden></div>
+            <div class="mt-3 d-flex justify-content-end gap-2">
+              <button type="reset" class="secondary-btn modal-dismiss-btn" data-bs-dismiss="modal" autofocus>Отмена</button>
+              <button type="submit" class="main-btn" id="password-conf-btn">Подтвердить</button>
+            </div>
+          </form>
         </div>
       </div>
-      <div class="side-actions">
-      <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar" aria-controls="offcanvasNavbar" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-      </button>
+    </div>
+  </div>
+
+  <div class="modal fade" id="logout-modal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Подтверждение действия</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>Выйти из аккаунта?</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="secondary-btn modal-dismiss-btn" data-bs-dismiss="modal" autofocus>Отмена</button>
+          <a href="logout" role="button" class="btn btn-danger btn-link">Выйти</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <header class="header container-md">
+    <nav class="navbar navbar-expand-lg">
+      <a class="navbar-brand nav-link" href="main">Банк</a>
       <div class="profile-actions">
         <a href="profile" class="nav-link"><i class="fa fa-user" aria-hidden="true"></i><label id="profile-login"></label></a>
-        <a href="logout" class="nav-link"><i class="fa fa-sign-out fa-flip-horizontal p-0" aria-hidden="true"></i></a>
+        <a class="nav-link" data-bs-toggle="modal" data-bs-target="#logout-modal"><i class="fa fa-sign-out fa-flip-horizontal p-0" aria-hidden="true"></i></a>
       </div>
     </div>
     </nav>   
   </header>
 
   <main>
-    <div class="modal fade" id="confirm-modal" tabindex="-1" aria-labelledby="confirm-modal-label" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="confirm-modal-label">Подтверждение личности</h5>
-            <button type="button" class="btn-close" errors-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <label for="password-input">Введите пароль от аккаунта</label>
-            <input type="password" name="confirm-password" id="password-input">
-            <div error-for="sender" class="error-msg" id="confirm-error" hidden></div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="secondary-btn" errors-bs-dismiss="modal">Отмена</button>
-            <button type="button" class="main-btn" id="password-conf-btn">Подтвердить</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="main-container container">
+    <div class="main-container container-md">
       <section id="section-card">
         <div id="card-container" class="card-item"></div>
 
@@ -75,8 +92,9 @@
         <aside class="fast-actions">
           <h3 class="fast-actions-title">Быстрые действия</h3>
           <div class="fast-actions-list">
-            <button type="button" class="secondary-btn"><a href="transfer?type=EXTERNAL">Перевести</a></button>
-            <button type="button" class="secondary-btn"><a href="transfer?type=INTERNAL">Перевод между своими</a></button>
+            <a class="secondary-btn btn-link transfer-btn" role="button">Перевод</a>
+            <a class="secondary-btn btn-link transfer-btn" role="button">Перевод между своими</a>
+            <a class="secondary-btn btn-link" id="withdrawal-btn" role="button">Пополнить баланс</a>
           </div>
         </aside>
       </section>
@@ -86,7 +104,9 @@
           <h2>История операций</h2>
           <a id="card-history-link" class="link">Вся история</a>
         </div>
+        <div id="history-msg" class="mx-auto" hidden></div>
         <ul id="card-history"></ul>
+        <button class="main-btn mt-4 d-flex mx-auto" id="card-history-btn" role="button">Вся история</button>
       </section>
     </div>
   </main>

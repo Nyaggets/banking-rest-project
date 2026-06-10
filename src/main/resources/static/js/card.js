@@ -1,56 +1,82 @@
-import { URL_BASE, client, getData, history, totalPages, showHistory, formatDate, formatAmount, processResponse, showClientLogin } from './utils/sharedData.js'
+import { URL_BASE, API_BASE, client, cards, getData, totalPages, showHistory, processResponse, showClientLogin } from '/js/utils/sharedData.js'
+import { formatDate, formatAmount, showSpinner } from '/js/utils/sharedFunctions.js'
 
+showSpinner()
 showClientLogin()
 const url = new URLSearchParams(window.location.search)
 const cardId = url.get('id')
 
-const card = await getData(`${URL_BASE}/clients/${client.id}/cards/${cardId}`)
-console.log(card, typeof card.balance)
-console.log(card.balance.toString())
+const card = await getData(`${API_BASE}/cards/${cardId}`)
 document.getElementById('card-container').innerHTML += `<h3 id='card-number'>${card.hiddenNumber}</h3>
     <h3 id='cvv'>***</h3>
     <h2>${formatAmount(card.balance)}₽</h2>
-    <h3>${formatDate(card.expiredDate)}</h3>
-    <button type='btn' class='secondary-btn' data-bs-toggle="modal" data-bs-target="#confirm-modal">Показать</button>`
-document.getElementById('transfer-btn').addEventListener('click', function() {
-    window.location.assign(`${URL_BASE}/transfer?type=EXTERNAL&from=${cardId}`)
+    <h3>${new Date(card.expiredDate).toLocaleDateString()}</h3>
+    <button type="button" class="secondary-btn" data-bs-toggle="modal" data-bs-target="#confirm-modal">Показать</button>`
+document.querySelectorAll('.transfer-btn').forEach(btn => {
+    btn.href = `${URL_BASE}/transfer?type=EXTERNAL&from=${cardId}`
 })
-document.getElementById('replenish-btn').addEventListener('click', function() {
-    window.location.assign(`${URL_BASE}/transfer?type=INTERNAL&to=${cardId}`)
-})
+document.getElementById('withdrawal-btn').href = `${URL_BASE}/balance-deposit?from=${cardId}`
 
-const stats = await getData(`${URL_BASE}/clients/${client.id}/cards/${cardId}/stats`)
+const stats = await getData(`${API_BASE}/cards/${cardId}/stats`)
 document.getElementById('month-income').innerHTML = `<i class="fa fa-plus" aria-hidden="true"></i> ${formatAmount(stats.income)}₽`
 document.getElementById('month-outcome').innerHTML = `<i class="fa fa-minus" aria-hidden="true"></i> ${formatAmount(stats.outcome)}₽`
 document.getElementById('month-name').innerText  = `Статистика за ${new Date().toLocaleString('ru', {month: 'long'})}`
 
-const modalEl = document.getElementById('confirm-modal')
-const modalInput = document.getElementById('password-input')
-modalEl.addEventListener('hidden.bs.modal', () => {
-    modalInput.value = ''
+const cardHistoryLink = `${URL_BASE}/history?cardId=${cardId}`
+document.getElementById('card-history-link').href = cardHistoryLink
+document.getElementById('card-history-btn').addEventListener('click', () => {
+    window.location.assign(cardHistoryLink)
 })
-if (document.getElementById('password-conf-btn')) {
-    document.getElementById('password-conf-btn').addEventListener('click', async () => {
-        const errorEl = document.getElementById('confirm-error')
-        const response = await fetch(`${URL_BASE}/cards/${cardId}/card-details`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json;charset=utf-8' },
-            body: JSON.stringify({ password: modalInput.value })
-        })
-        processResponse(response)
-        if (response.ok) {
-            const { cardNumber, cvv } = await response.json()
-            document.getElementById('card-number').innerText = cardNumber
-            document.getElementById('cvv').innerText = cvv
-            bootstrap.Modal.getInstance(modalEl).hide()
-        }
-        else if (response.status == '429') {
-            modalInput.disabled = true
-        }
-    })
+
+
+const cardHistoryPage = await getData(`${API_BASE}/cards/history?cardId=${cardId}`)
+const { content: cardHistory } = cardHistoryPage
+if (!cardHistory || cardHistory.length == 0) {
+    const errorMsgEl = document.getElementById('history-msg')
+    errorMsgEl.hidden = false
+    const title = document.createElement('h3')
+    title.innerText = "История операций пуста"
+    const subtitle = document.createElement('p')
+    subtitle.innerText = 'Совершите новый перевод сейчас'
+    subtitle.classList.add('caption')
+
+    const btn = document.createElement('a')
+    btn.role = 'button'
+    btn.classList.add('main-btn btn-link', 'mt-4')
+    btn.id = 'clear-filters-btn'
+    btn.innerText = 'Новый перевод'
+    btn.href = `${URL_BASE}/transfer?type=EXTERNAL&from=${cardId}`
+
+    errorMsgEl.appendChild(title)
+    errorMsgEl.appendChild(subtitle)
+    errorMsgEl.appendChild(btn)
+}
+else {
+    const cardTransactionsList = document.getElementById('card-history')
+    showHistory(cardHistory, cardTransactionsList)
 }
 
-document.getElementById('card-history-link').href = `${URL_BASE}/history?cardId=${cardId}`
 
-const cardHistory = document.getElementById('card-history')
-showHistory(history, cardHistory)
+const modalEl = document.getElementById('confirm-modal')
+const modalInput = document.getElementById('password-input')
+const modalError = document.getElementById('confirm-error')
+modalEl.addEventListener('hidden.bs.modal', () => {
+    modalError.value = ''
+})
+document.getElementById('password-conf-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault()
+    const errorEl = document.getElementById('confirm-error')
+    const response = await fetch(`${API_BASE}/cards/${cardId}/card-details`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json;charset=utf-8' },
+        body: JSON.stringify({ password: modalInput.value })
+    })
+    if (response.ok) {
+        const { cardNumber, cvv } = await response.json()
+        document.getElementById('card-number').innerText = cardNumber
+        document.getElementById('cvv').innerText = cvv
+        bootstrap.Modal.getInstance(modalEl).hide()
+    }
+    else
+        processResponse(response)
+})

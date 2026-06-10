@@ -1,5 +1,7 @@
-import { URL_BASE, client, history, totalPages, getData, cards, showHistory, formatDate, showClientLogin } from './utils/sharedData.js'
+import { URL_BASE, API_BASE, client, history, totalPages, getData, cards, showHistory, showClientLogin } from '/js/utils/sharedData.js'
+import { formatAmount, showSpinner } from '/js/utils/sharedFunctions.js'
 
+showSpinner()
 showClientLogin()
 const url = new URLSearchParams(window.location.search)
 let pagesCount = totalPages
@@ -13,28 +15,47 @@ const nextLink = document.getElementById('next-link')
 const currentParams = {
     page: url.get('page'),
     cardId: url.get('cardId'),
-    types: url.get('types'),
+    types: url.getAll('types'),
     start: url.get('start'),
     end: url.get('end')        
 }
-const NotNullParams = () => Object.fromEntries(Object.entries(currentParams).filter(([key, value]) => 
+const getCleanParams = () => Object.fromEntries(Object.entries(currentParams).filter(([key, value]) => 
     value != null && (!Array.isArray(value) || value.length > 0)))
 
+const formatShortDate = (date) => new Intl.DateTimeFormat('ru', {dateStyle: 'short'}).format(new Date(date))
 const selectedPeriodEl = document.getElementById('selected-period')
 const showSelectedPeriod = () => {
-    const params = NotNullParams()
-        if (params.start && params.end) {
-            const startFormat = formatDate(params.start)
-            const endFormat = formatDate(params.end)
-            selectedPeriodEl.innerHTML = `Выбранный период: ${startFormat} — ${endFormat}`
-        }
-        else
-            selectedPeriodEl.innerHTML == ''
+    const params = getCleanParams()
+    if (params.start && params.end)
+        selectedPeriodEl.innerHTML = `Выбранный период: ${formatShortDate(params.start)} — ${formatShortDate(params.end)}`
+    else
+        selectedPeriodEl.innerHTML = ''
 }
 
-const reloadPage = async () => {
-    const currentServerUtl = buildUrlWithParams(`${URL_BASE}/api/history`, NotNullParams())
-    const { content: paginationList, totalPages: newTotalPages } = await getData(currentServerUtl)
+const buildUrlWithParams = (baseUrl) => {
+    const newUrl = new URL(baseUrl)
+    Object.entries(getCleanParams()).forEach(([key, value]) => {
+        if (Array.isArray(value))
+            value.forEach(v => newUrl.searchParams.append(key, v))
+        else
+            newUrl.searchParams.set(key, value)
+    })
+    return newUrl
+}
+
+const clearFilters = () => {
+    Object.keys(currentParams).forEach(key => currentParams[key] = null)
+    showSelectedPeriod.innerHTML = ''
+    document.getElementById('counterparty-select').value = ''
+    document.getElementById('type-select').value = ''
+    document.getElementById('period-select').value = ''
+    fp?.clear()
+    loadPage()
+}
+
+const loadPage = async () => {
+    const currentServerUrl = buildUrlWithParams(`${API_BASE}/cards/history`, getCleanParams())
+    const { content: paginationList, totalPages: newTotalPages } = await getData(currentServerUrl)
     pagesCount = newTotalPages
     const msgElem = document.getElementById('history-msg')
     showSelectedPeriod()
@@ -58,68 +79,39 @@ const reloadPage = async () => {
         msgElem.appendChild(subtitle)
         msgElem.appendChild(btn)
     }
-    else {
+    else 
         msgElem.hidden = true
-    }    
+    
     showHistory(paginationList, historyList)
     generatePagination()
-    const currentUtl = buildUrlWithParams(`${URL_BASE}/history`, NotNullParams())
-    window.history.pushState(NotNullParams(), '', currentUtl)
+    const currentPageUrl = buildUrlWithParams(`${URL_BASE}/history`, getCleanParams())
+    window.history.pushState(getCleanParams(), '', currentPageUrl)
 }   
 
-const clearFilters = () => {
-    currentParams.cardId = null;
-    currentParams.page = null;
-    currentParams.types = null;
-    currentParams.start = null;
-    currentParams.end = null;
-
-    showSelectedPeriod.innerHTML = ''
-    document.getElementById('counterparty-select').value = '';
-    document.getElementById('type-select').value = '';
-    document.getElementById('period-select').value = '';
-    fp.clear();
-
-    reloadPage();
-}
-
-const buildUrlWithParams = (baseUrl) => {
-    const newUrl = new URL(baseUrl)
-    Object.entries(NotNullParams()).forEach(([key, value]) => {
-        if (Array.isArray(value)) {
-            value.forEach(v => newUrl.searchParams.append(key, v))
-        } else {
-            newUrl.searchParams.set(key, value)
-        }
-    })
-    return newUrl
-}
-
-const btnLinkBaseUrl = new URL(`${URL_BASE}/api/history`)
 const generatePagination = () => {
+    const navEl = document.getElementById('pagination-nav')
     if (pagesCount == 0) {
-        document.getElementById('pagination-nav').hidden = true
+        navEl.hidden = true
         return
     }
-    document.getElementById('pagination-nav').hidden = false
+    
+    const currentPageNum = getCleanParams().page ?? '0'
+    navEl.hidden = false
     paginationContainer.innerHTML = ''
     for (let i = 0; i < pagesCount; i++) {
         const li = document.createElement('li')
         li.classList.add('page-item')
         const link = document.createElement('a')
-        link.classList.add('page-link', 'page-number-link')
+        link.className = `page-link page-number-link ${i == currentPageNum ? 'acitve' : ''}`
         link.dataset.page = i
-        link.textContent = i + 1
+        link.innerText = i + 1
 
         li.appendChild(link)
         paginationContainer.appendChild(li)
     }
 
     document.querySelectorAll('.page-number-link').forEach(btn => {
-        const pageState = { ...currentParams, page: btn.dataset.page }
-        const cleanState = Object.fromEntries(Object.entries(pageState).filter(([_, v]) => v != null))
-        Object.entries(cleanState).forEach(([k, v]) => btnLinkBaseUrl.searchParams.set(k, v))
-        btn.href = btnLinkBaseUrl
+        btn.href = buildUrlWithParams(`${URL_BASE}/history`, getCleanParams())
     })
 }
 
@@ -130,7 +122,7 @@ paginationContainer.addEventListener('click', async (e) => {
         return
 
     currentParams.page = e.target.dataset.page
-    reloadPage()
+    loadPage()
 })
 
 const types = {
@@ -140,26 +132,22 @@ const types = {
 }
 typeSelect.addEventListener('change', async () => {
     currentParams.page = 0
-    if (!typeSelect.value)
-        currentParams.types = null
-    else
-        currentParams.types = types[typeSelect.value] || []
-    reloadPage()
+    currentParams.types = typeSelect.value
+        ? types[typeSelect.value] || []
+        : null
+    loadPage()
 })
 
 const cardSelect = document.getElementById('counterparty-select')
 cards.forEach((card, key) => {
-    cardSelect.add(new Option(`${card.hiddenNumber} ${card.balance}₽`, card.id, false, (card.id == currentParams.cardId)))
+    cardSelect.add(new Option(`${card.hiddenNumber} — ${formatAmount(card.balance)}₽`, card.id, false, (card.id == currentParams.cardId)))
 })
 cardSelect.addEventListener('change', async () => {
     currentParams.page = 0
-    const url = new URLSearchParams(window.location.search)
-    const currentUtl = new URL(`${URL_BASE}/history`)
-    if (!cardSelect.value)
-        currentParams.cardId = null
-    else
-        currentParams.cardId = cardSelect.value
-    reloadPage()
+    currentParams.cardId = cardSelect.value
+        ? cardSelect.value
+        : null
+    loadPage()
 })
 
 
@@ -187,7 +175,7 @@ const fp = flatpickr(dateRangeInput, {
         if (instance.calendarContainer.querySelector('#flatpickr-confirm-btn')) 
             return
         const confirmBtn = document.createElement('button')
-        confirmBtn.textContent = 'Применить период'
+        confirmBtn.innerText = 'Применить период'
         confirmBtn.classList.add('main-btn', 'mb-2')
         confirmBtn.id = 'flatpickr-confirm-btn'
         confirmBtn.type = 'button'
@@ -202,7 +190,7 @@ const fp = flatpickr(dateRangeInput, {
                 currentParams.start = startDate
                 currentParams.end = endDate
                 currentParams.page = 0
-                reloadPage()
+                loadPage()
                 instance.close()
             }
         })
@@ -238,8 +226,8 @@ periodSelect.addEventListener('change', () => {
             currentParams.end = null
             break
     }
-    reloadPage()
+    loadPage()
 })
 
 
-reloadPage()
+loadPage()

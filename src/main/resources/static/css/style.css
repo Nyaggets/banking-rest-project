@@ -83,7 +83,7 @@ a {
   text-decoration: none;
   color: var(--color-accent);
 }
-button {
+button, .btn-link {
   font-weight: 450 !important;
   color: var(--color-text);
   border-radius: 8px;
@@ -94,9 +94,19 @@ button {
   -webkit-transition: all ease 0.3s;
   transition: all ease 0.3s;
 }
-button:hover {
+.btn-link {
+  text-decoration: none;
+}
+.btn-link.btn-danger {
+  padding: 14px 40px;
+  background-color: var(--color-danger);
+}
+button:hover, .btn-link:hover {
   transform: translateY(-4px);
   transform: scale(1.05);
+}
+.btn-link:hover {
+  color: var(--color-text);
 }
 input, select {
   border: 1px solid var(--color-primary);
@@ -137,6 +147,10 @@ section:not(:first-child) {
 .page-link:hover {
   color: var(--color-primary);
 }
+.page-link.acitve {
+  background-color: var(--color-primary);
+  color: white;
+}
 .caption {
   font-size: var(--font-size-caption);
   color: var(--color-accent);
@@ -150,6 +164,9 @@ section:not(:first-child) {
   color: var(--color-text);
   background-color: var(--color-secondary);
   border: 1px solid #ddd6d1;
+}
+.modal-dismiss-btn {
+  padding: 14px 40px !important;
 }
 .caption {
   color: var(--color-accent);
@@ -381,6 +398,9 @@ section:not(:first-child) {
     margin: 0;
   }
 }
+#operation-title-container > * {
+  color: var(--color-text);
+}
 .transaction {
   border-radius: 8px;
   border-left: 4px solid var(--color-success);
@@ -396,11 +416,13 @@ section:not(:first-child) {
   transform: scale(1.005);
   background-color: rgba(252, 252, 252, 0.5) !important;
 }
-.transaction.direction-in, .transaction.direction-in > .transaction-main, #month-income {
+.transaction.direction-in, .transaction.direction-in > .transaction-main, 
+#month-income, .transaction-receiver {
   border-color: var(--color-success);
   color: var(--color-success);
 }
-.transaction.direction-out, .transaction.direction-out > .transaction-main, #month-outcome {
+.transaction.direction-out, .transaction.direction-out > .transaction-main, 
+#month-outcome, .transaction-sender {
   border-color: var(--color-danger);
   color: var(--color-danger);
 }
@@ -419,7 +441,7 @@ section:not(:first-child) {
 #transfer-form > select {
   appearance: none;
 }
-#transfer-form > .transfer-field {
+#transfer-form > .transfer-field, #phone-form > .transfer-field {
   margin-bottom: 32px;
 }
 #transfer-form > #transfer-btn {
@@ -431,6 +453,8 @@ section:not(:first-child) {
 @media (max-width: 992px) {
   .fa-exchange {
     transform: rotate(90deg);
+    margin-bottom: 5px;
+    margin-top: -5px;
   }  
 }
 .amount-btns-row {
@@ -486,9 +510,6 @@ section:not(:first-child) {
   background: #ffe8d9 !important;
   box-shadow: -5px 0 0 #ffe8d9, 5px 0 0 #ffe8d9;
 }
-#operation-title-container > * {
-  color: var(--color-text);
-}
 .grey-text > * {
   color: var(--color-accent);
 }
@@ -534,4 +555,17 @@ section:not(:first-child) {
   .nav-link { 
     font-size: 18px; 
   }
+}
+#change-password-btn {
+  width: fit-content;
+}
+#description-size {
+  justify-self: end;
+  margin-right: 8px;
+}
+#receiver-name {
+  margin-bottom: 0;
+}
+#history-btn {
+  width: fit-content;
 }

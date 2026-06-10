@@ -1,6 +1,8 @@
-import { client, URL_BASE, showToast, processResponse, showClientLogin } from './utils/sharedData.js'
+import { client, URL_BASE, processResponse } from './utils/sharedData.js'
+import { showToast, showSpinner } from './utils/sharedFunctions.js'
 
-showClientLogin()
+showSpinner()
+
 const phoneInput = document.getElementById('phone')
 const loginInput = document.getElementById('login')
 const dataForm = document.getElementById('data-form')
@@ -9,18 +11,6 @@ const saveDataBtn = document.getElementById('change-data-btn')
 const savePasswordBtn = document.getElementById('change-password-btn')
 const passportBtn = document.getElementById('passport-collapse-btn')
 const passportCollapseEl = document.getElementById('passport-collpase')
-
-passportBtn.addEventListener('click', () => {
-  const isCollapseOpen = passportCollapseEl.classList.contains('show')
-
-  if (isCollapseOpen) {
-    bootstrap.Collapse.getOrCreateInstance(passportCollapseEl, { toggle: false }).hide()
-    passportBtn.textContent = 'Показать'
-  } else {
-    passportBtn.innerText = 'Скрыть'
-    bootstrap.Modal.getOrCreateInstance(modalEl).show()
-  }
-})
 
 phoneInput.value = client.phone
 loginInput.value = client.login
@@ -46,8 +36,11 @@ saveDataBtn.addEventListener('click', async () => {
 })
 
 savePasswordBtn.addEventListener('click', async () => {
-    console.log('uhvsckxl,' + Object.fromEntries(new FormData(passwordForm).entries()))
     const body = Object.fromEntries(new FormData(passwordForm).entries())
+    if (body.newPassword !== body.newPasswordConf) {
+        alert('Пароли не совпадают')
+        return
+    }
     const res = await fetch(`${URL_BASE}/clients/${client.id}/password`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json;charset=utf-8' },
@@ -59,14 +52,22 @@ savePasswordBtn.addEventListener('click', async () => {
         bootstrap.Collapse.getInstance('#passwordCollapse').hide()
     } else {
         const err = await res.json().catch(() => ({}))
-        console.log(err.message || 'Ошибка смены пароля')
-        showToast('Ошибка сохранения', 'Данные не изменены')
+        alert(err.message || 'Ошибка смены пароля')
     }
 })
 
 const modalEl = document.getElementById('confirm-modal')
 const modalInput = document.getElementById('password-input')
 const modalConfirmBtn = document.getElementById('password-conf-btn')
+
+passportBtn.addEventListener('click', () => {
+    if (passportCollapseEl.classList.contains('show')) {
+        bootstrap.Collapse.getOrCreateInstance(passportCollapseEl, { toggle: false }).hide()
+        passportBtn.innerText = 'Показать'
+        return
+    }
+    bootstrap.Modal.getOrCreateInstance(modalEl).show()
+})
 
 modalEl.addEventListener('hidden.bs.modal', () => {
     modalInput.value = ''
@@ -82,11 +83,11 @@ modalConfirmBtn.addEventListener('click', async () => {
 
     if (result.ok) {
         const data = await result.json()
-        document.getElementById('series').innerText = data.series || ''
-        document.getElementById('number').innerText = data.number || ''
-        document.getElementById('department-code').innerText = data.departmentCode || ''
-        document.getElementById('issued-by').innerText = data.issuedBy || ''
-        document.getElementById('issue-date').innerText = data.issueDate || ''
+        document.getElementById('series').value = data.series || ''
+        document.getElementById('number').value = data.number || ''
+        document.getElementById('department-code').value = data.departmentCode || ''
+        document.getElementById('issued-by').value = data.issuedBy || ''
+        document.getElementById('issue-date').value = data.issueDate || ''
 
         const bsCollapse = bootstrap.Collapse.getOrCreateInstance(passportCollapseEl, { toggle: false })
         bsCollapse.show()

@@ -5,9 +5,9 @@ import com.banking.Banking.Dto.PassportDto;
 import com.banking.Banking.Dto.UpdatePasswordDto;
 import com.banking.Banking.Dto.UpdateSafeDataDto;
 import com.banking.Banking.Entity.Client;
-import com.banking.Banking.Mapper.ClientMapper;
-import com.banking.Banking.Repository.CardRepository;
+import com.banking.Banking.Entity.SessionUser;
 import com.banking.Banking.Repository.ClientRepository;
+import com.banking.Banking.validation.CustomException;
 import com.banking.Banking.validation.RequestLimitException;
 import jakarta.transaction.Transactional;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -20,24 +20,20 @@ import org.springframework.security.access.AccessDeniedException;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
 @Transactional
 public class ClientService implements UserDetailsService {
-    private CardRepository cardRepository;
     private ClientRepository repository;
-    private ClientMapper mapper;
     private PasswordEncoder passwordEncoder;
     private EncodeService encodeService;
     private VerifyIdentityService attemptsCount;
 
-    public ClientService(CardRepository cardRepository, ClientRepository repository,
-                         ClientMapper mapper, PasswordEncoder passwordEncoder, EncodeService encodeService, VerifyIdentityService attemptsCount) {
-        this.cardRepository = cardRepository;
+    public ClientService(ClientRepository repository,PasswordEncoder passwordEncoder, EncodeService encodeService, VerifyIdentityService attemptsCount) {
         this.repository = repository;
-        this.mapper = mapper;
         this.passwordEncoder = passwordEncoder;
         this.encodeService = encodeService;
         this.attemptsCount = attemptsCount;
@@ -58,11 +54,10 @@ public class ClientService implements UserDetailsService {
 
     public boolean createClient(ClientDtoRequest dto) {
         if (repository.findByPhone(dto.getPhone()).isPresent())
-            throw new BadCredentialsException("Пользователь с такими номером телефона уже существует");
+            throw new CustomException("DUPLICATE", Map.of("phone", "Пользователь с такими номером телефона уже существует"));
         if (repository.findByLogin(dto.getLogin()).isPresent())
-            throw new BadCredentialsException("Пользователь с такими логином уже существует");
-        if (repository.findByPhone(dto.getPhone()).isPresent())
-            throw new BadCredentialsException("Пользователь с такими номером телефона уже существует");
+            throw new CustomException("DUPLICATE", Map.of("login", "Пользователь с такими логином уже существует"));
+
         Client client = Client.builder()
                 .name(dto.getName())
                 .surname(dto.getSurname())
@@ -82,50 +77,47 @@ public class ClientService implements UserDetailsService {
     }
 
     public Client updateClient(Long clientId, UpdateSafeDataDto dto) {
-//        var clientT = findByLogin("Maria");
-//        clientT.setPassportSeries(encodeService.encodeString("7825"));
-//        clientT.setPassportNumber(encodeService.encodeString("123321"));
-//        clientT.setPassportIssuedBy(encodeService.encodeString("УМВД России по Ярославской области"));
-//        clientT.setPassportIssueDate(encodeService.encodeString("2020.05.07"));
-//        clientT.setPassportDepartmentCode(encodeService.encodeString("760-007"));
-//
-//        var clientT2 = findByLogin("Anya");
-//        clientT2.setPassportSeries(encodeService.encodeString("7825"));
-//        clientT2.setPassportNumber(encodeService.encodeString("789987"));
-//        clientT2.setPassportIssuedBy(encodeService.encodeString("УМВД России по Ярославской области"));
-//        clientT2.setPassportIssueDate(encodeService.encodeString("2021.10.13"));
-//        clientT2.setPassportDepartmentCode(encodeService.encodeString("760-007"));
-
         Client client = findByIdOrThrow(clientId);
+        Map<String, String> errors = new HashMap<>();
         if (dto.getPhone() != null) {
-            if (repository.existsByPhoneAndIdNot(dto.getPhone(), clientId))
-                throw new IllegalArgumentException("Пользователь с таким телефоном уже существует");
-            client.setPhone(normalizePhone(dto.getPhone()));
+            if (!repository.existsByPhoneAndIdNot(dto.getPhone(), clientId))
+                client.setPhone(normalizePhone(dto.getPhone()));
+            else
+                errors.put("phone", "Пользователь с таким телефоном уже существует");
         }
         if (dto.getLogin() != null) {
-            if (repository.existsByLoginAndIdNot(dto.getLogin(), clientId))
-                throw new IllegalArgumentException("Логин занят");
-            client.setLogin(dto.getLogin());
+            if (!repository.existsByLoginAndIdNot(dto.getLogin(), clientId))
+                client.setLogin(dto.getLogin());
+            else
+                errors.put("login", "Логин занят");
         }
+        if (!errors.isEmpty())
+            throw new CustomException("VALIDATION ERROR", errors);
+
         return repository.save(client);
     }
 
     public Client updateClient(Long clientId, UpdatePasswordDto dto) {
         Client client = findByIdOrThrow(clientId);
-        client.setPassword(passwordEncoder.encode("maria"));
-        if (!dto.getNewPassword().equals(dto.getPasswordConf()))
-            throw new IllegalArgumentException("Пароли не совпадают");
+        System.out.println(dto.toString());
+        Map<String, String> errors = new HashMap<>();
         if (!passwordEncoder.matches(dto.getOldPassword(), client.getPassword()))
-            throw new IllegalArgumentException("Неверный текущий пароль");
+            errors.put("oldPassword", "Неверный текущий пароль");
+        if (!dto.getNewPassword().equals(dto.getPasswordConf()))
+            errors.put("passwordConf", "Пароли не совпадают");
         if (passwordEncoder.matches(dto.getNewPassword(), client.getPassword()))
-            throw new IllegalArgumentException("Новый пароль совпадает с текущим");
+            errors.put("newPassword", "Новый пароль совпадает с текущим");
+
+        System.out.println(errors.toString());
+        if (!errors.isEmpty())
+            throw new CustomException("VALIDATION ERROR", errors);
 
         client.setPassword(passwordEncoder.encode(dto.getNewPassword()));
         return repository.save(client);
     }
 
     public PassportDto revealPassport(Long clientId, String password) throws AccessDeniedException, RequestLimitException {
-        attemptsCount.throwIfAttemptLimit(clientId, password, checkPassword(password, clientId));
+        attemptsCount.throwIfPasswordAttemptLimit(clientId, checkPassword(password, clientId));
         Client client = findByIdOrThrow(clientId);
         return PassportDto.builder()
                 .series(encodeService.decodeString(client.getPassportSeries()))
@@ -136,16 +128,19 @@ public class ClientService implements UserDetailsService {
                 .build();
     }
 
-    public List<Client> findAll(){
-        return repository.findAll();
-    }
-
     public Client findByPhone(String phone){
-        return repository.findByPhone(phone).orElse(null);
+        String formattedPhone = normalizePhone(phone);
+        System.out.println(formattedPhone);
+        return repository.findByPhone(formattedPhone).orElse(null);
     }
 
-    public Client findByLogin(String username){
-        return repository.findByLogin(username).orElse(null);
+    public Client findByLogin(String login){
+        return repository.findByLogin(login).orElse(null);
+    }
+
+    public Client findByLoginOrThrow(String login) {
+        return repository.findByLogin(login)
+                .orElseThrow(() -> new BadCredentialsException("Пользователь не найден"));
     }
 
     public Client findByIdOrThrow(Long id){
@@ -161,11 +156,13 @@ public class ClientService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String userIdentifier) {
         String login = userIdentifier;
-        if (userIdentifier.matches("^(\\+7|8)\\d{10}$")) {
+        System.out.println(userIdentifier);
+        System.out.println(passwordEncoder.matches("Masha-2006",findByLoginOrThrow(login).getPassword()));
+        if (userIdentifier.matches("^(\\+?7|8)\\d{10}$")) {
             Optional<Client> client = repository.findByPhone(userIdentifier);
             login = client.map(Client::getLogin).orElse(null);
         }
-        return repository.findByLogin(login)
-            .orElseThrow(() -> new BadCredentialsException("Пользователь не найден"));
+        Client client = findByLoginOrThrow(login);
+        return new SessionUser(client);
     }
 }

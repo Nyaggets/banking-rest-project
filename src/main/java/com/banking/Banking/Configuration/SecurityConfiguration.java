@@ -7,6 +7,7 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -29,21 +30,21 @@ public class SecurityConfiguration {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception{
         http
                 .csrf(csrf -> csrf.disable())
+                .httpBasic(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login*", "/signin", "/logout", "/static/**").permitAll()
-                        .requestMatchers("/main", "/transfer", "/history", "/profile", "/card").hasAuthority("USER")
-                        .anyRequest().authenticated()
+                    .requestMatchers("/login*", "/logout", "/static/**", "/js/**", "/js/utils/**", "/**/*.js").permitAll()
+                    .requestMatchers("/main", "/transfer", "/history", "/profile", "/card", "/transaction", "/balance-deposit").hasAuthority("USER")
+                    .anyRequest().authenticated()
                 )
                 .formLogin(login -> login
-                        .loginPage("/login")
-                        .defaultSuccessUrl("/main", true)
-                        .permitAll()
+                    .loginPage("/login")
+                    .defaultSuccessUrl("/main", true)
+                    .permitAll()
                 )
-                   .logout(logout -> logout
-                        .logoutSuccessUrl("/login?logout")
-                        .permitAll()
-                )
-                .httpBasic(Customizer.withDefaults());
+                 .logout(logout -> logout
+                    .logoutSuccessUrl("/login?logout")
+                    .permitAll()
+                );
         return http.build();
     }
 }

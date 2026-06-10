@@ -1,7 +1,6 @@
 package com.banking.Banking.Service;
 
 import com.banking.Banking.Dto.TransactionDtoRequest;
-import com.banking.Banking.Dto.TransactionDtoResponse;
 import com.banking.Banking.Entity.Card;
 import com.banking.Banking.Entity.Client;
 import com.banking.Banking.Entity.OperationTypes;
@@ -18,15 +17,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Slice;
-import org.springframework.data.domain.SliceImpl;
 
 import java.math.BigDecimal;
 import org.springframework.security.access.AccessDeniedException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -87,7 +83,7 @@ public class TransactionServiceTest {
                 .build();
 
         transferDto = TransactionDtoRequest.builder()
-                .senderCardId(1L)
+                .clientCardId(1L)
                 .receiverIdentifier("2222")
                 .amount(new BigDecimal("100"))
                 .build();
@@ -97,7 +93,7 @@ public class TransactionServiceTest {
                 .amount(new BigDecimal("100"))
                 .build();
         withdrawalDto = TransactionDtoRequest.builder()
-                .senderCardId(1L)
+                .clientCardId(1L)
                 .counterParty("merchant")
                 .amount(new BigDecimal("100"))
                 .build();

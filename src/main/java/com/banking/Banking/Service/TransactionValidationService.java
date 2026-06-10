@@ -4,10 +4,9 @@ import com.banking.Banking.Dto.TransactionDtoRequest;
 import com.banking.Banking.Entity.Card;
 import com.banking.Banking.Entity.Client;
 import com.banking.Banking.Entity.OperationTypes;
-import com.banking.Banking.validation.MultipleValidationException;
+import com.banking.Banking.validation.CustomException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -22,6 +21,8 @@ public class TransactionValidationService {
     private CardService cardService;
     @Autowired
     private ClientService clientService;
+    @Autowired
+    private VerifyIdentityService identityService;
 
     private void amountValidation(BigDecimal senderBalance, BigDecimal amount, HashMap<String, String> errors) {
         if (amount.compareTo(BigDecimal.ZERO) <= 0)
@@ -34,9 +35,7 @@ public class TransactionValidationService {
 
     private boolean clientSenderValidation(Card senderCard, HashMap<String, String> errors) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        Client client = clientService.findByLogin(auth.getName());
-        if (client == null)
-            throw new BadCredentialsException("Пользователь не найден");
+        Client client = clientService.findByLoginOrThrow(auth.getName());
         if (senderCard == null) {
             errors.put("sender", "Карта отправителя не найдена");
             return false;
@@ -49,7 +48,7 @@ public class TransactionValidationService {
     private boolean receiverValidation(String receiverIdentifier, HashMap<String, String> errors) {
         Card receiverCard = cardService.findByCardIdentifier(receiverIdentifier);
         if (receiverCard == null) {
-            errors.put("receiver", "Получатель по указанным данным не найден");
+            errors.put("receiver", "Получатель не найден");
             return false;
         }
         return true;
@@ -57,7 +56,7 @@ public class TransactionValidationService {
 
     public HashMap<String, String> transferValidation(TransactionDtoRequest transactionDto) {
         HashMap<String, String> errors = new HashMap<>();
-        Card senderCard = cardService.findByIdOrThrow(transactionDto.getSenderCardId());
+        Card senderCard = cardService.findByIdOrThrow(transactionDto.getClientCardId(), "sender");
 
         clientSenderValidation(senderCard, errors);
         amountValidation(senderCard.getBalance(), transactionDto.getAmount(), errors);
@@ -70,7 +69,7 @@ public class TransactionValidationService {
     }
     public HashMap<String, String> withdrawalValidation(TransactionDtoRequest transactionDto) {
         HashMap<String, String> errors = new HashMap<>();
-        Card senderCard = cardService.findByIdOrThrow(transactionDto.getSenderCardId());
+        Card senderCard = cardService.findByIdOrThrow(transactionDto.getClientCardId(), "sender");
 
         clientSenderValidation(senderCard, errors);
         amountValidation(senderCard.getBalance(), transactionDto.getAmount(), errors);
@@ -91,6 +90,6 @@ public class TransactionValidationService {
             case OperationTypes.DEPOSIT -> depositValidation(dtoRequest);
         };
         if (!transactionError.isEmpty())
-            throw new MultipleValidationException(transactionError);
+            throw new CustomException("VALIDATION EXCEPTION", transactionError);
     }
 }

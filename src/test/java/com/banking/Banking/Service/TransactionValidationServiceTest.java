@@ -4,7 +4,6 @@ import com.banking.Banking.Dto.TransactionDtoRequest;
 import com.banking.Banking.Entity.Card;
 import com.banking.Banking.Entity.Client;
 import com.banking.Banking.Entity.OperationTypes;
-import com.banking.Banking.validation.MultipleValidationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -69,7 +68,7 @@ public class TransactionValidationServiceTest {
                 .build();
 
         transferDto = TransactionDtoRequest.builder()
-                .senderCardId(senderCard.getId())
+                .clientCardId(senderCard.getId())
                 .receiverIdentifier(RECEIVER_LAST4)
                 .amount(VALID_AMOUNT)
                 .build();
@@ -81,7 +80,7 @@ public class TransactionValidationServiceTest {
                 .build();
 
         withdrawalDto = TransactionDtoRequest.builder()
-                .senderCardId(senderCard.getId())
+                .clientCardId(senderCard.getId())
                 .counterParty("merchant")
                 .amount(VALID_AMOUNT)
                 .build();
@@ -91,7 +90,7 @@ public class TransactionValidationServiceTest {
     @WithMockUser(username = CLIENT_LOGIN)
     void transferValidation_Success() {
         when(clientService.findByLogin(CLIENT_LOGIN)).thenReturn(senderClient);
-        when(cardService.findByIdOrThrow(senderCard.getId())).thenReturn(senderCard);
+        when(cardService.findByIdOrThrow(senderCard.getId(), "sender")).thenReturn(senderCard);
         when(cardService.findByCardIdentifier(RECEIVER_LAST4)).thenReturn(receiverCard);
 
         assertDoesNotThrow(() -> validationService.validateOperation(OperationTypes.TRANSFER_OUT, transferDto));
@@ -111,7 +110,7 @@ public class TransactionValidationServiceTest {
     void transferValidation_ReceiverAmountErrors() {
         transferDto.setAmount(BigDecimal.ZERO);
         when(clientService.findByLogin(CLIENT_LOGIN)).thenReturn(senderClient);
-        when(cardService.findByIdOrThrow(senderCard.getId())).thenReturn(senderCard);
+        when(cardService.findByIdOrThrow(senderCard.getId(), "sender")).thenReturn(senderCard);
         when(cardService.findByCardIdentifier(RECEIVER_LAST4)).thenReturn(senderCard);
 
         var errors = assertThrows(MultipleValidationException.class,
@@ -140,7 +139,7 @@ public class TransactionValidationServiceTest {
     @WithMockUser(username = CLIENT_LOGIN)
     void withdrawalValidation_Success() {
         when(clientService.findByLogin(CLIENT_LOGIN)).thenReturn(senderClient);
-        when(cardService.findByIdOrThrow(senderCard.getId())).thenReturn(senderCard);
+        when(cardService.findByIdOrThrow(senderCard.getId(), "sender")).thenReturn(senderCard);
 
         assertDoesNotThrow(() -> validationService.validateOperation(OperationTypes.WITHDRAWAL, withdrawalDto));
     }
@@ -150,7 +149,7 @@ public class TransactionValidationServiceTest {
     void withdrawalValidation_Forbidden() {
         senderCard.setClient(new Client());
         when(clientService.findByLogin(CLIENT_LOGIN)).thenReturn(senderClient);
-        when(cardService.findByIdOrThrow(senderCard.getId())).thenReturn(senderCard);
+        when(cardService.findByIdOrThrow(senderCard.getId(), "sender")).thenReturn(senderCard);
 
         assertThrows(AccessDeniedException.class,
                 () -> validationService.validateOperation(OperationTypes.WITHDRAWAL, withdrawalDto));
@@ -161,7 +160,7 @@ public class TransactionValidationServiceTest {
     void withdrawalValidation_AmountError() {
         withdrawalDto.setAmount(BigDecimal.ZERO);
         when(clientService.findByLogin(CLIENT_LOGIN)).thenReturn(senderClient);
-        when(cardService.findByIdOrThrow(senderCard.getId())).thenReturn(senderCard);
+        when(cardService.findByIdOrThrow(senderCard.getId(), "sender")).thenReturn(senderCard);
 
         var errors = assertThrows(MultipleValidationException.class,
                 () -> validationService.validateOperation(OperationTypes.WITHDRAWAL, withdrawalDto));

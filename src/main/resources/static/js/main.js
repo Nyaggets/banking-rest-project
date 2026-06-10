@@ -1,5 +1,7 @@
-import { URL_BASE, cards, history, showHistory, formatAmount, showClientLogin } from './utils/sharedData.js'
+import { URL_BASE, cards, history, showHistory, showClientLogin } from '/js/utils/sharedData.js'
+import { formatAmount, showSpinner } from '/js/utils/sharedFunctions.js'
 const RECENT_HISTORY_LENGTH = 5
+showSpinner()
 
 showClientLogin()
 const cardList = document.getElementById('card-list')
@@ -10,24 +12,13 @@ cards.forEach(card => {
         `<div class="card-item">
             <h3>${card.hiddenNumber}</h3>
             <h2>${formatAmount(card.balance)}₽</h2>
-            <button class="secondary-btn transfer-btn">Перевести</button>
+            <a href='${URL_BASE}/transfer?type=EXTERNAL&from=${card.id}'class="secondary-btn transfer-btn btn-link text-center" role='button'>Перевести</a>
         </div>`
 
     cardElem.addEventListener('click', (e) => {
         if (e.target.tagName !== 'BUTTON')
             window.location.assign(`${URL_BASE}/card?id=${card.id}`)
     })
-    
-    const transferBtn = cardElem.querySelectorAll('.transfer-btn')
-    transferBtn.forEach(btn => {
-        btn.addEventListener('click', () => {
-            window.location.assign(`${URL_BASE}/transfer?type=EXTERNAL&from=${card.id}`)
-        })
-    })
-})
-
-document.getElementById('history-btn').addEventListener('click', () => {
-    window.location.assign(`${URL_BASE}/history`)
 })
 
 const recentList = document.getElementById('recent-list')

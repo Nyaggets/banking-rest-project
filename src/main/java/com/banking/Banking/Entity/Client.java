@@ -84,4 +84,11 @@ public class Client implements UserDetails {
                 ? fullName.append(String.format(" %s", this.patronymic)).toString()
                 : fullName.toString();
     }
+
+    public String getShortenFullName() {
+        StringBuilder fullName = new StringBuilder(String.format("%s %s.", this.surname, this.name.charAt(0)));
+        return this.patronymic != null
+                ? fullName.append(String.format(" %s.", this.patronymic.charAt(0))).toString()
+                : fullName.toString();
+    }
 }

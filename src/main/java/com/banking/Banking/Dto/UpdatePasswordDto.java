@@ -9,12 +9,12 @@ import lombok.Data;
 @Data
 public class UpdatePasswordDto {
     @NotNull
-    @Size(min = 5, max = 30, message = "{password.invalid}")
+    @Pattern(regexp = "^(?=(?:.*[A-Z])+)(?=.*[0-9])(?=.*[-_])[A-Za-z0-9_-]{5,30}$", message = "{password.invalidPattern}")
     String oldPassword;
     @NotNull
-    @Size(min = 5, max = 30, message = "{password.invalid}")
+    @Pattern(regexp = "^(?=(?:.*[A-Z])+)(?=.*[0-9])(?=.*[-_])[A-Za-z0-9_-]{5,30}$", message = "{password.invalidPattern}")
     String newPassword;
     @NotNull
-    @Size(min = 5, max = 30, message = "{password.invalid}")
+    @Pattern(regexp = "^(?=(?:.*[A-Z])+)(?=.*[0-9])(?=.*[-_])[A-Za-z0-9_-]{5,30}$", message = "{password.invalidPattern}")
     String passwordConf;
 }

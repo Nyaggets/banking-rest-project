@@ -5,6 +5,9 @@ import lombok.Data;
 @Data
 public class ClientDtoResponse {
     Long id;
-    String phone;
     String login;
+    String phone;
+    String name;
+    String surname;
+    String patronymic;
 }

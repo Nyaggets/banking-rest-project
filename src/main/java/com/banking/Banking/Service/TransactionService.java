@@ -8,8 +8,8 @@ import com.banking.Banking.Entity.OperationTypes;
 import com.banking.Banking.Entity.Transaction;
 import com.banking.Banking.Mapper.TransactionMapper;
 import com.banking.Banking.Repository.TransactionRepository;
+import com.banking.Banking.validation.CustomNotFoundException;
 import jakarta.annotation.Nullable;
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
@@ -51,7 +51,7 @@ public class TransactionService {
         validationService.validateOperation(OperationTypes.TRANSFER_OUT, transactionDto);
 
         UUID uuid = UUID.randomUUID();
-        Card senderCard = cardService.findById(transactionDto.getSenderCardId());
+        Card senderCard = cardService.findById(transactionDto.getClientCardId());
         Card receiverCard = cardService.findByCardIdentifier(transactionDto.getReceiverIdentifier());
         System.out.println(senderCard.getClient().toString());
         System.out.println(receiverCard.getClient().toString());
@@ -92,7 +92,7 @@ public class TransactionService {
     public Transaction createWithdrawal(TransactionDtoRequest transactionDto) {
         validationService.validateOperation(OperationTypes.WITHDRAWAL, transactionDto);
 
-        Card senderCard = cardService.findById(transactionDto.getSenderCardId());
+        Card senderCard = cardService.findById(transactionDto.getClientCardId());
         BigDecimal commission = calculateCommission(transactionDto.getAmount());
         Transaction transaction = Transaction.builder()
                 .type(OperationTypes.WITHDRAWAL)
@@ -134,10 +134,8 @@ public class TransactionService {
     }
 
     public Transaction findById(Long transactionId, Authentication auth) throws AccessDeniedException {
-        var transaction = repository.findById(transactionId).orElseThrow(() -> new EntityNotFoundException("Операция не найдена"));
-        var client = clientService.findByLogin(auth.getName());
-        if (client == null)
-            throw new RuntimeException("Пользователь не найден");
+        var transaction = repository.findById(transactionId).orElseThrow(() -> new CustomNotFoundException("Операция не найдена", "transaction"));
+        var client = clientService.findByLoginOrThrow(auth.getName());
         if (client.getId() != transaction.getClientCard().getClient().getId())
             throw new AccessDeniedException("Операция не принадлежит пользователю");
         return transaction;
@@ -149,7 +147,10 @@ public class TransactionService {
         List<Long> cards = cardService.findByClientId(clientId).stream()
                 .map(Card::getId)
                 .toList();
-        return repository.findAll(Specification.where(QuerySpec.belongsInCards(cards)), pageable);
+        Specification<Transaction> spec = Specification.unrestricted();
+        spec = spec.and(QuerySpec.removeTransferDuplicates());
+        spec = spec.and(QuerySpec.belongsInCards(cards));
+        return repository.findAll(spec, pageable);
     }
 
     public Page<Transaction> findTransactions(Long clientId, int pageNum, @Nullable List<OperationTypes> types,
@@ -176,10 +177,16 @@ public class TransactionService {
                 .toList();
         Pageable pageable = PageRequest.of(pageNum, PAGE_SIZE, Sort.by(Sort.Direction.DESC, "timestamp"));
         Specification<Transaction> spec = Specification.unrestricted();
-        if (!cards.isEmpty()) spec = spec.and(QuerySpec.belongsInCards(cards));
-        if (types != null) spec = spec.and(QuerySpec.hasType(types));
-        if (cardId != null) spec = spec.and(QuerySpec.belongsToCard(cardId));
-        if (start != null && end != null) spec = spec.and(QuerySpec.timestampBetween(startDate, endDate));
+        if (!cards.isEmpty())
+            spec = spec.and(QuerySpec.belongsInCards(cards));
+        if (types != null)
+            spec = spec.and(QuerySpec.hasType(types));
+        else
+            spec = spec.and(QuerySpec.removeTransferDuplicates());
+        if (cardId != null)
+            spec = spec.and(QuerySpec.belongsToCard(cardId));
+        if (start != null && end != null)
+            spec = spec.and(QuerySpec.timestampBetween(startDate, endDate));
         return repository.findAll(spec, pageable);
     }
 
@@ -189,8 +196,12 @@ public class TransactionService {
             throw new AccessDeniedException("Доступ к карте запрещен");
         LocalDate start = LocalDate.of(LocalDate.now().getYear(), LocalDate.now().getMonthValue(), 1);
         LocalDate end = start.plusMonths(1);
-        var transactions = repository.findAll().stream().filter(tr ->
-                tr.getTimestamp().isAfter(start.atStartOfDay()) && tr.getTimestamp().isBefore(end.atTime(LocalTime.MAX)) && !tr.getIsInternal()).toList();
+        var transactions = repository.findAll().stream()
+                .filter(tr -> tr.getClientCard().getId() == cardId &&
+                                        tr.getTimestamp().isAfter(start.atStartOfDay()) &&
+                                        tr.getTimestamp().isBefore(end.atTime(LocalTime.MAX)) &&
+                                        !tr.getIsInternal())
+                .toList();
         CardStatsDto stats = new CardStatsDto(BigDecimal.ZERO, BigDecimal.ZERO);
         transactions.forEach(tr -> {
             if (tr.getType().equals(OperationTypes.TRANSFER_IN) || tr.getType().equals(OperationTypes.DEPOSIT))
@@ -199,5 +210,9 @@ public class TransactionService {
                 stats.setOutcome(stats.getOutcome().add(tr.getTotalAmount()));
         });
         return stats;
+    }
+
+    public Transaction balanceDeposit(TransactionDtoRequest withdrawalDto) {
+
     }
 }

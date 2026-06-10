@@ -3,8 +3,8 @@ package com.banking.Banking.Service;
 import com.banking.Banking.Entity.Card;
 import com.banking.Banking.Entity.Client;
 import com.banking.Banking.Repository.CardRepository;
+import com.banking.Banking.validation.CustomNotFoundException;
 import com.banking.Banking.validation.RequestLimitException;
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
@@ -21,13 +21,13 @@ public class CardService {
     private final CardRepository repository;
     private final ClientService clientService;
     private final EncodeService encodeService;
-    private final VerifyIdentityService attemptsCount;
+    private final VerifyIdentityService identityService;
 
-    public CardService(CardRepository repository, ClientService clientService, EncodeService encodeService, VerifyIdentityService attemptsCount) {
+    public CardService(CardRepository repository, ClientService clientService, EncodeService encodeService, VerifyIdentityService identityService) {
         this.repository = repository;
         this.clientService = clientService;
         this.encodeService = encodeService;
-        this.attemptsCount = attemptsCount;
+        this.identityService = identityService;
     }
 
     public String generateCardNumber(){
@@ -78,12 +78,12 @@ public class CardService {
 
     public Card saveFindById(Long clientId, Long cardId) {
         belongsToClient(clientId, cardId);
-        return findByIdOrThrow(cardId);
+        return findByIdOrThrow(cardId, "sender");
     }
 
-    public Card findByIdOrThrow(Long id) {
+    public Card findByIdOrThrow(Long id, String field) {
         return repository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Карта не найдена"));
+                .orElseThrow(() -> new CustomNotFoundException("Карта не найдена", field));
     }
 
     public Card findByCardNumberHash(String number) {
@@ -95,21 +95,18 @@ public class CardService {
         return repository.findByLast4(last4).orElse(null);
     }
 
-    public Card findByCardNumberOrThrow(String number) {
-        return repository.findByCardNumber(number)
-                .orElseThrow(() -> new EntityNotFoundException("Карта с данным номером не найдена"));
-    }
-
     public boolean belongsToClient(Long clientId, Long cardId) {
-        Card card = findByIdOrThrow(cardId);
+        Card card = findByIdOrThrow(cardId, "sender");
         return card.getClient().getId().equals(clientId);
     }
 
     public Card findByCardIdentifier(String identifier) {
         Card card;
-        if (identifier.matches("^(\\+7|8)\\d{10}$")) {
+        if (identifier.matches("^(\\+?7|8)\\d{10}$")) {
             Client client = clientService.findByPhone(identifier);
-            card = findByClientId(client.getId()).getFirst();
+            if (client == null)
+                throw new CustomNotFoundException("Получатель не найден", "receiver");
+            card = findByIdOrThrow(client.getId(), "receiver");
         }
         else if (identifier.matches("^\\d{20}$"))
             card = findByCardNumberHash(identifier);
@@ -117,6 +114,7 @@ public class CardService {
             card = findByLast4(identifier);
         else
             card = findById(Long.valueOf(identifier));
+
         return card;
     }
 
@@ -127,18 +125,11 @@ public class CardService {
                 .toList();
     }
 
-    public boolean deleteCard(Long id){
-        if (repository.findById(id).orElse(null) == null)
-            return false;
-
-        repository.deleteById(id);
-        return true;
-    }
-
-    public Map<String, String> revealCardDetails(Long clientId, String password, Long cardId) throws RequestLimitException, AccessDeniedException {
-        findByIdOrThrow(cardId);
-        attemptsCount.throwIfAttemptLimit(clientId, password, clientService.checkPassword(password, clientId));
-        Card card = findByIdOrThrow(cardId);
+    public Map<String, String> revealCardDetails(Long clientId, String password, Long cardId) throws AccessDeniedException {
+        if (!belongsToClient(clientId ,cardId))
+            throw new AccessDeniedException("Доступ к карте запрещен");
+        identityService.throwIfPasswordAttemptLimit(clientId, clientService.checkPassword(password, clientId));
+        Card card = findByIdOrThrow(cardId, "card");
         return new HashMap<>() {{
             put("cvv", encodeService.decodeString(card.getCvv(), clientId));
             put("cardNumber", encodeService.decodeString(card.getCardNumber(), clientId));

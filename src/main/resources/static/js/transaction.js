@@ -1,66 +1,70 @@
-import { URL_BASE, renderTransaction, formatAmount, formatDate, showClientLogin } from "./utils/sharedData.js"
+import { URL_BASE, API_BASE, renderTransaction, showClientLogin } from "./utils/sharedData.js"
+import { formatAmount, formatDate, showSpinner } from "./utils/sharedFunctions.js"
 
+showSpinner()
 showClientLogin()
 const operationId = new URLSearchParams(window.location.search).get('operationId')
-const response = await fetch(`${URL_BASE}/cards/transactions?operationId=${operationId}`)
+const response = await fetch(`${API_BASE}/cards/transactions?operationId=${operationId}`)
 let transaction
 if (response.ok) {
     transaction = await response.json()
     renderTransaction(transaction)
 }
 
-const createInfoBlock = (icon, labelText, valueText, container) => {
+const fillOperationInfo = (icon, labelText, titleText, container, titleClass) => {
+  if (!container) 
+    return
   const label = document.createElement('p')
-  label.classList.add('detail-label', 'caption', 'mb-1')
-  label.innerHTML = `<i class="fa ${icon} me-2"></i>${labelText}`
+  label.className = titleClass ?? ''
+  label.innerHTML = `<i class='fa ${icon} me-2 mb-1 detail-label caption ${titleClass ?? ''}'></i>${labelText}`
   const title = document.createElement('h3')
-  title.classList.add('mb-0')
-  title.innerText = valueText
+  title.className = 'mb-0'
+  title.innerText = titleText
   
   container.appendChild(label)
   container.appendChild(title)
 }
 
+document.getElementById('operation-title-container').classList.add(`direction-${transaction.direction}`)
 document.getElementById('operation-title').innerHTML = transaction.typeRu
 document.getElementById('amount').innerText = `${formatAmount(transaction.amount)} ₽`
 const commissionEl = document.getElementById('commission')
 const commisionText = transaction.commission && transaction.commission != 0 ? `${formatAmount(transaction.commission)} ₽` : 'Нет комисии'
-createInfoBlock('fa-solid fa-percent', 'Комиссия', commisionText, commissionEl)
+fillOperationInfo('fa-solid fa-percent', 'Комиссия', commisionText, commissionEl)
 if (transaction.commission == 0)
     commissionEl.classList.add('grey-text')
 
 const counterpartyEl = document.getElementById('counterparty-container')
 const clientEl = document.getElementById('client-container')
 counterpartyEl.innerHTML = '' 
-const formatCounterpartyInfo = () => {
+const formatCounterpartyText = () => {
   const name = transaction.counterPartyName ? ` (${transaction.counterPartyName})` : ''
   return `${transaction.counterPartyHiddenNumber}${name}`
 }
 commissionEl.hidden = (transaction.type !== 'WITHDRAWAL')
 const isOut = transaction.type === 'TRANSFER_OUT'
 if (transaction.type === 'WITHDRAWAL') {
-  createInfoBlock('fa-arrow-down', 'Получатель', transaction.counterPartyName, counterpartyEl)
-  createInfoBlock('fa-credit-card', 'Карта списания', transaction.clientHiddenNumber, clientEl)
+  fillOperationInfo('fa-arrow-down', 'Получатель', transaction.counterPartyName, counterpartyEl, 'transaction-receiver')
+  fillOperationInfo('fa-credit-card', 'Карта списания', transaction.clientHiddenNumber, clientEl, 'transaction-sender')
 } 
 else if (transaction.type === 'DEPOSIT') {
-  createInfoBlock('fa-arrow-up', 'Отправитель', transaction.counterPartyName, counterpartyEl)
-  createInfoBlock('fa-credit-card', 'Карта зачисления', transaction.clientHiddenNumber, clientEl)
+  fillOperationInfo('fa-arrow-up', 'Отправитель', transaction.counterPartyName, counterpartyEl, 'transaction-sender')
+  fillOperationInfo('fa-credit-card', 'Карта зачисления', transaction.clientHiddenNumber, clientEl, 'transaction-receiver')
 } 
 else if (transaction.type.includes('TRANSFER') && transaction.direction != 'between') {
-  createInfoBlock('fa-credit-card', 'Карта списания', isOut ? transaction.clientHiddenNumber : formatCounterpartyInfo(), counterpartyEl)
-  createInfoBlock('fa-credit-card', 'Карта зачисления', isOut ? formatCounterpartyInfo() : transaction.clientHiddenNumber, clientEl)
+  fillOperationInfo('fa-credit-card', 'Карта списания', isOut ? transaction.clientHiddenNumber : formatCounterpartyText(), counterpartyEl, 'transaction-sender')
+  fillOperationInfo('fa-credit-card', 'Карта зачисления', isOut ? formatCounterpartyText() : transaction.clientHiddenNumber, clientEl, 'transaction-receiver')
 }
 else {
-  createInfoBlock('fa-credit-card', 'Карта списания', isOut ? transaction.clientHiddenNumber : transaction.counterPartyHiddenNumber, counterpartyEl)
-  createInfoBlock('fa-credit-card', 'Карта зачисления', isOut ? transaction.counterPartyHiddenNumber : transaction.clientHiddenNumber, clientEl)
+  fillOperationInfo('fa-credit-card', 'Карта списания', isOut ? transaction.clientHiddenNumber : transaction.counterPartyHiddenNumber, counterpartyEl)
+  fillOperationInfo('fa-credit-card', 'Карта зачисления', isOut ? transaction.counterPartyHiddenNumber : transaction.clientHiddenNumber, clientEl)
 }
 
-document.getElementById('date').innerText = 
-        new Intl.DateTimeFormat('ru', {dateStyle: 'long', timeStyle: 'short'}).format(new Date(transaction.timestamp))
+document.getElementById('date').innerText = new Intl.DateTimeFormat('ru', {dateStyle: 'long', timeStyle: 'short'}).format(new Date(transaction.timestamp))
 
 const msgContainer = document.getElementById('message-container')
 msgContainer.innerHTML = ''
 if (transaction.description) 
-  createInfoBlock('fa-solid fa-message', 'Комментарий', `“${transaction.description}”`, msgContainer)
+  fillOperationInfo('fa-solid fa-message', 'Комментарий', `“${transaction.description}”`, msgContainer)
 else
     msgContainer.remove()
