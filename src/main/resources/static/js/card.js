@@ -15,7 +15,7 @@ document.getElementById('card-container').innerHTML += `<h3 id='card-number'>${c
 document.querySelectorAll('.transfer-btn').forEach(btn => {
     btn.href = `${URL_BASE}/transfer?type=EXTERNAL&from=${cardId}`
 })
-document.getElementById('withdrawal-btn').href = `${URL_BASE}/balance-deposit?from=${cardId}`
+document.getElementById('withdrawal-btn').href = `${URL_BASE}/balance-top-up?from=${cardId}`
 
 const stats = await getData(`${API_BASE}/cards/${cardId}/stats`)
 document.getElementById('month-income').innerHTML = `<i class="fa fa-plus" aria-hidden="true"></i> ${formatAmount(stats.income)}₽`

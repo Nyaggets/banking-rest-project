@@ -1,4 +1,4 @@
-import { showToast, formatDate, formatAmount } from './sharedFunctions.js'
+import { showToast, formatDate, formatAmount, formatPhoneOrCard } from './sharedFunctions.js'
 
 const URL_BASE = 'http://localhost:8080'
 const API_BASE = 'http://localhost:8080/api'
@@ -67,42 +67,68 @@ const client = await getData(`${API_BASE}/clients/me`)
 const cards = Array.from(await getData(`${API_BASE}/cards`))
 const { content: history, totalPages} = await getData(`${API_BASE}/cards/history`)
 
-const renderTransaction = (transaction) => {
+const refactorTransaction = (transaction) => {
     switch (transaction.direction) {
         case 'in':
-            if (transaction.type == 'DEPOSIT')
+            if (transaction.operationType == 'DEPOSIT')
                 transaction.typeRu = 'Зачисление'
-            else if (transaction.type == 'TRANSFER_IN')
+            else if (transaction.operationType == 'TRANSFER_IN')
                 transaction.typeRu = 'Входящий перевод'
             transaction.signIcon = 'plus'
             break
         case 'out':
-            if (transaction.type == 'WITHDRAWAL') 
+            if (transaction.operationType == 'WITHDRAWAL') 
                 transaction.typeRu = 'Списание'
-            else if (transaction.type == 'TRANSFER_OUT')
+            else if (transaction.operationType == 'TRANSFER_OUT')
                 transaction.typeRu = 'Перевод'
             transaction.signIcon = 'minus'
             break
         case 'between':
             transaction.typeRu = 'Перевод между своими'
-            transaction.counterpartyName = client.name
             transaction.signIcon = 'refresh'
             break
+        default:
+            transaction.typeRu = 'Тип операции не определен'
+            transaction.signIcon = 'times'
+    }
+
+    console.log(transaction.counterpartyIdentifier)
+    if (transaction.counterpartyIdentifier?.length == 4) 
+        transaction.counterpartyIdentifier = `****${transaction.counterpartyIdentifier}`
+    else if (transaction.counterpartyIdentifier && transaction.counterpartyIdentifier.length == 11) {
+        transaction.counterpartyName = `${transaction.counterpartyName} (${formatPhoneOrCard(transaction.counterpartyIdentifier) ?? 'Не найдено'})`
+    }
+
+    switch (transaction.counterpartyType) {
+        case 'CLIENT':
+            transaction.counterpartyIcon = 'user'
+            break
+        case 'MERCHANT':
+            transaction.counterpartyIcon = 'store'
+            
+            break
+        case 'PURCHASE':
+            transaction.counterpartyIcon = 'cart-shopping'
+            break
+        case 'EMPLOYER':
+            transaction.counterpartyIcon = 'building'
+            break
+        default:
+            transaction.counterpartyIcon = 'times'
     }
 }
 
 const showHistory = (transactions, historyList, length = transactions.length) => {
     historyList.innerHTML = ''
-    console.log(transactions)
     transactions.forEach(transaction => {
-        renderTransaction(transaction)
+        refactorTransaction(transaction)
         const transactionElem = document.createElement('li')
         historyList.appendChild(transactionElem)
         const signIcon = `<i class="fa fa-${transaction.signIcon}" aria-hidden="true"></i>` 
         transactionElem.innerHTML = `<div class="transaction direction-${transaction.direction}" data-id=${transaction.id}> 
             <p class="caption">${transaction.typeRu} — ${formatDate(transaction.timestamp)}</p> 
             <span class="transaction-main d-flex align-items-center"> 
-                <h3 class="flex-grow-1">${transaction.counterPartyName}</h3> 
+                <h3 class="flex-grow-1">${transaction.counterpartyName}</h3> 
                 <h3 class="transaction-amount flex-shrink-0 text-nowrap ms-2">${signIcon} ${formatAmount(transaction.totalAmount)}₽</h3> 
             </span> 
         </div>` 
@@ -116,4 +142,4 @@ const showHistory = (transactions, historyList, length = transactions.length) =>
     })
 }
 
-export { URL_BASE, API_BASE, getData, client, cards, history, totalPages, processResponse, showClientLogin, renderTransaction, showHistory }
+export { URL_BASE, API_BASE, getData, client, cards, history, totalPages, processResponse, showClientLogin, refactorTransaction, showHistory }

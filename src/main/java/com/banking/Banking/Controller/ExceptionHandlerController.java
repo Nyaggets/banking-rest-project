@@ -5,6 +5,8 @@ import com.banking.Banking.validation.CustomNotFoundException;
 import com.banking.Banking.validation.RequestLimitException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -13,6 +15,7 @@ import org.springframework.security.access.AccessDeniedException;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @ControllerAdvice
 public class ExceptionHandlerController {
@@ -32,6 +35,21 @@ public class ExceptionHandlerController {
     public ResponseEntity<Response> MethodArgumentTypeMismatchHandler(MethodArgumentTypeMismatchException ex) {
         var errors = Map.of(ex.getName(), "Некорректное значение поля");
         return ResponseEntity.status(400).body(new Response("TYPE MISMATCH", errors));
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Response> MethodArgumentNotValidHandler(MethodArgumentNotValidException ex) {
+        ex.getBindingResult().getFieldErrors().forEach(e -> System.out.println(e.getField() + " " + e.getDefaultMessage()));
+        Map<String, String> errors = ex.getBindingResult().getFieldErrors().stream()
+                .collect(Collectors.toMap(
+                        fe -> switch (fe.getField()) {
+                            case "receiverIdentifier" -> "receiver";
+                            case "clientCardId" -> "sender";
+                            default -> fe.getField();
+                        },
+                        FieldError::getDefaultMessage, (e1, e2) -> e1
+                ));
+        return ResponseEntity.status(400).body(new Response("VALIDATION_ERROR", errors));
     }
 
     @ExceptionHandler(CustomException.class)

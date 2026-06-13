@@ -1,6 +1,7 @@
 package com.banking.Banking.Dto;
 
-import com.banking.Banking.Entity.OperationTypes;
+import com.banking.Banking.Entity.CounterpartyTypeEnum;
+import com.banking.Banking.Entity.OperationTypeEnum;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -10,7 +11,8 @@ import java.time.LocalDateTime;
 public class TransactionDtoResponse {
     Long id;
     String direction;
-    OperationTypes type;
+    OperationTypeEnum operationType;
+    CounterpartyTypeEnum counterpartyType;
     BigDecimal amount;
     BigDecimal commission;
     BigDecimal totalAmount;
@@ -21,6 +23,6 @@ public class TransactionDtoResponse {
     Long clientCardId;
     String clientHiddenNumber;
 
-    String counterPartyName;
-    String counterPartyHiddenNumber;
+    String counterpartyName;
+    String counterpartyIdentifier;
 }

@@ -9,6 +9,7 @@ import com.banking.Banking.Mapper.ClientMapper;
 import com.banking.Banking.Service.ClientService;
 import com.banking.Banking.validation.CustomException;
 import com.banking.Banking.validation.RequestLimitException;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
@@ -32,18 +33,7 @@ public class ClientController {
     private ClientService clientService;
     @Autowired
     private ClientMapper clientMapper;
-
-    private Map<String, String> validateBindingResult(BindingResult result) {
-        if (result.hasErrors()) {
-            return result.getFieldErrors().stream().collect(
-                    Collectors.toMap(
-                            error ->error.getField(),
-                            FieldError::getDefaultMessage
-                    ));
-        }
-        return null;
-    }
-
+    
     @GetMapping("/me")
     public ResponseEntity<SessionUser> getCurrentUser(Authentication auth){
         if (auth == null || auth instanceof AnonymousAuthenticationToken || !auth.isAuthenticated())
@@ -55,22 +45,16 @@ public class ClientController {
     }
 
     @PatchMapping("/profile")
-    public ResponseEntity<?> updateClient(Authentication auth, @RequestBody @Validated UpdateSafeDataDto dtoParams, BindingResult result) {
+    public ResponseEntity<?> updateClient(Authentication auth, @RequestBody @Valid UpdateSafeDataDto dtoParams) {
         SessionUser client = (SessionUser) auth.getPrincipal();
-        var errorResponse = validateBindingResult(result);
-        if (errorResponse != null)
-            throw new CustomException("VALIDATION EXCEPTION", errorResponse);
 
         Client updatedClient = clientService.updateClient(client.getId(), dtoParams);
         return ResponseEntity.ok(clientMapper.toDtoResponse(updatedClient));
     }
 
     @PatchMapping("/password")
-    public ResponseEntity<?> updateClient(Authentication auth, @RequestBody @Validated UpdatePasswordDto dtoParams, BindingResult result) {
+    public ResponseEntity<?> updateClient(Authentication auth, @RequestBody @Valid UpdatePasswordDto dtoParams) {
         SessionUser client = (SessionUser) auth.getPrincipal();
-        var errorResponse = validateBindingResult(result);
-        if (errorResponse != null)
-            throw new CustomException("VALIDATION EXCEPTION", errorResponse);
 
         Client updatedClient = clientService.updateClient(client.getId(), dtoParams);
         return ResponseEntity.ok(clientMapper.toDtoResponse(updatedClient));

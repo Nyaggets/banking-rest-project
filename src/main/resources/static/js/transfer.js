@@ -145,8 +145,8 @@ document.getElementById('transfer-form').addEventListener('submit', async (e) =>
             'Content-Type': 'application/json;charset=utf-8'
         },
         body: JSON.stringify({
-            senderCardId: senderSelect.value,
-            receiverIdentifier: receiverInput.value.replace(/[\s\*]/g, ''), 
+            clientCardId: senderSelect.value,
+            counterpartyCardIdentifier: receiverInput.value.replace(/[\s\*]/g, ''), 
             amount: amountInput.value.replace(/\s/g, '').replace(/\./g, ','),
             description: descriptionInput.value
         })

@@ -25,7 +25,10 @@ public class Transaction {
     Long id;
     @Column(name = "operation_type")
     @Enumerated(EnumType.STRING)
-    OperationTypes type;
+    OperationTypeEnum operationType;
+    @Column(name = "counterparty_type")
+    @Enumerated(EnumType.STRING)
+    CounterpartyTypeEnum counterpartyType;
     @Column(name = "transfer_id")
     UUID transferId;
     @Column(name = "is_internal")
@@ -35,8 +38,10 @@ public class Transaction {
     @NotNull
     Card clientCard;
     @NotNull
-    String counterPartyName;
-    String counterPartyHiddenNumber;
+    @Column(name = "counterparty_name")
+    String counterpartyName;
+    @Column(name = "counterparty_identifier")
+    String counterpartyIdentifier;
     @Positive(message = "Сумма перевода должна быть больше 0")
     BigDecimal amount;
     @PositiveOrZero(message = "Сумма комиссии должна быть больше или равна 0")
@@ -69,7 +74,7 @@ public class Transaction {
     public String getDirection() {
         if (this.isInternal)
             return "between";
-        return switch (this.type) {
+        return switch (this.operationType) {
             case DEPOSIT, TRANSFER_IN -> "in";
             case WITHDRAWAL, TRANSFER_OUT -> "out";
         };

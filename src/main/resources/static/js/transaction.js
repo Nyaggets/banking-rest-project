@@ -1,5 +1,5 @@
-import { URL_BASE, API_BASE, renderTransaction, showClientLogin } from "./utils/sharedData.js"
-import { formatAmount, formatDate, showSpinner } from "./utils/sharedFunctions.js"
+import { URL_BASE, API_BASE, refactorTransaction, showClientLogin, processResponse } from "./utils/sharedData.js"
+import { formatAmount, formatDate, formatPhoneOrCard, showSpinner } from "./utils/sharedFunctions.js"
 
 showSpinner()
 showClientLogin()
@@ -7,9 +7,12 @@ const operationId = new URLSearchParams(window.location.search).get('operationId
 const response = await fetch(`${API_BASE}/cards/transactions?operationId=${operationId}`)
 let transaction
 if (response.ok) {
-    transaction = await response.json()
-    renderTransaction(transaction)
+  transaction = await response.json()
+  refactorTransaction(transaction)
+  console.log(transaction)
 }
+else 
+  processResponse(response)
 
 const fillOperationInfo = (icon, labelText, titleText, container, titleClass) => {
   if (!container) 
@@ -38,26 +41,27 @@ const counterpartyEl = document.getElementById('counterparty-container')
 const clientEl = document.getElementById('client-container')
 counterpartyEl.innerHTML = '' 
 const formatCounterpartyText = () => {
-  const name = transaction.counterPartyName ? ` (${transaction.counterPartyName})` : ''
-  return `${transaction.counterPartyHiddenNumber}${name}`
+  const name = transaction.counterpartyName ? ` (${transaction.counterpartyName})` : ''
+  return `${transaction.counterpartyIdentifier}${name}`
 }
-commissionEl.hidden = (transaction.type !== 'WITHDRAWAL')
-const isOut = transaction.type === 'TRANSFER_OUT'
-if (transaction.type === 'WITHDRAWAL') {
-  fillOperationInfo('fa-arrow-down', 'Получатель', transaction.counterPartyName, counterpartyEl, 'transaction-receiver')
+
+commissionEl.hidden = (transaction.operationType !== 'WITHDRAWAL')
+const isOut = transaction.operationType === 'TRANSFER_OUT'
+if (transaction.operationType === 'WITHDRAWAL') {
+  fillOperationInfo('fa-arrow-down', 'Получатель', transaction.counterpartyName, counterpartyEl, 'transaction-receiver')
   fillOperationInfo('fa-credit-card', 'Карта списания', transaction.clientHiddenNumber, clientEl, 'transaction-sender')
 } 
-else if (transaction.type === 'DEPOSIT') {
-  fillOperationInfo('fa-arrow-up', 'Отправитель', transaction.counterPartyName, counterpartyEl, 'transaction-sender')
+else if (transaction.operationType === 'DEPOSIT') {
+  fillOperationInfo('fa-arrow-up', 'Отправитель', transaction.counterpartyName, counterpartyEl, 'transaction-sender')
   fillOperationInfo('fa-credit-card', 'Карта зачисления', transaction.clientHiddenNumber, clientEl, 'transaction-receiver')
 } 
-else if (transaction.type.includes('TRANSFER') && transaction.direction != 'between') {
+else if (transaction.operationType.includes('TRANSFER') && transaction.direction != 'between') {
   fillOperationInfo('fa-credit-card', 'Карта списания', isOut ? transaction.clientHiddenNumber : formatCounterpartyText(), counterpartyEl, 'transaction-sender')
   fillOperationInfo('fa-credit-card', 'Карта зачисления', isOut ? formatCounterpartyText() : transaction.clientHiddenNumber, clientEl, 'transaction-receiver')
 }
 else {
-  fillOperationInfo('fa-credit-card', 'Карта списания', isOut ? transaction.clientHiddenNumber : transaction.counterPartyHiddenNumber, counterpartyEl)
-  fillOperationInfo('fa-credit-card', 'Карта зачисления', isOut ? transaction.counterPartyHiddenNumber : transaction.clientHiddenNumber, clientEl)
+  fillOperationInfo('fa-credit-card', 'Карта списания', isOut ? transaction.clientHiddenNumber : transaction.counterpartyIdentifier, counterpartyEl)
+  fillOperationInfo('fa-credit-card', 'Карта зачисления', isOut ? transaction.counterpartyIdentifier : transaction.clientHiddenNumber, clientEl)
 }
 
 document.getElementById('date').innerText = new Intl.DateTimeFormat('ru', {dateStyle: 'long', timeStyle: 'short'}).format(new Date(transaction.timestamp))

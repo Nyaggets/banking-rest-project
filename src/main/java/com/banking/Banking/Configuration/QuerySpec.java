@@ -1,9 +1,7 @@
 package com.banking.Banking.Configuration;
 
-import com.banking.Banking.Entity.OperationTypes;
+import com.banking.Banking.Entity.OperationTypeEnum;
 import com.banking.Banking.Entity.Transaction;
-import jakarta.annotation.Nullable;
-import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -14,16 +12,16 @@ public class QuerySpec {
     public static Specification<Transaction> removeTransferDuplicates() {
         return (root, query, criteriaBuilder) -> {
             Predicate isInternalTransferIn = criteriaBuilder.and(
-                    criteriaBuilder.equal(root.get("type"), OperationTypes.TRANSFER_IN),
+                    criteriaBuilder.equal(root.get("operationType"), OperationTypeEnum.TRANSFER_IN),
                     criteriaBuilder.equal(root.get("isInternal"), true)
             );
             return criteriaBuilder.not(isInternalTransferIn);
         };
     }
-    public static Specification<Transaction> hasType(List<OperationTypes> types) {
+    public static Specification<Transaction> hasType(List<OperationTypeEnum> types) {
         return (root, query, criteriaBuilder) -> {
-            Predicate typeIn = root.get("type").in(types);
-            if (types.contains(OperationTypes.TRANSFER_IN) && types.contains(OperationTypes.TRANSFER_OUT))
+            Predicate typeIn = root.get("operationType").in(types);
+            if (types.contains(OperationTypeEnum.TRANSFER_IN) && types.contains(OperationTypeEnum.TRANSFER_OUT))
                 return typeIn;
 
             return criteriaBuilder.and(

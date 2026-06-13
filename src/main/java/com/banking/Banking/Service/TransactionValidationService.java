@@ -1,14 +1,12 @@
 package com.banking.Banking.Service;
 
-import com.banking.Banking.Dto.TransactionDtoRequest;
+import com.banking.Banking.Dto.DepositDtoRequest;
+import com.banking.Banking.Dto.TransferDtoRequest;
+import com.banking.Banking.Dto.WithdrawalDtoRequest;
 import com.banking.Banking.Entity.Card;
-import com.banking.Banking.Entity.Client;
-import com.banking.Banking.Entity.OperationTypes;
 import com.banking.Banking.validation.CustomException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -25,24 +23,20 @@ public class TransactionValidationService {
     private VerifyIdentityService identityService;
 
     private void amountValidation(BigDecimal senderBalance, BigDecimal amount, HashMap<String, String> errors) {
-        if (amount.compareTo(BigDecimal.ZERO) <= 0)
-            errors.put("amount", "Некорректная сумма перевода");
         if (senderBalance.compareTo(amount) < 0)
             errors.put("amount", "На карте отправителя недостаточно средств");
         if (amount.compareTo(new BigDecimal("1000000")) > 0 || amount.compareTo(BigDecimal.TEN) < 0)
             errors.put("amount", "Разовый перевод должен быть от 10₽ до 1 000 000₽ включительно");
     }
 
-    private boolean clientSenderValidation(Card senderCard, HashMap<String, String> errors) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        Client client = clientService.findByLoginOrThrow(auth.getName());
-        if (senderCard == null) {
+    private void clientSenderValidation(Long currentClientId, Card senderCard, HashMap<String, String> errors) {
+        clientService.findByIdOrThrow(currentClientId);
+        if (senderCard == null || cardService.findById(senderCard.getId()) == null) {
             errors.put("sender", "Карта отправителя не найдена");
-            return false;
+            return;
         }
-        if (!Objects.equals(senderCard.getClient().getId(), client.getId()))
+        if (!Objects.equals(senderCard.getClient().getId(), currentClientId))
             throw new AccessDeniedException("Доступ к карте запрещён");
-        return true;
     }
 
     private boolean receiverValidation(String receiverIdentifier, HashMap<String, String> errors) {
@@ -54,42 +48,36 @@ public class TransactionValidationService {
         return true;
     }
 
-    public HashMap<String, String> transferValidation(TransactionDtoRequest transactionDto) {
+    public void transferValidation(Long currentClientId, TransferDtoRequest transactionDto) {
         HashMap<String, String> errors = new HashMap<>();
         Card senderCard = cardService.findByIdOrThrow(transactionDto.getClientCardId(), "sender");
 
-        clientSenderValidation(senderCard, errors);
+        clientSenderValidation(currentClientId, senderCard, errors);
         amountValidation(senderCard.getBalance(), transactionDto.getAmount(), errors);
-        if (!receiverValidation(transactionDto.getReceiverIdentifier(), errors))
-            return errors;
-        Card receiverCard = cardService.findByCardIdentifier(transactionDto.getReceiverIdentifier());
+        if (!receiverValidation(transactionDto.getCounterpartyCardIdentifier(), errors))
+            throw new CustomException("VALIDATION EXCEPTION", errors);
+        Card receiverCard = cardService.findByCardIdentifier(transactionDto.getCounterpartyCardIdentifier());
         if (senderCard.getId().equals(receiverCard.getId()))
             errors.put("receiver", "Карта получателя совпадает с картой отправителя");
-        return errors;
+        if (!errors.isEmpty())
+            throw new CustomException("VALIDATION EXCEPTION", errors);
     }
-    public HashMap<String, String> withdrawalValidation(TransactionDtoRequest transactionDto) {
+
+    public void withdrawalValidation(Long currentClientId, WithdrawalDtoRequest transactionDto) {
         HashMap<String, String> errors = new HashMap<>();
         Card senderCard = cardService.findByIdOrThrow(transactionDto.getClientCardId(), "sender");
 
-        clientSenderValidation(senderCard, errors);
+        clientSenderValidation(currentClientId, senderCard, errors);
         amountValidation(senderCard.getBalance(), transactionDto.getAmount(), errors);
-        return errors;
+        if (!errors.isEmpty())
+            throw new CustomException("VALIDATION EXCEPTION", errors);
     }
 
-    public HashMap<String, String> depositValidation(TransactionDtoRequest transactionDto) {
+    public void depositValidation(DepositDtoRequest transactionDto) {
         HashMap<String, String> errors = new HashMap<>();
 
-        receiverValidation(transactionDto.getReceiverIdentifier(), errors);
-        return errors;
-    }
-
-    public void validateOperation(OperationTypes type, TransactionDtoRequest dtoRequest) {
-        var transactionError = switch (type) {
-            case OperationTypes.TRANSFER_OUT, OperationTypes.TRANSFER_IN -> transferValidation(dtoRequest);
-            case OperationTypes.WITHDRAWAL -> withdrawalValidation(dtoRequest);
-            case OperationTypes.DEPOSIT -> depositValidation(dtoRequest);
-        };
-        if (!transactionError.isEmpty())
-            throw new CustomException("VALIDATION EXCEPTION", transactionError);
+        receiverValidation(transactionDto.getCounterpartyIdentifier(), errors);
+        if (!errors.isEmpty())
+            throw new CustomException("VALIDATION EXCEPTION", errors);
     }
 }

@@ -31,25 +31,15 @@ public class ClientService implements UserDetailsService {
     private PasswordEncoder passwordEncoder;
     private EncodeService encodeService;
     private VerifyIdentityService attemptsCount;
+    private PhoneService phoneService;
 
-    public ClientService(ClientRepository repository,PasswordEncoder passwordEncoder, EncodeService encodeService, VerifyIdentityService attemptsCount) {
+    public ClientService(ClientRepository repository,PasswordEncoder passwordEncoder, EncodeService encodeService,
+                         VerifyIdentityService attemptsCount, PhoneService phoneService) {
         this.repository = repository;
         this.passwordEncoder = passwordEncoder;
         this.encodeService = encodeService;
         this.attemptsCount = attemptsCount;
-    }
-
-    public String normalizePhone(String phone) {
-        if (phone == null || phone.isBlank())
-            return null;
-
-        String phoneDigits = phone.replaceAll("[^\\d]", "");
-        if (phoneDigits.length() == 11 && phoneDigits.startsWith("7"))
-            phoneDigits = "8" + phoneDigits.substring(1);
-        if (phoneDigits.length() == 10)
-            return "8" + phoneDigits;
-
-        return phoneDigits;
+        this.phoneService = phoneService;
     }
 
     public boolean createClient(ClientDtoRequest dto) {
@@ -62,7 +52,7 @@ public class ClientService implements UserDetailsService {
                 .name(dto.getName())
                 .surname(dto.getSurname())
                 .patronymic(dto.getPatronymic())
-                .phone(normalizePhone(dto.getPhone()))
+                .phone(phoneService.normalizePhone(dto.getPhone()))
                 .authority("USER")
                 .login(dto.getLogin())
                 .password(passwordEncoder.encode(dto.getPassword()))
@@ -81,7 +71,7 @@ public class ClientService implements UserDetailsService {
         Map<String, String> errors = new HashMap<>();
         if (dto.getPhone() != null) {
             if (!repository.existsByPhoneAndIdNot(dto.getPhone(), clientId))
-                client.setPhone(normalizePhone(dto.getPhone()));
+                client.setPhone(phoneService.normalizePhone(dto.getPhone()));
             else
                 errors.put("phone", "Пользователь с таким телефоном уже существует");
         }
@@ -99,7 +89,6 @@ public class ClientService implements UserDetailsService {
 
     public Client updateClient(Long clientId, UpdatePasswordDto dto) {
         Client client = findByIdOrThrow(clientId);
-        System.out.println(dto.toString());
         Map<String, String> errors = new HashMap<>();
         if (!passwordEncoder.matches(dto.getOldPassword(), client.getPassword()))
             errors.put("oldPassword", "Неверный текущий пароль");
@@ -108,7 +97,6 @@ public class ClientService implements UserDetailsService {
         if (passwordEncoder.matches(dto.getNewPassword(), client.getPassword()))
             errors.put("newPassword", "Новый пароль совпадает с текущим");
 
-        System.out.println(errors.toString());
         if (!errors.isEmpty())
             throw new CustomException("VALIDATION ERROR", errors);
 
@@ -129,9 +117,8 @@ public class ClientService implements UserDetailsService {
     }
 
     public Client findByPhone(String phone){
-        String formattedPhone = normalizePhone(phone);
-        System.out.println(formattedPhone);
-        return repository.findByPhone(formattedPhone).orElse(null);
+        String normalizedPhone = phoneService.normalizePhone(phone);
+        return repository.findByPhone(normalizedPhone).orElse(null);
     }
 
     public Client findByLogin(String login){

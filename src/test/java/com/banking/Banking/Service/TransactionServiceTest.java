@@ -1,9 +1,8 @@
 package com.banking.Banking.Service;
 
-import com.banking.Banking.Dto.TransactionDtoRequest;
 import com.banking.Banking.Entity.Card;
 import com.banking.Banking.Entity.Client;
-import com.banking.Banking.Entity.OperationTypes;
+import com.banking.Banking.Entity.OperationTypeEnum;
 import com.banking.Banking.Entity.Transaction;
 import com.banking.Banking.Mapper.TransactionMapper;
 import com.banking.Banking.Repository.TransactionRepository;
@@ -103,46 +102,46 @@ public class TransactionServiceTest {
                 .id(1L)
                 .clientCard(senderCard)
                 .timestamp(fixedDate)
-                .type(OperationTypes.TRANSFER_OUT)
+                .operationType(OperationTypeEnum.TRANSFER_OUT)
                 .build();
         transferReceiver = Transaction.builder()
                 .id(2L)
                 .clientCard(receiverCard)
                 .timestamp(fixedDate)
-                .type(OperationTypes.TRANSFER_IN)
+                .operationType(OperationTypeEnum.TRANSFER_IN)
                 .build();
         withdrawalSender = Transaction.builder()
                 .id(3L)
                 .clientCard(senderCard)
                 .timestamp(fixedDate)
-                .type(OperationTypes.WITHDRAWAL)
+                .operationType(OperationTypeEnum.WITHDRAWAL)
                 .build();
         withdrawalReceiver = Transaction.builder()
                 .id(4L)
                 .clientCard(receiverCard)
                 .timestamp(fixedDate)
-                .type(OperationTypes.WITHDRAWAL)
+                .operationType(OperationTypeEnum.WITHDRAWAL)
                 .build();
         depositSender = Transaction.builder()
                 .id(5L)
                 .clientCard(senderCard)
                 .timestamp(fixedDate)
-                .type(OperationTypes.DEPOSIT)
+                .operationType(OperationTypeEnum.DEPOSIT)
                 .build();
         depositReceiver = Transaction.builder()
                 .id(6L)
                 .clientCard(receiverCard)
                 .timestamp(fixedDate)
-                .type(OperationTypes.DEPOSIT)
+                .operationType(OperationTypeEnum.DEPOSIT)
                 .build();
         timestampDepositMinus1 = Transaction.builder()
                 .id(7L)
-                .type(OperationTypes.DEPOSIT)
+                .operationType(OperationTypeEnum.DEPOSIT)
                 .timestamp(fixedDate.minusDays(1))
                 .build();
         timestampDepositMinus2 = Transaction.builder()
                 .id(8L)
-                .type(OperationTypes.DEPOSIT)
+                .operationType(OperationTypeEnum.DEPOSIT)
                 .timestamp(fixedDate.minusDays(2))
                 .build();
         transactions = List.of(transferSender, transferReceiver, depositSender, depositReceiver,
@@ -190,11 +189,11 @@ public class TransactionServiceTest {
         when(transactionRepository.findByCardId(1L)).thenReturn(transactions);
 
         var transferTransactions = transactionService
-                .findTransactions(1L, 1, List.of(OperationTypes.TRANSFER_OUT), null, null, null);
+                .findTransactions(1L, 1, List.of(OperationTypeEnum.TRANSFER_OUT), null, null, null);
         var depositTransactions = transactionService
-                .findTransactions(1L, 1, List.of(OperationTypes.DEPOSIT),null,  null, null);
+                .findTransactions(1L, 1, List.of(OperationTypeEnum.DEPOSIT),null,  null, null);
         var withdrawalTransactions = transactionService
-                .findTransactions(1L, 1, List.of(OperationTypes.WITHDRAWAL), null, null, null);
+                .findTransactions(1L, 1, List.of(OperationTypeEnum.WITHDRAWAL), null, null, null);
 
         assertThat(transferTransactions.getContent()).contains(transferSender, transferReceiver);
         assertThat(depositTransactions).contains(depositSender, depositReceiver, timestampDepositMinus1, timestampDepositMinus2);
@@ -234,10 +233,10 @@ public class TransactionServiceTest {
         when(transactionRepository.save(any(Transaction.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        Transaction transfer = transactionService.createTransfer(transferDto);
+        Transaction transfer = transactionService.createTransferToInternalClient(transferDto);
 
         assertThat(transfer).isNotNull();
-        assertThat(transfer.getType()).isEqualTo(OperationTypes.TRANSFER_OUT);
+        assertThat(transfer.getOperationType()).isEqualTo(OperationTypeEnum.TRANSFER_OUT);
         assertThat(senderCard.getBalance()).isEqualByComparingTo(new BigDecimal("900"));
         assertThat(receiverCard.getBalance()).isEqualByComparingTo(new BigDecimal("600"));
 
@@ -253,7 +252,7 @@ public class TransactionServiceTest {
         Transaction transfer = transactionService.createDeposit(depositDto);
 
         assertThat(transfer).isNotNull();
-        assertThat(transfer.getType()).isEqualTo(OperationTypes.DEPOSIT);
+        assertThat(transfer.getOperationType()).isEqualTo(OperationTypeEnum.DEPOSIT);
         assertThat(receiverCard.getBalance()).isEqualByComparingTo(new BigDecimal("600"));
 
         verify(transactionRepository, times(1)).save(any(Transaction.class));
@@ -268,7 +267,7 @@ public class TransactionServiceTest {
         Transaction transfer = transactionService.createWithdrawal(withdrawalDto);
 
         assertThat(transfer).isNotNull();
-        assertThat(transfer.getType()).isEqualTo(OperationTypes.WITHDRAWAL);
+        assertThat(transfer.getOperationType()).isEqualTo(OperationTypeEnum.WITHDRAWAL);
         assertThat(senderCard.getBalance()).isEqualByComparingTo(new BigDecimal("900"));
 
         verify(transactionRepository, times(1)).save(any(Transaction.class));

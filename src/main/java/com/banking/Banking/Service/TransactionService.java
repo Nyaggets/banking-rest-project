@@ -2,16 +2,17 @@ package com.banking.Banking.Service;
 
 import com.banking.Banking.Configuration.QuerySpec;
 import com.banking.Banking.Dto.CardStatsDto;
-import com.banking.Banking.Dto.TransactionDtoRequest;
+import com.banking.Banking.Dto.DepositDtoRequest;
+import com.banking.Banking.Dto.TransferDtoRequest;
+import com.banking.Banking.Dto.WithdrawalDtoRequest;
 import com.banking.Banking.Entity.Card;
-import com.banking.Banking.Entity.OperationTypes;
+import com.banking.Banking.Entity.CounterpartyTypeEnum;
+import com.banking.Banking.Entity.OperationTypeEnum;
 import com.banking.Banking.Entity.Transaction;
-import com.banking.Banking.Mapper.TransactionMapper;
 import com.banking.Banking.Repository.TransactionRepository;
 import com.banking.Banking.validation.CustomNotFoundException;
 import jakarta.annotation.Nullable;
 import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
@@ -29,17 +30,21 @@ import java.util.*;
 @Service
 @Transactional
 public class TransactionService {
-    @Autowired
     private TransactionRepository repository;
-    @Autowired
     private CardService cardService;
-    @Autowired
     private ClientService clientService;
-    @Autowired
     private TransactionValidationService validationService;
-    @Autowired
-    private TransactionMapper mapper;
+    private PhoneService phoneService;
     private final int PAGE_SIZE = 5;
+
+    public TransactionService(TransactionRepository repository, CardService cardService, ClientService clientService,
+                              TransactionValidationService validationService, PhoneService phoneService) {
+        this.repository = repository;
+        this.cardService = cardService;
+        this.clientService = clientService;
+        this.validationService = validationService;
+        this.phoneService = phoneService;
+    }
 
     public BigDecimal calculateCommission(BigDecimal amount) {
         return amount.compareTo(new BigDecimal("100000")) < 0
@@ -47,23 +52,22 @@ public class TransactionService {
                 : amount.multiply(new BigDecimal("0.05"));
     }
 
-    public Transaction createTransfer(TransactionDtoRequest transactionDto) {
-        validationService.validateOperation(OperationTypes.TRANSFER_OUT, transactionDto);
+    public Transaction createTransferToInternalClient(Long currentClientId, TransferDtoRequest transactionDto) {
+        validationService.transferValidation(currentClientId, transactionDto);
 
         UUID uuid = UUID.randomUUID();
         Card senderCard = cardService.findById(transactionDto.getClientCardId());
-        Card receiverCard = cardService.findByCardIdentifier(transactionDto.getReceiverIdentifier());
-        System.out.println(senderCard.getClient().toString());
-        System.out.println(receiverCard.getClient().toString());
+        Card receiverCard = cardService.findByCardIdentifier(transactionDto.getCounterpartyCardIdentifier());
         boolean isInternal = senderCard.getClient().getId() == receiverCard.getClient().getId();
         BigDecimal commission = calculateCommission(transactionDto.getAmount());
         Transaction transactionOut = Transaction.builder()
-                .type(OperationTypes.TRANSFER_OUT)
+                .operationType(OperationTypeEnum.TRANSFER_OUT)
                 .isInternal(isInternal)
                 .transferId(uuid)
                 .clientCard(senderCard)
-                .counterPartyName(receiverCard.getClientName())
-                .counterPartyHiddenNumber(receiverCard.getLast4())
+                .counterpartyName(receiverCard.getClientName())
+                .counterpartyIdentifier(receiverCard.getLast4())
+                .counterpartyType(CounterpartyTypeEnum.CLIENT)
                 .amount(transactionDto.getAmount())
                 .commission(commission)
                 .totalAmount(transactionDto.getAmount().add(commission))
@@ -71,12 +75,13 @@ public class TransactionService {
                 .timestamp(LocalDateTime.now())
                 .build();
         Transaction transactionIn = Transaction.builder()
-                .type(OperationTypes.TRANSFER_IN)
+                .operationType(OperationTypeEnum.TRANSFER_IN)
+                .counterpartyType(CounterpartyTypeEnum.CLIENT)
                 .isInternal(isInternal)
                 .transferId(uuid)
                 .clientCard(receiverCard)
-                .counterPartyName(senderCard.getClientName())
-                .counterPartyHiddenNumber(senderCard.getLast4())
+                .counterpartyName(senderCard.getClientName())
+                .counterpartyIdentifier(senderCard.getLast4())
                 .amount(transactionDto.getAmount())
                 .totalAmount(transactionDto.getAmount())
                 .description(transactionDto.getDescription())
@@ -89,20 +94,51 @@ public class TransactionService {
         return repository.save(transactionOut);
     }
 
-    public Transaction createWithdrawal(TransactionDtoRequest transactionDto) {
-        validationService.validateOperation(OperationTypes.WITHDRAWAL, transactionDto);
+    public Transaction createDeposit(DepositDtoRequest transactionDto, CounterpartyTypeEnum counterpartyType) {
+        validationService.depositValidation(transactionDto);
 
-        Card senderCard = cardService.findById(transactionDto.getClientCardId());
-        BigDecimal commission = calculateCommission(transactionDto.getAmount());
+        Card receiverCard = cardService.findByCardIdentifier(transactionDto.getCounterpartyIdentifier());
         Transaction transaction = Transaction.builder()
-                .type(OperationTypes.WITHDRAWAL)
+                .operationType(OperationTypeEnum.DEPOSIT)
+                .isInternal(false)
+                .clientCard(receiverCard)
+                .counterpartyName(transactionDto.getCounterpartyIdentifier())
+                .counterpartyType(counterpartyType)
+                .amount(transactionDto.getAmount())
+                .totalAmount(transactionDto.getAmount())
+                .timestamp(LocalDateTime.now())
+                .build();
+        BigDecimal senderBalance = receiverCard.getBalance();
+        receiverCard.setBalance(senderBalance.add(transaction.getTotalAmount()));
+        return repository.save(transaction);
+    }
+
+    public Transaction createWithdrawal(Long currentClientId, WithdrawalDtoRequest dtoRequest,
+                                        CounterpartyTypeEnum counterpartyType) {
+        validationService.withdrawalValidation(currentClientId, dtoRequest);
+
+        String counterpartyName;
+        String counterpartyIdentifier;
+        if (counterpartyType == CounterpartyTypeEnum.MERCHANT) {
+            counterpartyName = dtoRequest.getCounterpartyName() != null ? dtoRequest.getCounterpartyName() : "Оплата услуги";
+            counterpartyIdentifier = dtoRequest.getCounterpartyIdentifier();
+        } else {
+            counterpartyName = dtoRequest.getCounterpartyName() != null ? dtoRequest.getCounterpartyName() : "Покупка";
+            counterpartyIdentifier = null;
+        }
+
+        Card senderCard = cardService.findById(dtoRequest.getClientCardId());
+        BigDecimal commission = calculateCommission(dtoRequest.getAmount());
+        Transaction transaction = Transaction.builder()
+                .operationType(OperationTypeEnum.WITHDRAWAL)
                 .isInternal(false)
                 .clientCard(senderCard)
-                .counterPartyName(transactionDto.getCounterParty())
-                .amount(transactionDto.getAmount())
+                .counterpartyName(counterpartyName)
+                .counterpartyIdentifier(counterpartyIdentifier)
+                .counterpartyType(counterpartyType)
+                .amount(dtoRequest.getAmount())
                 .commission(commission)
-                .totalAmount(transactionDto.getAmount().add(commission))
-                .description(transactionDto.getDescription())
+                .totalAmount(dtoRequest.getAmount().add(commission))
                 .timestamp(LocalDateTime.now())
                 .build();
         BigDecimal cardBalance = senderCard.getBalance();
@@ -110,23 +146,15 @@ public class TransactionService {
         return repository.save(transaction);
     }
 
-    public Transaction createDeposit(TransactionDtoRequest transactionDto) {
-        validationService.validateOperation(OperationTypes.DEPOSIT, transactionDto);
-
-        Card receiverCard = cardService.findByCardIdentifier(transactionDto.getReceiverIdentifier());
-        Transaction transaction = Transaction.builder()
-                .type(OperationTypes.DEPOSIT)
-                .isInternal(false)
-                .clientCard(receiverCard)
-                .counterPartyName(transactionDto.getCounterParty())
-                .amount(transactionDto.getAmount())
-                .totalAmount(transactionDto.getAmount())
-                .description(transactionDto.getDescription())
-                .timestamp(LocalDateTime.now())
+    public Transaction createBalanceTopUp(Long currentClientId, WithdrawalDtoRequest withdrawalDto) {
+        var receiverOperator = phoneService.getOperatorOrThrow(withdrawalDto.getCounterpartyIdentifier());
+        WithdrawalDtoRequest topUpDto = WithdrawalDtoRequest.builder()
+                .clientCardId(withdrawalDto.getClientCardId())
+                .amount(withdrawalDto.getAmount())
+                .counterpartyIdentifier(withdrawalDto.getCounterpartyIdentifier())
+                .counterpartyName(receiverOperator.getOperatorName())
                 .build();
-        BigDecimal senderBalance = receiverCard.getBalance();
-        receiverCard.setBalance(senderBalance.add(transaction.getTotalAmount()));
-        return repository.save(transaction);
+        return createWithdrawal(currentClientId, topUpDto, CounterpartyTypeEnum.MERCHANT);
     }
 
     public List<Transaction> findByCardId(Long cardId) {
@@ -153,40 +181,39 @@ public class TransactionService {
         return repository.findAll(spec, pageable);
     }
 
-    public Page<Transaction> findTransactions(Long clientId, int pageNum, @Nullable List<OperationTypes> types,
+    public Page<Transaction> findTransactions(Long clientId, int pageNum, @Nullable List<OperationTypeEnum> types,
                   @Nullable Long cardId, @Nullable String start, @Nullable String end) throws AccessDeniedException {
         clientService.findByIdOrThrow(clientId);
         if (cardId != null && !cardService.belongsToClient(clientId, cardId))
             throw new AccessDeniedException("Доступ к карте запрещен");
 
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-        String field = "start";
-        LocalDateTime startDate;
-        LocalDateTime endDate;
-        try {
-            startDate = start != null ? LocalDate.parse(start, formatter).atStartOfDay() : null;
-            field = "end";
-            endDate = end != null ? LocalDate.parse(end, formatter).atTime(LocalTime.MAX) : null;
-        }
-        catch (DateTimeParseException ex) {
-            throw new RuntimeException("Некорректное значение параметра '%s'".formatted(field));
-        }
-
         List<Long> cards = cardService.findByClientId(clientId).stream()
                 .map(Card::getId)
                 .toList();
         Pageable pageable = PageRequest.of(pageNum, PAGE_SIZE, Sort.by(Sort.Direction.DESC, "timestamp"));
-        Specification<Transaction> spec = Specification.unrestricted();
+        Specification<Transaction> spec = Specification.allOf(QuerySpec.removeTransferDuplicates());
         if (!cards.isEmpty())
             spec = spec.and(QuerySpec.belongsInCards(cards));
-        if (types != null)
-            spec = spec.and(QuerySpec.hasType(types));
-        else
-            spec = spec.and(QuerySpec.removeTransferDuplicates());
         if (cardId != null)
             spec = spec.and(QuerySpec.belongsToCard(cardId));
-        if (start != null && end != null)
-            spec = spec.and(QuerySpec.timestampBetween(startDate, endDate));
+        if (types != null)
+            spec = spec.and(QuerySpec.hasType(types));
+        if (start != null && end != null) {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+            String errorField = "";
+            try {
+                errorField = "start";
+                LocalDateTime startDate = LocalDate.parse(start, formatter).atStartOfDay();
+                errorField = "end";
+                LocalDateTime endDate = LocalDate.parse(end, formatter).atTime(LocalTime.MAX);
+
+                spec = spec.and(QuerySpec.timestampBetween(startDate, endDate));
+            }
+            catch (DateTimeParseException ex) {
+                throw new RuntimeException("Некорректное значение параметра '%s'".formatted(errorField));
+            }
+        }
+        repository.findAll(spec, pageable).forEach(t -> System.out.println(t.getCounterpartyName()));
         return repository.findAll(spec, pageable);
     }
 
@@ -194,6 +221,7 @@ public class TransactionService {
         clientService.findByIdOrThrow(clientId);
         if (!cardService.belongsToClient(clientId, cardId))
             throw new AccessDeniedException("Доступ к карте запрещен");
+
         LocalDate start = LocalDate.of(LocalDate.now().getYear(), LocalDate.now().getMonthValue(), 1);
         LocalDate end = start.plusMonths(1);
         var transactions = repository.findAll().stream()
@@ -202,17 +230,14 @@ public class TransactionService {
                                         tr.getTimestamp().isBefore(end.atTime(LocalTime.MAX)) &&
                                         !tr.getIsInternal())
                 .toList();
+
         CardStatsDto stats = new CardStatsDto(BigDecimal.ZERO, BigDecimal.ZERO);
         transactions.forEach(tr -> {
-            if (tr.getType().equals(OperationTypes.TRANSFER_IN) || tr.getType().equals(OperationTypes.DEPOSIT))
+            if (tr.getOperationType().equals(OperationTypeEnum.TRANSFER_IN) || tr.getOperationType().equals(OperationTypeEnum.DEPOSIT))
                 stats.setIncome(stats.getIncome().add(tr.getTotalAmount()));
-            else if (tr.getType().equals(OperationTypes.TRANSFER_OUT) || tr.getType().equals(OperationTypes.WITHDRAWAL))
+            else if (tr.getOperationType().equals(OperationTypeEnum.TRANSFER_OUT) || tr.getOperationType().equals(OperationTypeEnum.WITHDRAWAL))
                 stats.setOutcome(stats.getOutcome().add(tr.getTotalAmount()));
         });
         return stats;
-    }
-
-    public Transaction balanceDeposit(TransactionDtoRequest withdrawalDto) {
-
     }
 }

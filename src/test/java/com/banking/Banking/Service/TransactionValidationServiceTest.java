@@ -1,9 +1,8 @@
 package com.banking.Banking.Service;
 
-import com.banking.Banking.Dto.TransactionDtoRequest;
 import com.banking.Banking.Entity.Card;
 import com.banking.Banking.Entity.Client;
-import com.banking.Banking.Entity.OperationTypes;
+import com.banking.Banking.Entity.OperationTypeEnum;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -93,7 +92,7 @@ public class TransactionValidationServiceTest {
         when(cardService.findByIdOrThrow(senderCard.getId(), "sender")).thenReturn(senderCard);
         when(cardService.findByCardIdentifier(RECEIVER_LAST4)).thenReturn(receiverCard);
 
-        assertDoesNotThrow(() -> validationService.validateOperation(OperationTypes.TRANSFER_OUT, transferDto));
+        assertDoesNotThrow(() -> validationService.validateOperation(OperationTypeEnum.TRANSFER_OUT, transferDto));
     }
 
     @Test
@@ -102,7 +101,7 @@ public class TransactionValidationServiceTest {
         when(clientService.findByLogin(CLIENT_LOGIN)).thenReturn(null);
 
         assertThrows(BadCredentialsException.class,
-                () -> validationService.validateOperation(OperationTypes.TRANSFER_OUT, transferDto));
+                () -> validationService.validateOperation(OperationTypeEnum.TRANSFER_OUT, transferDto));
     }
 
     @Test
@@ -114,7 +113,7 @@ public class TransactionValidationServiceTest {
         when(cardService.findByCardIdentifier(RECEIVER_LAST4)).thenReturn(senderCard);
 
         var errors = assertThrows(MultipleValidationException.class,
-                () -> validationService.validateOperation(OperationTypes.TRANSFER_OUT, transferDto));
+                () -> validationService.validateOperation(OperationTypeEnum.TRANSFER_OUT, transferDto));
         assertTrue(errors.getErrors().containsKey("receiver"));
         assertTrue(errors.getErrors().containsKey("amount"));
     }
@@ -123,7 +122,7 @@ public class TransactionValidationServiceTest {
     void depositValidation_Success() {
         when(cardService.findByCardIdentifier(RECEIVER_LAST4)).thenReturn(receiverCard);
 
-        assertDoesNotThrow(() -> validationService.validateOperation(OperationTypes.DEPOSIT, depositDto));
+        assertDoesNotThrow(() -> validationService.validateOperation(OperationTypeEnum.DEPOSIT, depositDto));
     }
 
     @Test
@@ -131,7 +130,7 @@ public class TransactionValidationServiceTest {
         when(cardService.findByCardIdentifier(RECEIVER_LAST4)).thenReturn(null);
 
         var errors = assertThrows(MultipleValidationException.class,
-                () -> validationService.validateOperation(OperationTypes.DEPOSIT, depositDto));
+                () -> validationService.validateOperation(OperationTypeEnum.DEPOSIT, depositDto));
         assertTrue(errors.getErrors().containsKey("receiver"));
     }
 
@@ -141,7 +140,7 @@ public class TransactionValidationServiceTest {
         when(clientService.findByLogin(CLIENT_LOGIN)).thenReturn(senderClient);
         when(cardService.findByIdOrThrow(senderCard.getId(), "sender")).thenReturn(senderCard);
 
-        assertDoesNotThrow(() -> validationService.validateOperation(OperationTypes.WITHDRAWAL, withdrawalDto));
+        assertDoesNotThrow(() -> validationService.validateOperation(OperationTypeEnum.WITHDRAWAL, withdrawalDto));
     }
 
     @Test
@@ -152,7 +151,7 @@ public class TransactionValidationServiceTest {
         when(cardService.findByIdOrThrow(senderCard.getId(), "sender")).thenReturn(senderCard);
 
         assertThrows(AccessDeniedException.class,
-                () -> validationService.validateOperation(OperationTypes.WITHDRAWAL, withdrawalDto));
+                () -> validationService.validateOperation(OperationTypeEnum.WITHDRAWAL, withdrawalDto));
     }
 
     @Test
@@ -163,7 +162,7 @@ public class TransactionValidationServiceTest {
         when(cardService.findByIdOrThrow(senderCard.getId(), "sender")).thenReturn(senderCard);
 
         var errors = assertThrows(MultipleValidationException.class,
-                () -> validationService.validateOperation(OperationTypes.WITHDRAWAL, withdrawalDto));
+                () -> validationService.validateOperation(OperationTypeEnum.WITHDRAWAL, withdrawalDto));
         assertTrue(errors.getErrors().containsKey("amount"));
     }
 }
