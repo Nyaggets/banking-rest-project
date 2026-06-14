@@ -80,7 +80,7 @@ public class Client implements UserDetails {
 
     public String getFullName() {
         StringBuilder fullName = new StringBuilder(String.format("%s %s", this.surname, this.name));
-        return this.patronymic == null
+        return this.patronymic != null
                 ? fullName.append(String.format(" %s", this.patronymic)).toString()
                 : fullName.toString();
     }
