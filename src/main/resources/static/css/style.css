@@ -105,7 +105,7 @@ button:hover, .btn-link:hover {
   transform: translateY(-4px);
   transform: scale(1.05);
 }
-.btn-link:hover {
+.btn-link:hover, .btn-link:focus-visible {
   color: var(--color-text);
 }
 input, select {
@@ -568,4 +568,15 @@ section:not(:first-child) {
 }
 #history-btn {
   width: fit-content;
+}
+.operaton-icon {
+  border: 3px solid currentColor;
+  border-radius: 50%;
+  padding: 5px;
+}
+.fa-money-bill-transfer {
+  padding: 6px 4px;
+}
+.fa-building, .fa-receipt {
+  padding: 5px 9px;
 }

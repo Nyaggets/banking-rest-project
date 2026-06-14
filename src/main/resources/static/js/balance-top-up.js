@@ -1,5 +1,5 @@
-import { API_BASE, URL_BASE, cards, client, processResponse, showClientLogin } from '/js/utils/sharedData.js'
-import { formatCardOption, formatPhoneOrCard, formatAmount, showSpinner, showToast } from '/js/utils/sharedFunctions.js'
+import { API_BASE, URL_BASE, cards, client, showClientLogin } from '/js/utils/sharedData.js'
+import { formatCardOption, formatPhoneOrCard, formatAmount, showSpinner, showToast, getData, processResponse } from '/js/utils/sharedFunctions.js'
 
 showSpinner()
 showClientLogin()
@@ -56,4 +56,5 @@ document.getElementById('phone-form').addEventListener('submit', async (e) => {
     }
     else 
         processResponse(response)    
+    transferBtn.blur()
 })

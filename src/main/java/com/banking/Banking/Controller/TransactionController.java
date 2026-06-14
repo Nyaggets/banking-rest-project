@@ -34,11 +34,11 @@ public class TransactionController {
     @Autowired
     private TransactionMapper mapper;
 
-    @PostMapping("/{cardId}/transactions/commission")
-    public ResponseEntity<?> calculateCommission(@RequestParam String amount) {
+    @PostMapping("/{cardId}/transactions/transfer/commission")
+    public ResponseEntity<?> calculateTransferCommission(@RequestParam String amount) {
         if (amount.isEmpty())
             return ResponseEntity.ok(BigDecimal.ZERO);
-        var commissionAmount = transactionService.calculateCommission(new BigDecimal(amount));
+        var commissionAmount = transactionService.calculateCommission(new BigDecimal(amount), OperationTypeEnum.TRANSFER_OUT);
         return ResponseEntity.ok(Map.of("commission", commissionAmount));
     }
 
@@ -55,20 +55,6 @@ public class TransactionController {
         Transaction deposit = transactionService.createDeposit(depositDto, CounterpartyTypeEnum.EMPLOYER);
         return new ResponseEntity<>(Map.of("operationId", deposit.getId()), HttpStatus.CREATED);
     }
-
-//    @PostMapping("/{cardId}/transactions/deposit")
-//    public ResponseEntity<?> createDeposit(@Valid @RequestBody DepositDtoRequest depositDto) {
-//        Transaction deposit = transactionService.createDeposit(depositDto);
-//        return new ResponseEntity<>(Map.of("operationId", deposit.getId()), HttpStatus.CREATED);
-//    }
-
-//    @PostMapping("/{cardId}/transactions/withdrawal")
-//    public ResponseEntity<?> createWithdrawal(@Valid @RequestBody WithdrawalDtoRequest withdrawalDto, Authentication auth) {
-//        SessionUser client = (SessionUser) auth.getPrincipal();
-//
-//        Transaction withdrawal = transactionService.createWithdrawal(client.getId(), withdrawalDto);
-//        return new ResponseEntity<>(Map.of("operationId", withdrawal.getId()), HttpStatus.CREATED);
-//    }
 
     @PostMapping("/{cardId}/transactions/balance-top-up")
     public ResponseEntity<?> createBalanceTopUp(@Valid @RequestBody WithdrawalDtoRequest withdrawalDto, Authentication auth) {

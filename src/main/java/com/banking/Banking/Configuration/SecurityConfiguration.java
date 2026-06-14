@@ -2,8 +2,8 @@ package com.banking.Banking.Configuration;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -21,8 +21,7 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration)
-            throws Exception {
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
         return configuration.getAuthenticationManager();
     }
 
@@ -32,18 +31,35 @@ public class SecurityConfiguration {
                 .csrf(csrf -> csrf.disable())
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                    .requestMatchers("/login*", "/logout", "/static/**", "/js/**", "/js/utils/**", "/**/*.js").permitAll()
+                    .requestMatchers("/login*", "/logout", "/static/**", "/js/**", "/js/utils/**", "/session-expired").permitAll()
                     .requestMatchers("/main", "/transfer", "/history", "/profile", "/card", "/transaction", "/balance-deposit").hasAuthority("USER")
                     .anyRequest().authenticated()
                 )
                 .formLogin(login -> login
                     .loginPage("/login")
                     .defaultSuccessUrl("/main", true)
+                    .failureHandler((request, response, exception) -> {
+                        response.setStatus(400);
+                        response.setContentType("application/json;charset=UTF-8");
+                        response.getWriter().write("{\"errors\":{\"login\":\"Неверный логин или пароль\"}}");
+                    })
                     .permitAll()
                 )
                  .logout(logout -> logout
                     .logoutSuccessUrl("/login?logout")
                     .permitAll()
+                )
+                .exceptionHandling(ex -> ex
+                    .authenticationEntryPoint((request, response, authException) -> {
+                        String uri = request.getRequestURI();
+                        if (uri.startsWith("/api")) {
+                            response.setStatus(401);
+                            response.setContentType("application/json;charset=UTF-8");
+                            response.getWriter().write("{\"errors\":{\"message\":\"Сессия истекла.\"}}");
+                        } else {
+                            response.sendRedirect("/session-expired");
+                        }
+                    })
                 );
         return http.build();
     }

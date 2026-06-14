@@ -10,14 +10,25 @@ const formatDate = (date) => {
 }
 
 const formatAmount = (amount) => {
-    if (amount == null || amount == undefined)
+    if (amount == null || amount === '') 
         return ''
-    amount = amount.toString()
-    const amountDigits = amount.replace(/[^\d.,]/g, '').replace(/\./g, ',')
-    const parts = amountDigits.split(',')
-    const mainPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
-    const decimalLmited = parts[1] ? parts[1].slice(0, 2) : ''
-    return decimalLmited ? `${mainPart},${decimalLmited}` : mainPart
+
+    const cleaned = amount.toString().replace(/[^\d.,]/g, '').replace(/\./g, ',')
+    const separatorIndex = cleaned.indexOf(',')
+    let mainPart = separatorIndex !== -1 
+        ? cleaned.substring(0, separatorIndex) 
+        : cleaned
+    let decimalPart = separatorIndex !== -1 
+        ? cleaned.substring(separatorIndex + 1).replace(/[^\d]/g, '') 
+        : ''
+    
+    if (mainPart.length > 1 && !(mainPart === '0' && decimalPart)) 
+        mainPart = mainPart.replace(/^0+/, '') || '0'
+    
+    const formatted = mainPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+    const result = decimalPart ? `${formatted},${decimalPart}` : formatted
+    
+    return cleaned.endsWith(',') ? result + ',' : result
 }
 
 const formatPhoneOrCard = (value) => {
@@ -41,6 +52,13 @@ const formatPhoneOrCard = (value) => {
         formatted += ' ' + valueDigits.substring(9, 11)
 
     return formatted
+}
+
+const createNewElement = (elTag, elClasses, elInnerHTML) => {
+    const element = document.createElement(elTag.toLowerCase())
+    element.className = elClasses
+    element.innerHTML = elInnerHTML ?? ''
+    return element
 }
 
 const formatCardOption = (card) => `${card.hiddenNumber} — ${formatAmount(card.balance)}₽`
@@ -70,4 +88,62 @@ const showToast = (title, description) => {
     toastInstance.show()
 }
 
-export { formatDate, formatAmount, formatCardOption, formatPhoneOrCard, showSpinner, showToast }
+const processResponse = async (response) => {
+    const errorData = await response.json()
+    const { code, errors = {}, expiresAt } = errorData
+    switch (response.status) {
+        case 500:
+            showToast('Ошибка сервера', 'Запрос не может быть выполнен. Попробуйте позже')
+            break
+
+        case 401:
+            sessionStorage.clear()
+            showToast('Сессия завершена', 'Время сессии истекло, повторите вход')
+            setTimeout(() => window.location.assign('/session-expired'), 1500)
+            break
+
+        case 429: {
+            const field = Object.keys(errors)[0]
+            const message = Object.values(errors)[0] || 'Лимит попыток исчерпан.'
+            const errorElement = document.querySelector(`[error-for="${field}"]`)
+            if (errorElement && expiresAt) {
+                errorElement.hidden = false
+                const expireTime = new Date(expiresAt).toLocaleTimeString([], { timeStyle: 'short' })
+                errorElement.innerText = `${message} Повторите ещё раз после ${expireTime}`
+            } else
+                showToast('Ошибка сервера', 'Лимит попыток превышен. Попробуйте позже')
+            break
+        }
+
+        case 400:
+        case 404:
+        case 403:
+            document.querySelectorAll('.error-msg').forEach(elem => {
+                elem.hidden = true
+                elem.innerText = ''
+            })
+            Object.entries(errors).forEach(([field, message]) => {
+                const errorElement = document.querySelector(`[error-for="${field}"]`)
+                if (errorElement) {
+                    errorElement.hidden = false
+                    errorElement.innerText = message
+                } else
+                    showToast('Ошибка', message)
+            })
+            break
+    }
+}
+
+const getData = async (url) => {
+    const response = await fetch(url)
+    if (response.ok)
+        return response.json()
+    else
+        processResponse(response)
+}
+
+const checkAuthorization = (response) => {
+    if 
+}
+
+export { formatDate, formatAmount, formatCardOption, formatPhoneOrCard, showSpinner, showToast, createNewElement, processResponse, getData }

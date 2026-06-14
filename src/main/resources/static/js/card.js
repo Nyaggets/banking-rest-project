@@ -1,5 +1,5 @@
-import { URL_BASE, API_BASE, client, cards, getData, totalPages, showHistory, processResponse, showClientLogin } from '/js/utils/sharedData.js'
-import { formatDate, formatAmount, showSpinner } from '/js/utils/sharedFunctions.js'
+import { URL_BASE, API_BASE, showHistory, showClientLogin } from '/js/utils/sharedData.js'
+import { formatAmount, showSpinner, createNewElement, getData, processResponse } from '/js/utils/sharedFunctions.js'
 
 showSpinner()
 showClientLogin()
@@ -7,11 +7,19 @@ const url = new URLSearchParams(window.location.search)
 const cardId = url.get('id')
 
 const card = await getData(`${API_BASE}/cards/${cardId}`)
-document.getElementById('card-container').innerHTML += `<h3 id='card-number'>${card.hiddenNumber}</h3>
-    <h3 id='cvv'>***</h3>
-    <h2>${formatAmount(card.balance)}₽</h2>
-    <h3>${new Date(card.expiredDate).toLocaleDateString()}</h3>
-    <button type="button" class="secondary-btn" data-bs-toggle="modal" data-bs-target="#confirm-modal">Показать</button>`
+const cardContainer = document.getElementById('card-container')
+const cardNumberEl = createNewElement('h3', '', card.hiddenNumber)
+cardNumberEl.id = 'card-number'
+const cvvEl = createNewElement('h3', '', '***')
+cvvEl.id = 'cvv'
+const balanceEl = createNewElement('h2', '', `${formatAmount(card.balance)}₽`)
+const expiredDateEl = createNewElement('h3', '', new Date(card.expiredDate).toLocaleDateString())
+const showBtn = createNewElement('button', 'secondary-btn', 'Показать')
+showBtn.type = 'button'
+showBtn.dataset.bsToggle = 'modal'
+showBtn.dataset.bsTarget = '#confirm-modal'
+
+cardContainer.append(cardNumberEl, cvvEl, balanceEl, expiredDateEl, showBtn)
 document.querySelectorAll('.transfer-btn').forEach(btn => {
     btn.href = `${URL_BASE}/transfer?type=EXTERNAL&from=${cardId}`
 })
@@ -34,17 +42,11 @@ const { content: cardHistory } = cardHistoryPage
 if (!cardHistory || cardHistory.length == 0) {
     const errorMsgEl = document.getElementById('history-msg')
     errorMsgEl.hidden = false
-    const title = document.createElement('h3')
-    title.innerText = "История операций пуста"
-    const subtitle = document.createElement('p')
-    subtitle.innerText = 'Совершите новый перевод сейчас'
-    subtitle.classList.add('caption')
-
-    const btn = document.createElement('a')
+    const title = createNewElement('h3', '', 'История операций пуста')
+    const subtitle = createNewElement('p', 'caption', 'Совершите новый перевод сейчас')
+    const btn = createNewElement('a', 'main-btn btn-link mt-4', 'Новый перевод')
     btn.role = 'button'
-    btn.classList.add('main-btn btn-link', 'mt-4')
     btn.id = 'clear-filters-btn'
-    btn.innerText = 'Новый перевод'
     btn.href = `${URL_BASE}/transfer?type=EXTERNAL&from=${cardId}`
 
     errorMsgEl.appendChild(title)

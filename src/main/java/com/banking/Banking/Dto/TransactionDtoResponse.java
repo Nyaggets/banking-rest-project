@@ -12,17 +12,17 @@ public class TransactionDtoResponse {
     Long id;
     String direction;
     OperationTypeEnum operationType;
-    CounterpartyTypeEnum counterpartyType;
+    String isInternal;
     BigDecimal amount;
     BigDecimal commission;
     BigDecimal totalAmount;
     LocalDateTime timestamp;
     String description;
-    String isInternal;
 
     Long clientCardId;
     String clientHiddenNumber;
 
     String counterpartyName;
     String counterpartyIdentifier;
+    CounterpartyTypeEnum counterpartyType;
 }

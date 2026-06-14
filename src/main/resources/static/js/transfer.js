@@ -1,5 +1,5 @@
-import { URL_BASE, API_BASE, cards, client, getData, processResponse, showClientLogin } from '/js/utils/sharedData.js'
-import { formatAmount, showToast, formatPhoneOrCard, formatCardOption, showSpinner } from '/js/utils/sharedFunctions.js'
+import { URL_BASE, API_BASE, cards, showClientLogin } from '/js/utils/sharedData.js'
+import { formatAmount, showToast, formatPhoneOrCard, formatCardOption, showSpinner, getData, processResponse } from '/js/utils/sharedFunctions.js'
 const DESCRIPTION_MAX = 50
 
 showSpinner()
@@ -93,42 +93,44 @@ descriptionInput.addEventListener('input', () => {
 
 //расчет комиссии
 const transferBtn = document.getElementById('transfer-btn')
+const commissionEl = document.getElementById('commission-amount')
 const calcCommission = async (amountInputEl) => {
-    const cleanedAmount = amountInputEl.value.replace(' ', '').replace('.', ',')
-    const commissionEl = document.getElementById('commission-amount')
-    const response = await fetch(`${API_BASE}/cards/${senderSelect.value}/transactions/commission?amount=${cleanedAmount}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json;charset=utf-8'
-        },
-    })
-    amountInputEl.value = formatAmount(cleanedAmount)
-    if (response.ok) {
-        const commission = await response.text()
-        const commissionFormatted = formatAmount(commission)
-        commissionEl.innerText = `Комиссия: ${commissionFormatted}₽`
-        const totalAmount = parseFloat(cleanedAmount) + parseFloat(commission)
-        const totalAmountFormatted = formatAmount(totalAmount)
-        transferBtn.innerText = `Перевести ${totalAmountFormatted} ${totalAmountFormatted ? '₽' : ''}`
+    const rawValue = amountInputEl.value.replace(/[^\d.]/g, '').replace(',', '.')
+    const numericValue = parseFloat(rawValue) || 0    
+    amountInputEl.value = formatAmount(amountInputEl.value)
+    
+    if (numericValue < 100000) {
+        commissionEl.innerText = ''
+        transferBtn.innerText = `Перевести ${amountInputEl.value} ₽`
+        return
     }
+    
+    const response = await fetch(`${API_BASE}/cards/${senderSelect.value}/transactions/transfer/commission?amount=${rawValue}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json;charset=utf-8' },
+    })
+    
+    if (response.ok) {
+        const { commission } = await response.json()
+        const commissionFormatted = formatAmount(commission.toString())
+        commissionEl.innerText = `Комиссия: ${commissionFormatted}₽`
+        
+        const totalAmount = numericValue + commission
+        const totalAmountFormatted = formatAmount(totalAmount.toString())
+        transferBtn.innerText = `Перевести ${totalAmountFormatted} ₽`
+    } else 
+        transferBtn.innerText = `Перевести ${amountInputEl.value} ₽`
 }
 
 //форматирование суммы
 const amountInput = document.getElementById('amount')
-amountInput.addEventListener('input', async () => {
-    if (parseFloat(amountInput.value) >= 100000)
-        calcCommission(amountInput)
-    else {
-        const amountFormatted = formatAmount(amountInput.value)
-        amountInput.value = amountFormatted
-        transferBtn.innerText = `Перевести ${amountFormatted} ${amountFormatted ? '₽' : ''}`
-    }
-})
+amountInput.addEventListener('input', async () => await calcCommission(amountInput))
+
 const amountBtns = document.querySelectorAll('.amount-btn')
 amountBtns.forEach(btn => {
     btn.addEventListener('click', () => {
-        amountInput.value = btn.innerText.replace(/[^\d\s\,]/g, '')
-        transferBtn.innerText = `Перевести ${btn.innerText}`
+        amountInput.value = btn.innerText.replace(/[^\d\s,]/g, '')
+        amountInput.dispatchEvent(new Event('input'))
     })
 })
 
@@ -147,7 +149,7 @@ document.getElementById('transfer-form').addEventListener('submit', async (e) =>
         body: JSON.stringify({
             clientCardId: senderSelect.value,
             counterpartyCardIdentifier: receiverInput.value.replace(/[\s\*]/g, ''), 
-            amount: amountInput.value.replace(/\s/g, '').replace(/\./g, ','),
+            amount: amountInput.value.replace(/\s/g, '').replace(',', '.'),
             description: descriptionInput.value
         })
     })
@@ -159,4 +161,5 @@ document.getElementById('transfer-form').addEventListener('submit', async (e) =>
     }
     else 
         processResponse(response)    
+    transferBtn.blur()
 })

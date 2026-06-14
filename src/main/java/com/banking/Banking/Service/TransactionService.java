@@ -46,10 +46,14 @@ public class TransactionService {
         this.phoneService = phoneService;
     }
 
-    public BigDecimal calculateCommission(BigDecimal amount) {
-        return amount.compareTo(new BigDecimal("100000")) < 0
-                ? BigDecimal.ZERO
-                : amount.multiply(new BigDecimal("0.05"));
+    public BigDecimal calculateCommission(BigDecimal amount, OperationTypeEnum type) {
+        return switch (type) {
+            case DEPOSIT, WITHDRAWAL -> BigDecimal.ZERO;
+            case TRANSFER_OUT, TRANSFER_IN ->
+                    amount.compareTo(new BigDecimal("100000")) >= 0
+                            ? amount.multiply(new BigDecimal("0.05"))
+                            : BigDecimal.ZERO;
+        };
     }
 
     public Transaction createTransferToInternalClient(Long currentClientId, TransferDtoRequest transactionDto) {
@@ -59,7 +63,7 @@ public class TransactionService {
         Card senderCard = cardService.findById(transactionDto.getClientCardId());
         Card receiverCard = cardService.findByCardIdentifier(transactionDto.getCounterpartyCardIdentifier());
         boolean isInternal = senderCard.getClient().getId() == receiverCard.getClient().getId();
-        BigDecimal commission = calculateCommission(transactionDto.getAmount());
+        BigDecimal commission = calculateCommission(transactionDto.getAmount(), OperationTypeEnum.TRANSFER_OUT);
         Transaction transactionOut = Transaction.builder()
                 .operationType(OperationTypeEnum.TRANSFER_OUT)
                 .isInternal(isInternal)
@@ -128,7 +132,7 @@ public class TransactionService {
         }
 
         Card senderCard = cardService.findById(dtoRequest.getClientCardId());
-        BigDecimal commission = calculateCommission(dtoRequest.getAmount());
+        BigDecimal commission = calculateCommission(dtoRequest.getAmount(), OperationTypeEnum.WITHDRAWAL);
         Transaction transaction = Transaction.builder()
                 .operationType(OperationTypeEnum.WITHDRAWAL)
                 .isInternal(false)

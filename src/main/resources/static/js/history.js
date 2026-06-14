@@ -1,5 +1,5 @@
-import { URL_BASE, API_BASE, client, history, totalPages, getData, cards, showHistory, showClientLogin } from '/js/utils/sharedData.js'
-import { formatAmount, showSpinner } from '/js/utils/sharedFunctions.js'
+import { URL_BASE, API_BASE, totalPages, cards, showHistory, showClientLogin } from '/js/utils/sharedData.js'
+import { formatAmount, showSpinner, createNewElement, getData } from '/js/utils/sharedFunctions.js'
 
 showSpinner()
 showClientLogin()
@@ -63,16 +63,10 @@ const loadPage = async () => {
     if (paginationList.length == 0) {
         selectedPeriodEl.innerHTML = ''
         msgElem.hidden = false
-        const title = document.createElement('h3')
-        title.innerText = "Транзакции не найдены"
-        const subtitle = document.createElement('p')
-        subtitle.innerText = 'Сбросьте или попробуйте другие фильтры'
-        subtitle.classList.add('caption')
-
-        const btn = document.createElement('button')
-        btn.classList.add('main-btn', 'mt-4')
+        const title = createNewElement('h3', '', 'Транзакции не найдены')
+        const subtitle = createNewElement('p', 'caption', 'Сбросьте или попробуйте другие фильтры')
+        const btn = createNewElement('button', 'main-btn mt-4', 'Сбросить фильтры')
         btn.id = 'clear-filters-btn'
-        btn.innerText = 'Сбросить фильтры'
         btn.addEventListener('click', clearFilters)
 
         msgElem.appendChild(title)
@@ -99,12 +93,9 @@ const generatePagination = () => {
     navEl.hidden = false
     paginationContainer.innerHTML = ''
     for (let i = 0; i < pagesCount; i++) {
-        const li = document.createElement('li')
-        li.classList.add('page-item')
-        const link = document.createElement('a')
-        link.className = `page-link page-number-link ${i == currentPageNum ? 'acitve' : ''}`
+        const li = createNewElement('li', 'page-item')
+        const link = createNewElement('a', `page-link page-number-link ${i == currentPageNum ? 'acitve' : ''}`, i + 1)
         link.dataset.page = i
-        link.innerText = i + 1
 
         li.appendChild(link)
         paginationContainer.appendChild(li)
@@ -174,9 +165,7 @@ const fp = flatpickr(dateRangeInput, {
     onReady: (selectedDates, dateStr, instance) => {
         if (instance.calendarContainer.querySelector('#flatpickr-confirm-btn')) 
             return
-        const confirmBtn = document.createElement('button')
-        confirmBtn.innerText = 'Применить период'
-        confirmBtn.classList.add('main-btn', 'mb-2')
+        const confirmBtn = createNewElement('button', 'main-btn, mb-2', 'Применить период')
         confirmBtn.id = 'flatpickr-confirm-btn'
         confirmBtn.type = 'button'
 

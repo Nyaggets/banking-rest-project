@@ -110,6 +110,7 @@ public class ClientService implements UserDetailsService {
         return PassportDto.builder()
                 .series(encodeService.decodeString(client.getPassportSeries()))
                 .number(encodeService.decodeString(client.getPassportNumber()))
+                .fullName(client.getFullName())
                 .issuedBy(encodeService.decodeString(client.getPassportIssuedBy()))
                 .departmentCode(encodeService.decodeString(client.getPassportDepartmentCode()))
                 .issueDate(LocalDate.parse(encodeService.decodeString(client.getPassportIssueDate()), DateTimeFormatter.ofPattern("yyyy.MM.dd")))
@@ -143,8 +144,6 @@ public class ClientService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String userIdentifier) {
         String login = userIdentifier;
-        System.out.println(userIdentifier);
-        System.out.println(passwordEncoder.matches("Masha-2006",findByLoginOrThrow(login).getPassword()));
         if (userIdentifier.matches("^(\\+?7|8)\\d{10}$")) {
             Optional<Client> client = repository.findByPhone(userIdentifier);
             login = client.map(Client::getLogin).orElse(null);

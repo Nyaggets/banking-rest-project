@@ -1,5 +1,5 @@
-import { URL_BASE, API_BASE, refactorTransaction, showClientLogin, processResponse } from "./utils/sharedData.js"
-import { formatAmount, formatDate, formatPhoneOrCard, showSpinner } from "./utils/sharedFunctions.js"
+import { API_BASE, refactorTransaction, showClientLogin } from "./utils/sharedData.js"
+import { formatAmount, showSpinner, createNewElement, processResponse } from "./utils/sharedFunctions.js"
 
 showSpinner()
 showClientLogin()
@@ -9,7 +9,6 @@ let transaction
 if (response.ok) {
   transaction = await response.json()
   refactorTransaction(transaction)
-  console.log(transaction)
 }
 else 
   processResponse(response)
@@ -17,19 +16,15 @@ else
 const fillOperationInfo = (icon, labelText, titleText, container, titleClass) => {
   if (!container) 
     return
-  const label = document.createElement('p')
-  label.className = titleClass ?? ''
-  label.innerHTML = `<i class='fa ${icon} me-2 mb-1 detail-label caption ${titleClass ?? ''}'></i>${labelText}`
-  const title = document.createElement('h3')
-  title.className = 'mb-0'
-  title.innerText = titleText
+  const label = createNewElement('p', titleClass ?? '', `<i class='fa ${icon} me-2 mb-1 detail-label caption ${titleClass ?? ''}'></i>${labelText}`)
+  const title = createNewElement('h3', 'mb-0', titleText)
   
   container.appendChild(label)
   container.appendChild(title)
 }
 
 document.getElementById('operation-title-container').classList.add(`direction-${transaction.direction}`)
-document.getElementById('operation-title').innerHTML = transaction.typeRu
+document.getElementById('operation-title').innerHTML = transaction.operationTypeRu
 document.getElementById('amount').innerText = `${formatAmount(transaction.amount)} ₽`
 const commissionEl = document.getElementById('commission')
 const commisionText = transaction.commission && transaction.commission != 0 ? `${formatAmount(transaction.commission)} ₽` : 'Нет комисии'

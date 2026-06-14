@@ -25,5 +25,6 @@ public class WebConfigure implements WebMvcConfigurer {
         registry.addViewController("/profile").setViewName("profile");
         registry.addViewController("/card").setViewName("card");
         registry.addViewController("/balance-top-up").setViewName("balance-top-up");
+        registry.addViewController("/session-expired").setViewName("/session-expired");
     }
 }
