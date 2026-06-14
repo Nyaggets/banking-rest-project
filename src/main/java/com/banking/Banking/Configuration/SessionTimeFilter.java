@@ -13,7 +13,7 @@ import java.io.IOException;
 
 @Component
 public class SessionTimeFilter extends OncePerRequestFilter {
-    private static final long MAX_SESSION_DURATION_MS = 1 * 60 * 1000;
+    private static final long MAX_SESSION_DURATION_MS = 5 * 60 * 1000;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,

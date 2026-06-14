@@ -135,4 +135,14 @@ public class CardService {
             put("cardNumber", encodeService.decodeString(card.getCardNumber(), clientId));
         }};
     }
+
+    public String getOwner(String identifier) {
+        Card card = findByCardIdentifier(identifier);
+        if (card == null)
+            throw new CustomNotFoundException("Получатель не найден", "receiver");
+        Client client = card.getClient();
+        if (identifier.matches("^(\\+?7|8)\\d{10}$"))
+            return String.format("%s (****%s)", client.getShortenFullName(), card.getLast4());
+        return client.getShortenFullName();
+    }
 }

@@ -1,5 +1,5 @@
 import { client, URL_BASE, API_BASE, showClientLogin } from './utils/sharedData.js'
-import { showToast, showSpinner, processResponse } from './utils/sharedFunctions.js'
+import { showToast, showSpinner, processResponse, formatPhoneOrCard } from './utils/sharedFunctions.js'
 
 showSpinner()
 showClientLogin()
@@ -13,8 +13,9 @@ const savePasswordBtn = document.getElementById('change-password-btn')
 const passportRevealBtn = document.getElementById('passport-collapse-btn')
 const passportCollapseEl = document.getElementById('passport-collpase')
 
-phoneInput.value = client.phone
+phoneInput.value = formatPhoneOrCard(client.phone)
 loginInput.value = client.login
+phoneInput.addEventListener('input', () => formatPhoneOrCard(phoneInput.value))
 document.getElementById('data-form').addEventListener('submit', async (e) => {
     e.preventDefault()
     const body = {
@@ -30,7 +31,7 @@ document.getElementById('data-form').addEventListener('submit', async (e) => {
         body: JSON.stringify(body)
     })
     if (response.ok) {
-        client.phone = body.phone
+        client.phone = formatPhoneOrCard(body.phone)
         client.login = body.login
         showClientLogin()
         showToast('Обновление профиля', 'Изменения сохранены')

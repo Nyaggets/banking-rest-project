@@ -70,9 +70,7 @@ public class CardController {
     @GetMapping("/owner")
     @ResponseBody
     public ResponseEntity<?> getRecipientInfo(@RequestParam String identifier) {
-        Card card = cardService.findByCardIdentifier(identifier);
-        if (card == null)
-            throw new CustomNotFoundException("Получатель не найден", "receiver");
-        return ResponseEntity.ok(Map.of("fullName", card.getClient().getShortenFullName()));
+        String owner = cardService.getOwner(identifier);
+        return ResponseEntity.ok(Map.of("fullName", owner));
     }
 }

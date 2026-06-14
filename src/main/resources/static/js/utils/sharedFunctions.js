@@ -142,8 +142,4 @@ const getData = async (url) => {
         processResponse(response)
 }
 
-const checkAuthorization = (response) => {
-    if 
-}
-
 export { formatDate, formatAmount, formatCardOption, formatPhoneOrCard, showSpinner, showToast, createNewElement, processResponse, getData }
