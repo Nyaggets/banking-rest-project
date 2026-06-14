@@ -42,23 +42,25 @@ public class Card {
     @NotNull
     LocalDate expiredDate;
     @NotNull
-    @Column(columnDefinition = "TEXT")
     String cvv;
     @NotNull
-    @Column(columnDefinition = "TEXT")
     String last4;
     @NotNull
-    @Column(name = "card_number_hash", columnDefinition = "TEXT")
+    @Column(name = "card_number_hash")
     String cardNumberHash;
     @NotNull
-    @Column(name = "cvv_hash", columnDefinition = "TEXT")
+    @Column(name = "cvv_hash")
     String cvvHash;
     @NotNull
-    @Column(name = "pin_code", columnDefinition = "TEXT")
+    @Column(name = "pin_code")
     String pinCode;
     @NotNull
-    @Column(name = "pin_code_hash", columnDefinition = "TEXT")
+    @Column(name = "pin_code_hash")
     String pinCodeHash;
+    @NotNull
+    @Column(name = "account_number", unique = true)
+    @Size(min = 20, max = 20)
+    String accountNumber;
 
     @Override
     public boolean equals(Object o) {

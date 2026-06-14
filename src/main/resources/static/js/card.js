@@ -5,8 +5,8 @@ showSpinner()
 showClientLogin()
 const url = new URLSearchParams(window.location.search)
 const cardId = url.get('id')
-
 const card = await getData(`${API_BASE}/cards/${cardId}`)
+
 const cardContainer = document.getElementById('card-container')
 const cardNumberEl = createNewElement('h3', '', card.hiddenNumber)
 cardNumberEl.id = 'card-number'
@@ -30,12 +30,13 @@ document.getElementById('month-income').innerHTML = `<i class="fa fa-plus" aria-
 document.getElementById('month-outcome').innerHTML = `<i class="fa fa-minus" aria-hidden="true"></i> ${formatAmount(stats.outcome)}₽`
 document.getElementById('month-name').innerText  = `Статистика за ${new Date().toLocaleString('ru', {month: 'long'})}`
 
+document.getElementById('account-number').innerText = card.accountNumber || 'Номер не определен'
+
 const cardHistoryLink = `${URL_BASE}/history?cardId=${cardId}`
 document.getElementById('card-history-link').href = cardHistoryLink
 document.getElementById('card-history-btn').addEventListener('click', () => {
     window.location.assign(cardHistoryLink)
 })
-
 
 const cardHistoryPage = await getData(`${API_BASE}/cards/history?cardId=${cardId}`)
 const { content: cardHistory } = cardHistoryPage

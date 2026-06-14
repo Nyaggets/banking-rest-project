@@ -12,5 +12,6 @@ public class CardDtoResponse {
     BigDecimal balance;
     Long clientId;
     LocalDate expiredDate;
+    String accountNumber;
 }
 

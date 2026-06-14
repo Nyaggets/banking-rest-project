@@ -57,6 +57,11 @@ public class CardService {
         while (repository.findByCVV(cvv).isPresent())
             cvv = generateCVV();
 
+        Random random = new Random();
+        StringBuilder accountNumber = new StringBuilder();
+        for (int i = 0; i < 20; i++)
+            accountNumber.append(random.nextInt(10));
+
         Card card = Card.builder()
                         .client(client)
                         .clientName(client.getName())
@@ -68,6 +73,7 @@ public class CardService {
                         .last4(cardNumber.substring(16))
                         .cardNumberHash(encodeService.generateSha256Hash(cardNumber))
                         .cvvHash(encodeService.generateSha256Hash(cvv))
+                        .accountNumber(accountNumber.toString())
                         .build();
         return repository.save(card);
     }
