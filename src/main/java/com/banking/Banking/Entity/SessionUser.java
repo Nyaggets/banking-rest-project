@@ -5,6 +5,9 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 
+/**
+ * Класс для хранения данных текущего авторизированного пользователя
+ */
 @Getter
 public class SessionUser implements UserDetails {
     private final Long id;

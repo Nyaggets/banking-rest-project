@@ -8,6 +8,9 @@ import org.springframework.data.jpa.domain.Specification;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * Спецификации для фильтрации транзакций на уровне выборки из базы данных
+ */
 public class QuerySpec {
     public static Specification<Transaction> removeTransferDuplicates() {
         return (root, query, criteriaBuilder) -> {

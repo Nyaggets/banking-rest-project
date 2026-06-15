@@ -1,275 +1,259 @@
 package com.banking.Banking.Service;
 
-import com.banking.Banking.Entity.Card;
-import com.banking.Banking.Entity.Client;
-import com.banking.Banking.Entity.OperationTypeEnum;
-import com.banking.Banking.Entity.Transaction;
-import com.banking.Banking.Mapper.TransactionMapper;
+import com.banking.Banking.Dto.CardStatsDto;
+import com.banking.Banking.Dto.DepositDtoRequest;
+import com.banking.Banking.Dto.TransferDtoRequest;
+import com.banking.Banking.Dto.WithdrawalDtoRequest;
+import com.banking.Banking.Entity.*;
 import com.banking.Banking.Repository.TransactionRepository;
-import jakarta.validation.Validator;
+import com.banking.Banking.validation.CustomException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.math.BigDecimal;
-import org.springframework.security.access.AccessDeniedException;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class TransactionServiceTest {
-    @Autowired
-    private Validator validator;
-    @Mock
-    private TransactionRepository transactionRepository;
-    @Mock
+    @Mock 
+    private TransactionRepository repository;
+    @Mock 
     private CardService cardService;
-    @Mock
+    @Mock 
     private ClientService clientService;
-    @Mock
+    @Mock 
     private TransactionValidationService validationService;
-    @Mock
-    private TransactionMapper mapper;
+    @Mock 
+    private PhoneService phoneService;
     @InjectMocks
     private TransactionService transactionService;
 
+    private Client client;
     private Card senderCard;
     private Card receiverCard;
-    private TransactionDtoRequest transferDto;
-    private TransactionDtoRequest depositDto;
-    private TransactionDtoRequest withdrawalDto;
-    private Transaction transferSender;
-    private Transaction transferReceiver;
-    private Transaction depositSender;
-    private Transaction depositReceiver;
-    private Transaction withdrawalSender;
-    private Transaction withdrawalReceiver;
-    private Transaction timestampDepositMinus1;
-    private Transaction timestampDepositMinus2;
-    private List<Transaction> transactions;
-    private LocalDateTime fixedDate;
-    private Pageable pageable;
+    private TransferDtoRequest transferDto;
+    private DepositDtoRequest depositDto;
+    private WithdrawalDtoRequest withdrawalDto;
 
     @BeforeEach
     void setUp() {
-        Client senderClient = new Client();
-        senderClient.setId(1L);
+        client = Client.builder().id(1L).login("user").build();
 
         senderCard = Card.builder()
-                .id(1L)
-                .client(senderClient)
-                .balance(new BigDecimal("1000"))
-                .cardNumber("1111")
+                .id(10L)
+                .client(client)
+                .balance(new BigDecimal("100"))
+                .last4("1111")
+                .clientName("Ivan Ivanov")
                 .build();
+
         receiverCard = Card.builder()
-                .id(2L)
+                .id(20L)
                 .client(new Client())
-                .balance(new BigDecimal("500"))
-                .cardNumber("2222")
+                .balance(BigDecimal.ZERO)
+                .last4("2222")
+                .clientName("Petr Petrov")
                 .build();
 
-        transferDto = TransactionDtoRequest.builder()
-                .clientCardId(1L)
-                .receiverIdentifier("2222")
-                .amount(new BigDecimal("100"))
-                .build();
-        depositDto = TransactionDtoRequest.builder()
-                .counterParty("source")
-                .receiverIdentifier("2222")
-                .amount(new BigDecimal("100"))
-                .build();
-        withdrawalDto = TransactionDtoRequest.builder()
-                .clientCardId(1L)
-                .counterParty("merchant")
+        transferDto = TransferDtoRequest.builder()
+                .clientCardId(10L)
+                .counterpartyCardIdentifier("2222")
                 .amount(new BigDecimal("100"))
                 .build();
 
-        fixedDate = LocalDateTime.parse("2026-06-06 10:00", DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
-        transferSender = Transaction.builder()
-                .id(1L)
-                .clientCard(senderCard)
-                .timestamp(fixedDate)
-                .operationType(OperationTypeEnum.TRANSFER_OUT)
+        depositDto = DepositDtoRequest.builder()
+                .clientCardId(20L)
+                .counterpartyIdentifier("SOURCE")
+                .amount(new BigDecimal("100"))
                 .build();
-        transferReceiver = Transaction.builder()
-                .id(2L)
-                .clientCard(receiverCard)
-                .timestamp(fixedDate)
-                .operationType(OperationTypeEnum.TRANSFER_IN)
+
+        withdrawalDto = WithdrawalDtoRequest.builder()
+                .clientCardId(10L)
+                .counterpartyIdentifier("MERCHANT")
+                .amount(new BigDecimal("100"))
                 .build();
-        withdrawalSender = Transaction.builder()
-                .id(3L)
-                .clientCard(senderCard)
-                .timestamp(fixedDate)
-                .operationType(OperationTypeEnum.WITHDRAWAL)
-                .build();
-        withdrawalReceiver = Transaction.builder()
-                .id(4L)
-                .clientCard(receiverCard)
-                .timestamp(fixedDate)
-                .operationType(OperationTypeEnum.WITHDRAWAL)
-                .build();
-        depositSender = Transaction.builder()
-                .id(5L)
-                .clientCard(senderCard)
-                .timestamp(fixedDate)
-                .operationType(OperationTypeEnum.DEPOSIT)
-                .build();
-        depositReceiver = Transaction.builder()
-                .id(6L)
-                .clientCard(receiverCard)
-                .timestamp(fixedDate)
-                .operationType(OperationTypeEnum.DEPOSIT)
-                .build();
-        timestampDepositMinus1 = Transaction.builder()
-                .id(7L)
-                .operationType(OperationTypeEnum.DEPOSIT)
-                .timestamp(fixedDate.minusDays(1))
-                .build();
-        timestampDepositMinus2 = Transaction.builder()
-                .id(8L)
-                .operationType(OperationTypeEnum.DEPOSIT)
-                .timestamp(fixedDate.minusDays(2))
-                .build();
-        transactions = List.of(transferSender, transferReceiver, depositSender, depositReceiver,
-                withdrawalSender, withdrawalReceiver, timestampDepositMinus1, timestampDepositMinus2);
-        pageable = PageRequest.of(0, 2);
     }
 
     @Test
-    void findByCardNumber() {
-        List<Transaction> transactions = List.of(
-                new Transaction(),
-                new Transaction());
-        when(transactionRepository.findByCardId(anyLong())).thenReturn(transactions);
+    void calculateCommission_Success_TransferLowAmount() {
+        BigDecimal commission = transactionService.calculateCommission(new BigDecimal("50000"), OperationTypeEnum.TRANSFER_OUT);
 
-        List<Transaction> result = transactionService.findByCardId(1L);
-
-        assertThat(result).hasSize(2);
+        assertThat(commission).isEqualByComparingTo(BigDecimal.ZERO);
     }
 
     @Test
-    void findTransactions_SuccessByClientId() {
-        when(cardService.findByClientId(1L)).thenReturn(List.of(senderCard));
+    void calculateCommission_Success_TransferHighAmount() {
+        BigDecimal amount = new BigDecimal("200000");
+        BigDecimal commission = transactionService.calculateCommission(amount, OperationTypeEnum.TRANSFER_IN);
 
-        var clientTransactions = transactionService.findTransactions(1L, 0);
-
-        assertThat(clientTransactions).isNotNull();
-        verify(cardService).findByClientId(1L);
+        assertThat(commission).isEqualByComparingTo(new BigDecimal("10000"));
     }
 
     @Test
-    void findTransactions_SuccessByClientIdCardId() throws AccessDeniedException {
-        when(cardService.findByClientId(1L)).thenReturn(List.of(senderCard, receiverCard));
-        when(cardService.belongsToClient(1L, 1L)).thenReturn(true);
-        when(transactionRepository.findByCardId(1L)).thenReturn(transactions);
+    void createTransferToInternalClient_Success() {
+        when(cardService.findById(10L)).thenReturn(senderCard);
+        when(cardService.findByCardIdentifier("2222")).thenReturn(receiverCard);
+        when(repository.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        var clientTransactions = transactionService
-                .findTransactions(1L, 1, null, 1L, null, null);
+        Transaction result = transactionService.createTransferToInternalClient(1L, transferDto);
 
-        assertThat(clientTransactions.getContent().size()).isEqualTo(3);
+        assertNotNull(result);
+        assertThat(result.getOperationType()).isEqualTo(OperationTypeEnum.TRANSFER_OUT);
+        assertThat(senderCard.getBalance()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(receiverCard.getBalance()).isEqualByComparingTo(new BigDecimal("100"));
+        verify(validationService, times(1)).transferValidation(1L, transferDto);
+        verify(repository, times(2)).save(any());
     }
 
     @Test
-    void findTransactions_SuccessByClientIdType() throws AccessDeniedException {
-        when(cardService.findByClientId(1L)).thenReturn(List.of(senderCard, receiverCard));
-        when(transactionRepository.findByCardId(1L)).thenReturn(transactions);
+    void createTransferToInternalClient_ValidationError() {
+        doThrow(new CustomException("Ошибка", new HashMap<>())).when(validationService).transferValidation(anyLong(), any());
 
-        var transferTransactions = transactionService
-                .findTransactions(1L, 1, List.of(OperationTypeEnum.TRANSFER_OUT), null, null, null);
-        var depositTransactions = transactionService
-                .findTransactions(1L, 1, List.of(OperationTypeEnum.DEPOSIT),null,  null, null);
-        var withdrawalTransactions = transactionService
-                .findTransactions(1L, 1, List.of(OperationTypeEnum.WITHDRAWAL), null, null, null);
-
-        assertThat(transferTransactions.getContent()).contains(transferSender, transferReceiver);
-        assertThat(depositTransactions).contains(depositSender, depositReceiver, timestampDepositMinus1, timestampDepositMinus2);
-        assertThat(withdrawalTransactions).contains(withdrawalSender, withdrawalReceiver);
-    }
-
-    @Test
-    void findTransactions_SuccessByClientIdPeriod() throws AccessDeniedException {
-        when(cardService.findByClientId(1L)).thenReturn(List.of(senderCard, receiverCard));
-        when(transactionRepository.findByCardId(1L)).thenReturn(transactions);
-
-        LocalDate timestamp = fixedDate.toLocalDate();
-        List<Transaction> clientTransactions = (List<Transaction>) transactionService
-                .findTransactions(1L, 0, null, null, timestamp.minusDays(5).toString(), timestamp.toString());
-
-        assertThat(clientTransactions).contains(timestampDepositMinus1, timestampDepositMinus2);
-        assertThat(clientTransactions).hasSize(2);
-    }
-
-//    @Test
-//    void findTransactions_SliceLol() {
-//        when(cardService.findByClientId(1L)).thenReturn(List.of(senderCard, receiverCard));
-//        when(transactionRepository.findAll(, any())).thenReturn(new SliceImpl<>(transactions, pageable, false));
-//        when(mapper.toDtoList(anyList())).thenReturn(List.of(new TransactionDtoResponse(), new TransactionDtoResponse()));
-//
-//        Slice<TransactionDtoResponse> sliceResult = transactionService.findTransactions(1L, 0);
-//
-//        assertThat(sliceResult.getContent()).hasSize(2);
-//        assertThat(sliceResult.getPageable().getPageSize()).isEqualTo(2);
-//        assertThat(sliceResult.getPageable().getOffset()).isEqualTo(0);
-//    }
-
-    @Test
-    void createTransfer_Success() {
-        when(cardService.findById(1L)).thenReturn(senderCard);
-        when(cardService.findByCardIdentifier(anyString())).thenReturn(receiverCard);
-        when(transactionRepository.save(any(Transaction.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
-
-        Transaction transfer = transactionService.createTransferToInternalClient(transferDto);
-
-        assertThat(transfer).isNotNull();
-        assertThat(transfer.getOperationType()).isEqualTo(OperationTypeEnum.TRANSFER_OUT);
-        assertThat(senderCard.getBalance()).isEqualByComparingTo(new BigDecimal("900"));
-        assertThat(receiverCard.getBalance()).isEqualByComparingTo(new BigDecimal("600"));
-
-        verify(transactionRepository, times(1)).save(any(Transaction.class));
+        assertThrows(CustomException.class, () -> transactionService.createTransferToInternalClient(1L, transferDto));
     }
 
     @Test
     void createDeposit_Success() {
-        when(cardService.findByCardIdentifier(anyString())).thenReturn(receiverCard);
-        when(transactionRepository.save(any(Transaction.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+        doNothing().when(validationService).depositValidation(any());
+        when(cardService.findByIdOrThrow(anyLong(), anyString())).thenReturn(receiverCard);
+        when(repository.save(any())).thenAnswer(i -> i.getArgument(0));
+        depositDto.setClientCardId(2L);
 
-        Transaction transfer = transactionService.createDeposit(depositDto);
+        Transaction result = transactionService.createDeposit(depositDto, CounterpartyTypeEnum.EMPLOYER);
 
-        assertThat(transfer).isNotNull();
-        assertThat(transfer.getOperationType()).isEqualTo(OperationTypeEnum.DEPOSIT);
-        assertThat(receiverCard.getBalance()).isEqualByComparingTo(new BigDecimal("600"));
+        assertNotNull(result);
+        assertThat(result.getOperationType()).isEqualTo(OperationTypeEnum.DEPOSIT);
+        assertThat(receiverCard.getBalance()).isEqualByComparingTo(new BigDecimal("100"));
+        verify(repository, times(1)).save(any());
+    }
 
-        verify(transactionRepository, times(1)).save(any(Transaction.class));
+    @Test
+    void createDeposit_CardNotFound() {
+        assertThrows(NullPointerException.class, () -> transactionService.createDeposit(depositDto, CounterpartyTypeEnum.EMPLOYER));
     }
 
     @Test
     void createWithdrawal_Success() {
-        when(cardService.findById(1L)).thenReturn(senderCard);
-        when(transactionRepository.save(any(Transaction.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(cardService.findById(10L)).thenReturn(senderCard);
+        when(repository.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        Transaction transfer = transactionService.createWithdrawal(withdrawalDto);
+        Transaction result = transactionService.createWithdrawal(1L, withdrawalDto, CounterpartyTypeEnum.MERCHANT);
 
-        assertThat(transfer).isNotNull();
-        assertThat(transfer.getOperationType()).isEqualTo(OperationTypeEnum.WITHDRAWAL);
-        assertThat(senderCard.getBalance()).isEqualByComparingTo(new BigDecimal("900"));
+        assertNotNull(result);
+        assertThat(result.getOperationType()).isEqualTo(OperationTypeEnum.WITHDRAWAL);
+        assertThat(senderCard.getBalance()).isEqualByComparingTo(BigDecimal.ZERO);
+    }
 
-        verify(transactionRepository, times(1)).save(any(Transaction.class));
+    @Test
+    void createWithdrawal_AccessDenied() {
+        doThrow(new AccessDeniedException("Доступ запрещен")).when(validationService).withdrawalValidation(anyLong(), any());
+
+        assertThrows(AccessDeniedException.class, () ->
+                transactionService.createWithdrawal(1L, withdrawalDto, CounterpartyTypeEnum.MERCHANT));
+    }
+
+    @Test
+    void createBalanceTopUp_Success() {
+        when(phoneService.getOperatorOrThrow("+79001234567")).thenReturn(MobileOperatorEnum.MTS);
+        doNothing().when(validationService).withdrawalValidation(anyLong(), any());
+        when(cardService.findById(anyLong())).thenReturn(senderCard);
+        when(repository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        WithdrawalDtoRequest topUpDto = WithdrawalDtoRequest.builder()
+                .clientCardId(10L)
+                .counterpartyIdentifier("+79001234567")
+                .amount(new BigDecimal("100"))
+                .build();
+        Transaction result = transactionService.createBalanceTopUp(1L, topUpDto);
+
+        assertNotNull(result);
+        verify(phoneService).getOperatorOrThrow("+79001234567");
+        verify(validationService).withdrawalValidation(eq(1L), any());
+        verify(cardService).findById(eq(10L));
+    }
+
+    @Test
+    void createBalanceTopUp_OperatorNotFound() {
+        when(phoneService.getOperatorOrThrow("invalid")).thenThrow(new RuntimeException("Оператор не найден"));
+
+        WithdrawalDtoRequest topUpDto = WithdrawalDtoRequest.builder()
+                .clientCardId(10L).counterpartyIdentifier("invalid").amount(new BigDecimal("100")).build();
+
+        assertThrows(RuntimeException.class, () -> transactionService.createBalanceTopUp(1L, topUpDto));
+    }
+
+    @Test
+    void findTransactions_Success() {
+        when(clientService.findByIdOrThrow(1L)).thenReturn(client);
+        when(cardService.findByClientId(1L)).thenReturn(List.of(senderCard));
+        when(cardService.belongsToClientOrThrow(1L, 10L, "field")).thenReturn(true);
+
+        when(repository.findAll(any(Specification.class), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(new Transaction())));
+
+        Page<Transaction> result = transactionService.findTransactions(1L, 0, null, 10L, null, null);
+
+        assertThat(result.getContent()).hasSize(1);
+        verify(clientService).findByIdOrThrow(1L);
+    }
+
+    @Test
+    void findTransactions_AccessDenied() {
+        when(clientService.findByIdOrThrow(1L)).thenReturn(client);
+        when(cardService.belongsToClientOrThrow(1L, 99L, "field")).thenReturn(false);
+
+        assertThrows(AccessDeniedException.class, () ->
+                transactionService.findTransactions(1L, 0, null, 99L, null, null));
+    }
+
+    @Test
+    void getMonthlyStats_Success() {
+        when(clientService.findByIdOrThrow(1L)).thenReturn(client);
+        when(cardService.belongsToClientOrThrow(1L, 10L, "field")).thenReturn(true);
+        Transaction income = Transaction.builder()
+                .operationType(OperationTypeEnum.DEPOSIT)
+                .totalAmount(new BigDecimal("100"))
+                .clientCard(senderCard)
+                .isInternal(false)
+                .timestamp(LocalDateTime.now())
+                .build();
+        Transaction outcome = Transaction.builder()
+                .operationType(OperationTypeEnum.WITHDRAWAL)
+                .totalAmount(new BigDecimal("200"))
+                .clientCard(senderCard)
+                .isInternal(false)
+                .timestamp(LocalDateTime.now())
+                .build();
+        when(repository.findAll()).thenReturn(List.of(income, outcome));
+
+        CardStatsDto stats = transactionService.getMonthlyStats(10L, 1L);
+
+        assertThat(stats.getIncome()).isEqualByComparingTo(new BigDecimal("100"));
+        assertThat(stats.getOutcome()).isEqualByComparingTo(new BigDecimal("200"));
+    }
+
+    @Test
+    void getMonthlyStats_ForbiddenCard() {
+        when(clientService.findByIdOrThrow(1L)).thenReturn(client);
+        when(cardService.belongsToClientOrThrow(1L, 20L, "field")).thenReturn(false);
+
+        assertThrows(AccessDeniedException.class, () ->
+                transactionService.getMonthlyStats(20L, 1L));
     }
 }

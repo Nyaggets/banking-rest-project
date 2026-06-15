@@ -7,7 +7,6 @@ import com.banking.Banking.Entity.Client;
 import com.banking.Banking.Entity.SessionUser;
 import com.banking.Banking.Mapper.ClientMapper;
 import com.banking.Banking.Service.ClientService;
-import com.banking.Banking.validation.CustomException;
 import com.banking.Banking.validation.RequestLimitException;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,13 +16,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
-import org.springframework.validation.BindingResult;
-import org.springframework.validation.FieldError;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @PreAuthorize("isAuthenticated()")
 @RestController
@@ -33,7 +28,10 @@ public class ClientController {
     private ClientService clientService;
     @Autowired
     private ClientMapper clientMapper;
-    
+
+    /**
+     * Получение данных текущего пользователя
+     */
     @GetMapping("/me")
     public ResponseEntity<SessionUser> getCurrentUser(Authentication auth){
         if (auth == null || auth instanceof AnonymousAuthenticationToken || !auth.isAuthenticated())
@@ -44,6 +42,9 @@ public class ClientController {
                 .body(client);
     }
 
+    /**
+     * Получение данных профиля текущего пользователя
+     */
     @PatchMapping("/profile")
     public ResponseEntity<?> updateClient(Authentication auth, @RequestBody @Valid UpdateSafeDataDto dtoParams) {
         SessionUser client = (SessionUser) auth.getPrincipal();
@@ -52,6 +53,9 @@ public class ClientController {
         return ResponseEntity.ok(clientMapper.toDtoResponse(updatedClient));
     }
 
+    /**
+     * Изменение пароля текущего пользователя
+     */
     @PatchMapping("/password")
     public ResponseEntity<?> updateClient(Authentication auth, @RequestBody @Valid UpdatePasswordDto dtoParams) {
         SessionUser client = (SessionUser) auth.getPrincipal();
@@ -60,6 +64,9 @@ public class ClientController {
         return ResponseEntity.ok(clientMapper.toDtoResponse(updatedClient));
     }
 
+    /**
+     * Получение данных паспорта текущего пользователя
+     */
     @PostMapping("/reveal-passport")
     public ResponseEntity<PassportDto> revealPassport(Authentication auth, @RequestBody Map<String, String> requestBody) throws RequestLimitException {
         SessionUser client = (SessionUser) auth.getPrincipal();

@@ -13,13 +13,15 @@ import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Сервис обработки подтверждения личности
+ */
 @Service
 public class VerifyIdentityService {
     @Setter
     private Clock clock;
     private Map<Long, Attempts> passwordMap = new ConcurrentHashMap<>();
     private final Integer PASSWORD_ATTEMPTS = 3;
-    private final Duration passwordDuration = Duration.ofHours(1);
 
     public VerifyIdentityService(Clock clock, Map<Long, Attempts> passwordMap) {
         this.clock = clock;

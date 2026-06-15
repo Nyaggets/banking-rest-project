@@ -2,12 +2,13 @@ package com.banking.Banking.Dto;
 
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.*;
+import lombok.Builder;
 import lombok.Data;
 
 import java.time.LocalDate;
 
 @Data
-@NotBlank
+@Builder
 public class ClientDtoRequest {
     @NotNull(message = "{field.required}")
     @Pattern(regexp = "^(8|\\+7)[\\s\\-]?\\d{3}[\\s\\-]?\\d{3}[\\s\\-]?\\d{2}[\\s\\-]?\\d{2}$", message = "{phone.invalidPattern}")

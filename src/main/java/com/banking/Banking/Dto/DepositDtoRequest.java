@@ -1,6 +1,5 @@
 package com.banking.Banking.Dto;
 
-import com.banking.Banking.Entity.CounterpartyTypeEnum;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;

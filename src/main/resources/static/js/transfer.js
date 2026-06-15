@@ -105,7 +105,7 @@ const calcCommission = async (amountInputEl) => {
         return
     }
     
-    const response = await fetch(`${API_BASE}/cards/${senderSelect.value}/transactions/transfer/commission?amount=${rawValue}`, {
+    const response = await fetch(`${API_BASE}/cards/transactions/transfer/commission?amount=${rawValue}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json;charset=utf-8' },
     })

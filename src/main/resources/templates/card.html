@@ -80,39 +80,46 @@
 
   <main>
     <div class="main-container container-md">
-      <section id="section-card">
-        <div id="card-container" class="card-item"></div>
+      <h2>Детали карты</h2>
 
-        <div  id="card-stats">
-          <h3 id="month-name"></h3>
-          <h2 id="month-income"></h2>
-          <h2 id="month-outcome"></h2>
+      <h3 error-for="card" class="error-msg" hidden></h3>
+      <h3 error-for="client-card" class="error-msg" hidden></h3>
 
-          <div class="mt-5">
-            <h2>Номер счёта</h2>
-            <p id="account-number"></p>
+      <div id="card-data">
+        <section id="section-card">
+          <div id="card-container" class="card-item"></div>
+
+          <div  id="card-stats">
+            <h3 id="month-name"></h3>
+            <h2 id="month-income"></h2>
+            <h2 id="month-outcome"></h2>
+
+            <div class="mt-5">
+              <h2>Номер счёта</h2>
+              <p id="account-number"></p>
+            </div>
           </div>
-        </div>
 
-        <aside class="fast-actions">
-          <h3 class="fast-actions-title">Быстрые действия</h3>
-          <div class="fast-actions-list">
-            <a class="secondary-btn btn-link transfer-btn" role="button">Перевод</a>
-            <a class="secondary-btn btn-link transfer-btn" role="button">Перевод между своими</a>
-            <a class="secondary-btn btn-link" id="withdrawal-btn" role="button">Пополнить баланс</a>
+          <aside class="fast-actions">
+            <h3 class="fast-actions-title">Быстрые действия</h3>
+            <div class="fast-actions-list">
+              <a class="secondary-btn btn-link transfer-btn" role="button">Перевод</a>
+              <a class="secondary-btn btn-link transfer-btn" role="button">Перевод между своими</a>
+              <a class="secondary-btn btn-link" id="withdrawal-btn" role="button">Пополнить баланс</a>
+            </div>
+          </aside>
+        </section>
+
+        <section id="card-history col">
+          <div class="history-header">
+            <h2>История операций</h2>
+            <a id="card-history-link" class="link">Вся история</a>
           </div>
-        </aside>
-      </section>
-
-      <section id="card-history col">
-        <div class="history-header">
-          <h2>История операций</h2>
-          <a id="card-history-link" class="link">Вся история</a>
-        </div>
-        <div id="history-msg" class="mx-auto" hidden></div>
-        <ul id="card-history"></ul>
-        <button class="main-btn mt-4 d-flex mx-auto" id="card-history-btn" role="button">Вся история</button>
-      </section>
+          <div id="history-msg" class="mx-auto" hidden></div>
+          <ul id="card-history"></ul>
+          <button class="main-btn mt-4 d-flex mx-auto" id="card-history-btn" role="button">Вся история</button>
+        </section>
+      </div>
     </div>
   </main>
 

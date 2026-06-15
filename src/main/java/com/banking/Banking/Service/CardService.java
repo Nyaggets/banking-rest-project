@@ -4,7 +4,6 @@ import com.banking.Banking.Entity.Card;
 import com.banking.Banking.Entity.Client;
 import com.banking.Banking.Repository.CardRepository;
 import com.banking.Banking.validation.CustomNotFoundException;
-import com.banking.Banking.validation.RequestLimitException;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
@@ -82,9 +81,11 @@ public class CardService {
         return repository.findById(id).orElse(null);
     }
 
-    public Card saveFindById(Long clientId, Long cardId) {
-        belongsToClient(clientId, cardId);
-        return findByIdOrThrow(cardId, "sender");
+    public Card safeFindById(Long clientId, Long cardId) {
+        Card card = findByIdOrThrow(cardId, "card");
+        if (Objects.equals(card.getClient().getId(), clientId))
+            return card;
+        throw new CustomNotFoundException("Карта не принадлежит пользователю", "client-card");
     }
 
     public Card findByIdOrThrow(Long id, String field) {
@@ -101,9 +102,9 @@ public class CardService {
         return repository.findByLast4(last4).orElse(null);
     }
 
-    public boolean belongsToClient(Long clientId, Long cardId) {
-        Card card = findByIdOrThrow(cardId, "sender");
-        return card.getClient().getId().equals(clientId);
+    public boolean belongsToClientOrThrow(Long clientId, Long cardId, String field) {
+        Card card = findByIdOrThrow(cardId, field);
+        return Objects.equals(card.getClient().getId(), clientId);
     }
 
     public Card findByCardIdentifier(String identifier) {
@@ -131,8 +132,11 @@ public class CardService {
                 .toList();
     }
 
+    /**
+     * Метод для получения полных данных карты с учетом количества попыток подтверждения личности
+     */
     public Map<String, String> revealCardDetails(Long clientId, String password, Long cardId) throws AccessDeniedException {
-        if (!belongsToClient(clientId ,cardId))
+        if (!belongsToClientOrThrow(clientId ,cardId, "sender"))
             throw new AccessDeniedException("Доступ к карте запрещен");
         identityService.throwIfPasswordAttemptLimit(clientId, clientService.checkPassword(password, clientId));
         Card card = findByIdOrThrow(cardId, "card");

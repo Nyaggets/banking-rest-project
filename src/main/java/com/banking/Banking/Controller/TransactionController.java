@@ -34,7 +34,10 @@ public class TransactionController {
     @Autowired
     private TransactionMapper mapper;
 
-    @PostMapping("/{cardId}/transactions/transfer/commission")
+    /**
+     * Расчет суммы комиссии для перевода по сумме операции
+     */
+    @PostMapping("/transactions/transfer/commission")
     public ResponseEntity<?> calculateTransferCommission(@RequestParam String amount) {
         if (amount.isEmpty())
             return ResponseEntity.ok(BigDecimal.ZERO);
@@ -42,6 +45,9 @@ public class TransactionController {
         return ResponseEntity.ok(Map.of("commission", commissionAmount));
     }
 
+    /**
+     * Создание операции перевода между картами клиентов
+     */
     @PostMapping("/{cardId}/transactions/transfer")
     public ResponseEntity<?> createTransfer(@Valid @RequestBody TransferDtoRequest dtoRequest, Authentication auth) {
         SessionUser client = (SessionUser) auth.getPrincipal();
@@ -50,12 +56,18 @@ public class TransactionController {
         return new ResponseEntity<>(Map.of("operationId", transfer.getId()), HttpStatus.CREATED);
     }
 
+    /**
+     * Создание операции пополнения на карту клиента
+     */
     @PostMapping("/{cardId}/transactions/deposit")
     public ResponseEntity<?> createExternalDeposit(@Valid @RequestBody DepositDtoRequest depositDto) {
         Transaction deposit = transactionService.createDeposit(depositDto, CounterpartyTypeEnum.EMPLOYER);
         return new ResponseEntity<>(Map.of("operationId", deposit.getId()), HttpStatus.CREATED);
     }
 
+    /**
+     * Создание операции пополнения баланса номера телефона с карты клиента
+     */
     @PostMapping("/{cardId}/transactions/balance-top-up")
     public ResponseEntity<?> createBalanceTopUp(@Valid @RequestBody WithdrawalDtoRequest withdrawalDto, Authentication auth) {
         SessionUser client = (SessionUser) auth.getPrincipal();
@@ -64,6 +76,9 @@ public class TransactionController {
         return new ResponseEntity<>(Map.of("operationId", withdrawal.getId()), HttpStatus.CREATED);
     }
 
+    /**
+     * Создание операции покупки с карты клиента
+     */
     @PostMapping("/{cardId}/transactions/purchase")
     public ResponseEntity<?> createPurchase(@Valid @RequestBody WithdrawalDtoRequest withdrawalDto, Authentication auth) {
         SessionUser client = (SessionUser) auth.getPrincipal();
@@ -72,18 +87,18 @@ public class TransactionController {
         return new ResponseEntity<>(Map.of("operationId", withdrawal.getId()), HttpStatus.CREATED);
     }
 
-    @GetMapping("/{cardId}/transactions")
-    public ResponseEntity<?> slice(Authentication auth) {
-        SessionUser client = (SessionUser) auth.getPrincipal();
-        return ResponseEntity.ok(transactionService.findTransactions(client.getId(), 0));
-    }
-
+    /**
+     * Получение деталей конкретной транзакции текущего клиента
+     */
     @GetMapping("/transactions")
     public ResponseEntity<?> transactionDetails(@RequestParam Long operationId, Authentication auth) throws AccessDeniedException {
         var transaction = transactionService.findById(operationId, auth);
         return ResponseEntity.ok(mapper.toDto(transaction));
     }
 
+    /**
+     * Получение страницы из списка транзакций текущего клиента
+     */
     @GetMapping("/history")
     @ResponseBody
     public ResponseEntity<Page> history(Authentication auth, @RequestParam(defaultValue = "0") int page,

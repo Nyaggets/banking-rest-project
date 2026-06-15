@@ -17,6 +17,9 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * Контроллер для перехвата исключения и возвращения отформатированного ответа
+ */
 @ControllerAdvice
 public class ExceptionHandlerController {
     @ExceptionHandler(BadCredentialsException.class)
@@ -39,7 +42,6 @@ public class ExceptionHandlerController {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Response> MethodArgumentNotValidHandler(MethodArgumentNotValidException ex) {
-        ex.getBindingResult().getFieldErrors().forEach(e -> System.out.println(e.getField() + " " + e.getDefaultMessage()));
         Map<String, String> errors = ex.getBindingResult().getFieldErrors().stream()
                 .collect(Collectors.toMap(
                         fe -> switch (fe.getField()) {
@@ -75,6 +77,9 @@ public class ExceptionHandlerController {
         return ResponseEntity.status(500).body(new Response("INTERNAL SERVER ERROR", errors));
     }
 
+    /**
+     * Запись для форматирования ответа после обработки исключения
+     */
     private record Response(String code, Map<String, String> errors, Instant expiresAt) {
         private Response(String code, Map<String, String> errors) {
             this(code, errors, null);

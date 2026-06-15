@@ -13,6 +13,9 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Objects;
 
+/**
+ * Сервис валидации входных данных транзакций
+ */
 @Service
 public class TransactionValidationService {
     @Autowired

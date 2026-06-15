@@ -10,8 +10,10 @@ if (response.ok) {
   transaction = await response.json()
   refactorTransaction(transaction)
 }
-else 
+else {
   processResponse(response)
+  document.getElementById('transaction-data').remove()
+}
 
 const fillOperationInfo = (icon, labelText, titleText, container, titleClass) => {
   if (!container) 

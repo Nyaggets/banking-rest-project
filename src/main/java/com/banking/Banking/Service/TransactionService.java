@@ -101,7 +101,7 @@ public class TransactionService {
     public Transaction createDeposit(DepositDtoRequest transactionDto, CounterpartyTypeEnum counterpartyType) {
         validationService.depositValidation(transactionDto);
 
-        Card receiverCard = cardService.findByCardIdentifier(transactionDto.getCounterpartyIdentifier());
+        Card receiverCard = cardService.findByIdOrThrow(transactionDto.getClientCardId(), "receiver");
         Transaction transaction = Transaction.builder()
                 .operationType(OperationTypeEnum.DEPOSIT)
                 .isInternal(false)
@@ -188,7 +188,7 @@ public class TransactionService {
     public Page<Transaction> findTransactions(Long clientId, int pageNum, @Nullable List<OperationTypeEnum> types,
                   @Nullable Long cardId, @Nullable String start, @Nullable String end) throws AccessDeniedException {
         clientService.findByIdOrThrow(clientId);
-        if (cardId != null && !cardService.belongsToClient(clientId, cardId))
+        if (cardId != null && !cardService.belongsToClientOrThrow(clientId, cardId, "card"))
             throw new AccessDeniedException("Доступ к карте запрещен");
 
         List<Long> cards = cardService.findByClientId(clientId).stream()
@@ -217,13 +217,12 @@ public class TransactionService {
                 throw new RuntimeException("Некорректное значение параметра '%s'".formatted(errorField));
             }
         }
-        repository.findAll(spec, pageable).forEach(t -> System.out.println(t.getCounterpartyName()));
         return repository.findAll(spec, pageable);
     }
 
     public CardStatsDto getMonthlyStats(Long cardId, Long clientId) throws AccessDeniedException {
         clientService.findByIdOrThrow(clientId);
-        if (!cardService.belongsToClient(clientId, cardId))
+        if (!cardService.belongsToClientOrThrow(clientId, cardId, "card"))
             throw new AccessDeniedException("Доступ к карте запрещен");
 
         LocalDate start = LocalDate.of(LocalDate.now().getYear(), LocalDate.now().getMonthValue(), 1);

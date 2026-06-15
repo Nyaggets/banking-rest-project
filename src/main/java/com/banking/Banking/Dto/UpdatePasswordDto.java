@@ -1,12 +1,12 @@
 package com.banking.Banking.Dto;
 
-import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import lombok.Builder;
 import lombok.Data;
 
 @Data
+@Builder
 public class UpdatePasswordDto {
     @NotNull
     @Pattern(regexp = "^(?=(?:.*[A-Z])+)(?=.*[0-9])(?=.*[-_])[A-Za-z0-9_-]{5,30}$", message = "{password.invalidPattern}")

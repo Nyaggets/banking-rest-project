@@ -104,6 +104,9 @@ public class ClientService implements UserDetailsService {
         return repository.save(client);
     }
 
+    /**
+     * Метод для получения полных данных паспорта с учетом количества попыток подтверждения личности
+     */
     public PassportDto revealPassport(Long clientId, String password) throws AccessDeniedException, RequestLimitException {
         attemptsCount.throwIfPasswordAttemptLimit(clientId, checkPassword(password, clientId));
         Client client = findByIdOrThrow(clientId);
@@ -120,10 +123,6 @@ public class ClientService implements UserDetailsService {
     public Client findByPhone(String phone){
         String normalizedPhone = phoneService.normalizePhone(phone);
         return repository.findByPhone(normalizedPhone).orElse(null);
-    }
-
-    public Client findByLogin(String login){
-        return repository.findByLogin(login).orElse(null);
     }
 
     public Client findByLoginOrThrow(String login) {

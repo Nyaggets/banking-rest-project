@@ -5,7 +5,14 @@ showSpinner()
 showClientLogin()
 const url = new URLSearchParams(window.location.search)
 const cardId = url.get('id')
-const card = await getData(`${API_BASE}/cards/${cardId}`)
+let card
+const response = await fetch(`${API_BASE}/cards/${cardId}`)
+if (response.ok)
+  card = await response.json()
+else {
+  processResponse(response)
+  document.getElementById('card-data').remove()
+}
 
 const cardContainer = document.getElementById('card-container')
 const cardNumberEl = createNewElement('h3', '', card.hiddenNumber)
@@ -25,7 +32,15 @@ document.querySelectorAll('.transfer-btn').forEach(btn => {
 })
 document.getElementById('withdrawal-btn').href = `${URL_BASE}/balance-top-up?from=${cardId}`
 
-const stats = await getData(`${API_BASE}/cards/${cardId}/stats`)
+let stats
+const statResponse = await fetch(`${API_BASE}/cards/${cardId}/stats`)
+if (statResponse.ok)
+  stats = await statResponse.json()
+else {
+  processResponse(statResponse)
+  document.getElementById('card-data').remove()
+}
+
 document.getElementById('month-income').innerHTML = `<i class="fa fa-plus" aria-hidden="true"></i> ${formatAmount(stats.income)}₽`
 document.getElementById('month-outcome').innerHTML = `<i class="fa fa-minus" aria-hidden="true"></i> ${formatAmount(stats.outcome)}₽`
 document.getElementById('month-name').innerText  = `Статистика за ${new Date().toLocaleString('ru', {month: 'long'})}`
@@ -58,7 +73,6 @@ else {
     const cardTransactionsList = document.getElementById('card-history')
     showHistory(cardHistory, cardTransactionsList)
 }
-
 
 const modalEl = document.getElementById('confirm-modal')
 const modalInput = document.getElementById('password-input')

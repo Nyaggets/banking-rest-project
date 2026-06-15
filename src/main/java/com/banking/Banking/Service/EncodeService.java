@@ -16,6 +16,9 @@ import java.security.MessageDigest;
 import java.util.Base64;
 import java.util.HexFormat;
 
+/**
+ * Сервис для кодирования, декодирования и хэширования данных
+ */
 @Service
 public class EncodeService {
     private final String keySet;

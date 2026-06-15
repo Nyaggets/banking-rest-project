@@ -3,136 +3,170 @@ package com.banking.Banking.Service;
 import com.banking.Banking.Entity.Card;
 import com.banking.Banking.Entity.Client;
 import com.banking.Banking.Repository.CardRepository;
-import com.banking.Banking.validation.RequestLimitException;
-import lombok.extern.slf4j.Slf4j;
+import com.banking.Banking.validation.CustomNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.authentication.BadCredentialsException;
-
 import org.springframework.security.access.AccessDeniedException;
-import java.time.Clock;
-import java.time.Instant;
-import java.time.ZoneId;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.Map;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-@Slf4j
 @ExtendWith(MockitoExtension.class)
 public class CardServiceTest {
-    private CardService cardService;
     @Mock
-    private CardRepository cardRepository;
+    private CardRepository repository;
     @Mock
     private ClientService clientService;
+    @Mock
+    private EncodeService encodeService;
+    @Mock
+    private VerifyIdentityService identityService;
+    @InjectMocks
+    private CardService cardService;
+
+    private Client client;
     private Card card;
-    private Long clientId;
-    private Clock testClock;
 
     @BeforeEach
     void setUp() {
-        testClock = Clock.fixed(Instant.parse("2026-02-05T10:00:00Z"), ZoneId.of("UTC"));
-        cardService = new CardService(testClock, cardRepository, clientService, "ewogICAgInByaW1hcnlLZXlJZCI6IDIwMDczMzQ5MjAsCiAgICAia2V5IjogW3sKICAgICAgICAia2V5RGF0YSI6IHsKICAgICAgICAgICAgInR5cGVVcmwiOiAidHlwZS5nb29nbGVhcGlzLmNvbS9nb29nbGUuY3J5cHRvLnRpbmsuQWVzRWF4S2V5IiwKICAgICAgICAgICAgImtleU1hdGVyaWFsVHlwZSI6ICJTWU1NRVRSSUMiLAogICAgICAgICAgICAidmFsdWUiOiAiRWdJSUVCb2d1VDEwWU9Iek5hbTdETkRzbUJjMGdaejRNZlFHTVBNVERKM3RJbmlpUkV3PSIKICAgICAgICB9LAogICAgICAgICJvdXRwdXRQcmVmaXhUeXBlIjogIlRJTksiLAogICAgICAgICJrZXlJZCI6IDIwMDczMzQ5MjAsCiAgICAgICAgInN0YXR1cyI6ICJFTkFCTEVEIgogICAgfV0KfQ==");
-
-        clientId = 1L;
-        card = Card.builder()
+        client = Client.builder()
                 .id(1L)
-                .cardNumber(cardService.encodeString("11111111111111111111", clientId))
-                .cvv(cardService.encodeString("111", clientId))
+                .name("Ivan")
+                .surname("Ivanov")
+                .patronymic("Ivanovich")
+                .build();
+
+        card = Card.builder()
+                .id(10L)
+                .client(client)
+                .cardNumber("encNum")
+                .cvv("encCvv")
+                .last4("1234")
+                .balance(BigDecimal.ZERO)
+                .createdDate(LocalDate.now())
+                .expiredDate(LocalDate.now().plusYears(7))
                 .build();
     }
 
     @Test
-    void createCard_GenerateUniqueNumber() {
-        String existingNumber = "11111111111111111111";
-        String newNumber = "22222222222222222222";
-        CardService cardServiceSpy = spy(cardService);
-        Client otherClient = new Client();
+    void createCard_Success() {
+        when(clientService.findByIdOrThrow(1L)).thenReturn(client);
+        when(repository.findByCardNumber(anyString())).thenReturn(Optional.empty());
+        when(repository.findByCVV(anyString())).thenReturn(Optional.empty());
+        when(encodeService.encodeString(anyString(), anyLong())).thenReturn("encodedValue");
+        when(encodeService.generateSha256Hash(anyString())).thenReturn("hashValue");
+        when(repository.save(any())).thenReturn(card);
 
-        when(clientService.findByIdOrThrow(clientId)).thenReturn(otherClient);
-        doReturn(existingNumber)
-                .doReturn(newNumber)
-                .when(cardServiceSpy).generateCardNumber();
-        when(cardRepository.findByCardNumber(anyString()))
-                .thenReturn(Optional.of(new Card()))
-                .thenReturn(Optional.empty());
-        when(cardRepository.save(any(Card.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+        Card created = cardService.createCard(1L);
 
-        Card result = cardServiceSpy.createCard(clientId);
-
-        verify(cardServiceSpy, times(2)).generateCardNumber();
-        assertEquals(result.getCardNumberHash(), cardServiceSpy.generateSha256Hash(newNumber));
+        assertNotNull(created);
+        verify(repository, times(1)).save(any());
     }
 
     @Test
-    void createCard_GenerateUniqueCVV() {
-        String existingCVV = "111";
-        String newCVV = "222";
-        CardService cardServiceSpy = spy(cardService);
-        Client mockClient = new Client();
+    void createCard_ClientNotFound() {
+        when(clientService.findByIdOrThrow(1L)).thenThrow(new CustomNotFoundException("Пользователь не найден", "client"));
 
-        when(clientService.findByIdOrThrow(clientId)).thenReturn(mockClient);
-        doReturn(existingCVV)
-                .doReturn(newCVV)
-                .when(cardServiceSpy).generateCVV();
-        when(cardRepository.findByCVV(anyString()))
-                .thenReturn(Optional.of(new Card()))
-                .thenReturn(Optional.empty());
-        when(cardRepository.save(any(Card.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
-
-        Card result = cardServiceSpy.createCard(clientId);
-
-        verify(cardServiceSpy, times(2)).generateCVV();
-        assertEquals(result.getCvvHash(), cardServiceSpy.generateSha256Hash(newCVV));
+        assertThrows(CustomNotFoundException.class, () -> cardService.createCard(1L));
+        verify(repository, never()).save(any());
     }
 
     @Test
-    public void RevealAttempts_Success() throws RequestLimitException, AccessDeniedException {
-        when(clientService.checkPassword(anyString(), anyLong())).thenReturn(true);
-        when(cardRepository.findById(1L)).thenReturn(Optional.of(card));
+    void belongsToClient_True() {
+        when(repository.findById(10L)).thenReturn(Optional.of(card));
 
-        cardService.revealCardDetails(clientId, "password", card.getId());
-        Map<String, String> details = cardService.revealCardDetails(clientId, "password", card.getId());
+        boolean result = cardService.belongsToClientOrThrow(1L, 10L, "field");
 
-        assertEquals(details.get("cardNumber"), cardService.decodeString(card.getCardNumber(), clientId));
-        assertEquals(details.get("cvv"), cardService.decodeString(card.getCvv(), clientId));
+        assertTrue(result);
     }
 
     @Test
-    public void RevealAttempts_TooManyTries() {
-        when(clientService.checkPassword(anyString(), anyLong())).thenReturn(false);
-        when(cardRepository.findById(clientId)).thenReturn(Optional.of(card));
+    void belongsToClient_False() {
+        Client otherClient = Client.builder()
+                .id(2L)
+                .build();
+        Card otherClientCard = Card.builder()
+                .id(10L)
+                .client(otherClient)
+                .build();
+        when(repository.findById(10L)).thenReturn(Optional.of(otherClientCard));
 
-        for (int i = 0; i < 3; i++)
-            assertThrows(BadCredentialsException.class, () -> cardService.revealCardDetails(clientId, "", card.getId()));
+        boolean result = cardService.belongsToClientOrThrow(1L, 10L, "field");
 
-        assertThrows(RequestLimitException.class, () -> cardService.revealCardDetails(clientId, "", card.getId()));
+        assertFalse(result);
     }
 
     @Test
-    public void RevealAttempts_TimeLimitTest() throws RequestLimitException, AccessDeniedException {
-        when(cardRepository.findById(clientId)).thenReturn(Optional.of(card));
-        when(clientService.checkPassword(anyString(), anyLong())).thenReturn(false);
+    void findByCardIdentifier_ByPhone_Success() {
+        String phone = "+79001234567";
+        when(clientService.findByPhone(phone)).thenReturn(client);
+        when(repository.findById(1L)).thenReturn(Optional.of(card));
 
-        for (int i = 0; i < 3; i++)
-            assertThrows(BadCredentialsException.class, () -> cardService.revealCardDetails(clientId, "", card.getId()));
+        Card found = cardService.findByCardIdentifier(phone);
 
-        assertThrows(RequestLimitException.class, () -> cardService.revealCardDetails(clientId, "", card.getId()));
+        assertNotNull(found);
+        assertEquals(client.getId(), found.getClient().getId());
+    }
 
-        when(clientService.checkPassword(anyString(), anyLong())).thenReturn(true);
-        cardService.setClock(Clock.fixed(Instant.parse("2026-02-05T12:00:01Z"), ZoneId.of("UTC")));
-        Map<String, String> details = cardService.revealCardDetails(clientId, "", card.getId());
+    @Test
+    void findByCardIdentifier_InvalidFormat() {
+        assertThrows(NumberFormatException.class, () -> cardService.findByCardIdentifier("invalidId"));
+    }
 
-        assertEquals(details.get("cardNumber"), cardService.decodeString(card.getCardNumber(), clientId));
-        assertEquals(details.get("cvv"), cardService.decodeString(card.getCvv(), clientId));
+    @Test
+    void revealCardDetails_Success() {
+        when(repository.findById(10L)).thenReturn(Optional.of(card));
+        when(clientService.checkPassword("1234", 1L)).thenReturn(true);
+        doNothing().when(identityService).throwIfPasswordAttemptLimit(anyLong(), eq(true));
+
+        when(encodeService.decodeString(anyString(), anyLong())).thenReturn("decodedValue");
+
+        Map<String, String> details = cardService.revealCardDetails(1L, "1234", 10L);
+
+        assertEquals("decodedValue", details.get("cvv"));
+        assertEquals("decodedValue", details.get("cardNumber"));
+    }
+
+    @Test
+    void revealCardDetails_AccessDenied() {
+        when(repository.findById(10L)).thenReturn(Optional.of(card));
+
+        assertThrows(AccessDeniedException.class, () -> cardService.revealCardDetails(99L, "1234", 10L));
+    }
+
+    @Test
+    void getOwner_ByPhone_Success() {
+        String phone = "+79001234567";
+        when(clientService.findByPhone(phone)).thenReturn(client);
+        when(repository.findById(1L)).thenReturn(Optional.of(card));
+
+        String owner = cardService.getOwner(phone);
+
+        assertEquals("Ivanov I. I. (****1234)", owner);
+    }
+
+    @Test
+    void getOwner_CardNotFound() {
+        when(clientService.findByPhone(anyString())).thenReturn(client);
+        when(repository.findById(anyLong())).thenReturn(Optional.empty());
+
+        assertThrows(CustomNotFoundException.class, () -> cardService.getOwner("+79001234567"));
+    }
+
+    @Test
+    void getOwner_OwnerNotFound() {
+        when(clientService.findByPhone(anyString())).thenReturn(null);
+
+        assertThrows(CustomNotFoundException.class, () -> cardService.getOwner("+79001234567"));
     }
 }

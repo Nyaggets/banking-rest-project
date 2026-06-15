@@ -11,6 +11,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+/**
+ * Конфигурация ограничения времени сессии
+ */
 @Component
 public class SessionTimeFilter extends OncePerRequestFilter {
     private static final long MAX_SESSION_DURATION_MS = 5 * 60 * 1000;

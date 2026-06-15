@@ -15,7 +15,6 @@ public interface CardRepository extends JpaRepository<Card, Long> {
     List<Card> findAllByClientId(Long id);
     @Query("SELECT ca FROM Card ca WHERE ca.cardNumberHash LIKE :cardNumber")
     Optional<Card> findByCardNumberHash(String cardNumber);
-    @Query("SELECT ca FROM Card ca WHERE ca.last4 = :last4")
     Optional<Card> findByLast4(String last4);
     @Query("SELECT ca FROM Card ca WHERE ca.cvvHash = :cvv")
     Optional<Card> findByCVV(String cvv);
