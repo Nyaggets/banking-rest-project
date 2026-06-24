@@ -7,11 +7,9 @@ import org.springframework.stereotype.Service;
 
 import org.springframework.security.access.AccessDeniedException;
 import java.time.Clock;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Сервис обработки подтверждения личности
@@ -20,7 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class VerifyIdentityService {
     @Setter
     private Clock clock;
-    private Map<Long, Attempts> passwordMap = new ConcurrentHashMap<>();
+    private Map<Long, Attempts> passwordMap;
     private final Integer PASSWORD_ATTEMPTS = 3;
 
     public VerifyIdentityService(Clock clock, Map<Long, Attempts> passwordMap) {
@@ -28,21 +26,28 @@ public class VerifyIdentityService {
         this.passwordMap = passwordMap;
     }
 
+    /**
+     * Метод обработки ввода пароля и блокировки при достижении лимита
+     */
     public void throwIfPasswordAttemptLimit(Long clientId, Boolean isPasswordVerified) throws AccessDeniedException {
         Instant timeNow = clock.instant();
-        Attempts passwordAttempts = passwordMap.compute(clientId, (id, current) -> {
-            if (current == null || timeNow.isAfter(current.expiresAt()))
-                return new Attempts(PASSWORD_ATTEMPTS, timeNow.plus(1, ChronoUnit.HOURS));
-            return current;
-        });
+        Attempts currentAttempts = passwordMap.get(clientId);
 
-        if (passwordAttempts.attemptsLeft() == 0)
-            throw new RequestLimitException("Лимит попыток исчерпан.", passwordAttempts.expiresAt());
+        if (currentAttempts != null && currentAttempts.expiresAt().isBefore(timeNow)) {
+            passwordMap.remove(clientId);
+            currentAttempts = null;
+        }
+        if (currentAttempts != null && currentAttempts.attemptsLeft() == 0)
+            throw new RequestLimitException("Лимит попыток исчерпан.", currentAttempts.expiresAt());
 
         if (!isPasswordVerified) {
-            passwordMap.computeIfPresent(clientId, (id, current) ->
-                new Attempts(current.attemptsLeft() - 1, current.expiresAt()));
-            throw new AccessDeniedException("Неверный пароль. Осталось попыток: " + passwordAttempts.attemptsLeft());
+            passwordMap.merge(clientId,
+                    new Attempts(PASSWORD_ATTEMPTS - 1, timeNow.plus(1, ChronoUnit.HOURS)),
+                    (existing, newValue) -> new Attempts(existing.attemptsLeft() - 1, existing.expiresAt())
+            );
+
+            Attempts updated = passwordMap.get(clientId);
+            throw new AccessDeniedException("Неверный пароль. Осталось попыток: " + updated.attemptsLeft());
         }
     }
 }

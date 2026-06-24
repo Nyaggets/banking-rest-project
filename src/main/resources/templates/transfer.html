@@ -8,6 +8,9 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <link href="../static/css/style.css" rel="stylesheet">
   <title>Новый перевод</title>
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
 </head>
 
 <body>
@@ -18,7 +21,7 @@
     </div>
   </div>
 
-  <div class="toast position-fixed mt-3 top-0 start-50 translate-middle-x" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="true" data-bs-delay="1500">
+  <div class="toast position-fixed mt-3 top-0 start-50 translate-middle-x" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="true" data-bs-delay="1900">
     <div class="toast-header">
       <strong class="me-auto" id="toast-header"></strong>
       <small>Только что</small>
@@ -48,7 +51,7 @@
 
   <header class="header container-md">
     <nav class="navbar navbar-expand-lg">
-      <a class="navbar-brand nav-link" href="main">Банк</a>
+      <a class="navbar-brand nav-link" href="main">M·Банк</a>
       <div class="profile-actions">
         <a href="profile" class="nav-link"><i class="fa fa-user" aria-hidden="true"></i><label id="profile-login"></label></a>
         <a class="nav-link" data-bs-toggle="modal" data-bs-target="#logout-modal"><i class="fa fa-sign-out fa-flip-horizontal p-0" aria-hidden="true"></i></a>
@@ -66,7 +69,7 @@
             <div class="transfer-field col-12 col-md-5">
               <h3>Получатель</h3>
               <div class="external-rec" hidden>  
-                <input type="text" name="receiver" id="receiver" placeholder="Номер телефона/карты" maxlength="30" required>
+                <input type="text" name="receiver" id="receiver" placeholder="Номер телефона/карты" autocomplete="off"  maxlength="30" required>
                 <p id="receiver-name" class="caption" hidden></p>
               </div>
               <div class="internal-rec" hidden>  
@@ -85,7 +88,7 @@
             <div class="transfer-field col-12 col-md-5">
               <h3>Сумма перевода</h3>
               <div class="d-flex align-items-center gap-2 pe-2">
-                <input type="text" inputmode="decimal" name="amount" id="amount" class="flex-grow-1 w-0" required maxlength="30">
+                <input type="text" inputmode="decimal" name="amount" id="amount" autocomplete="off" class="flex-grow-1 w-0" required maxlength="30">
                 <label class="flex-shrink-0 mb-0 fs-5">₽</label>
               </div>
               <div error-for="amount" class="error-msg" hidden></div>
@@ -98,7 +101,7 @@
             <div class="col col-md-1"></div>
             <div class="col-12 col-md-5">
               <h3>Сообщение (необязательно)</h3>
-              <input type="text" name="description" id="description" maxlength="50">
+              <input type="text" name="description" id="description" autocomplete="off" maxlength="50">
               <p id="description-size" class="caption d-flex"></p>
               <div error-for="description" class="error-msg" hidden></div>
             </div>

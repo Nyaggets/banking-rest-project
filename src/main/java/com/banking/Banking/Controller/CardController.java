@@ -2,10 +2,12 @@ package com.banking.Banking.Controller;
 
 import com.banking.Banking.Dto.CardDtoResponse;
 import com.banking.Banking.Dto.CardStatsDto;
+import com.banking.Banking.Dto.ClientDtoRequest;
 import com.banking.Banking.Entity.SessionUser;
 import com.banking.Banking.Mapper.CardMapper;
 import com.banking.Banking.Service.CardService;
 import com.banking.Banking.Service.TransactionService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +29,17 @@ public class CardController {
     private TransactionService transactionService;
     @Autowired
     private CardMapper mapper;
+
+    /**
+     * Добавление карты для клиента
+     */
+    @PostMapping
+    public ResponseEntity<?> createCard(@RequestParam Long clientId){
+        cardService.createCard(clientId);
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .body(Map.of("success", "Карта для клиента создана"));
+    }
 
     /**
      * Получение списка карт текущего пользователя
@@ -79,7 +92,6 @@ public class CardController {
      * Получение пользователя карты по её идентификатору
      */
     @GetMapping("/owner")
-    @ResponseBody
     public ResponseEntity<?> getRecipientInfo(@RequestParam String identifier) {
         String owner = cardService.getOwner(identifier);
         return ResponseEntity.ok(Map.of("fullName", owner));

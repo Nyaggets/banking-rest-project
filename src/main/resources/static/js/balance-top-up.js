@@ -14,11 +14,9 @@ cards.forEach((card) => {
 })
 
 const phoneInput = document.getElementById('phone')
-phoneInput.addEventListener('input', () => { 
-    phoneInput.value = formatPhoneOrCard(phoneInput.value) 
-})
 document.getElementById('my-phone-btn').addEventListener('click', () => {
     phoneInput.value = formatPhoneOrCard(client?.phone)
+    phoneInput.dispatchEvent(new Event('input'))
 })
 
 //форматирование суммы
@@ -28,6 +26,37 @@ amountInput.addEventListener('input', async () => {
     const amountFormatted = formatAmount(amountInput.value)
     amountInput.value = amountFormatted
     transferBtn.innerText = `Перевести ${amountFormatted} ${amountFormatted ? '₽' : ''}`
+})
+
+// Отображение имени получателя
+const recipientNameEl = document.getElementById('receiver-name')
+const errorElement = document.querySelector(`[error-for='receiver']`)
+const clearField = (field) => {
+    field.innerText = ''
+    field.hidden = true
+}
+phoneInput.addEventListener('input', async () => {
+    phoneInput.value = formatPhoneOrCard(phoneInput.value) 
+    phoneInput.value = formatPhoneOrCard(phoneInput.value)
+    if (!recipientNameEl)
+        return
+
+    recipientNameEl.innerHTML = ''
+    const identifier = phoneInput.value.trim().replace(/[\s+]/g, '')
+    if (identifier.length < 11) {
+        clearField(errorElement)
+        recipientNameEl.hidden = true
+        return
+    }
+    const response = await fetch(`${API_BASE}/clients/phone-owner?phone=${identifier}`)
+    if (response.ok) {
+        clearField(errorElement)
+        const { fullName } = await response.json()
+        recipientNameEl.innerText = fullName
+        recipientNameEl.hidden = false
+    } 
+    else 
+        processResponse(response)
 })
 
 document.getElementById('phone-form').addEventListener('submit', async (e) => {

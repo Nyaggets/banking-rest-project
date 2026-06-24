@@ -8,6 +8,9 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <link href="../static/css/style.css" rel="stylesheet">
   <title>Профиль</title>
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
 </head>
 
 <body>
@@ -18,7 +21,7 @@
     </div>
   </div>
 
-  <div class="toast position-fixed mt-3 top-0 start-50 translate-middle-x" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="true" data-bs-delay="1500">
+  <div class="toast position-fixed mt-3 top-0 start-50 translate-middle-x" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="true" data-bs-delay="1900">
     <div class="toast-header">
       <strong class="me-auto" id="toast-header"></strong>
       <small>Только что</small>
@@ -38,7 +41,7 @@
         <div class="modal-body">
           <form id="password-conf-form">
             <label for="password-input">Введите пароль от аккаунта</label>
-            <input type="password" name="confirm-password" id="password-input" maxlength="100" required>
+            <input type="password" name="confirm-password" id="password-input" autocomplete="off" maxlength="100" required autofocus>
             <div error-for="client" class="error-msg" id="confirm-error" hidden></div>
             <div class="mt-3 d-flex justify-content-end gap-2">
               <button type="reset" class="secondary-btn modal-dismiss-btn" data-bs-dismiss="modal" autofocus>Отмена</button>
@@ -70,7 +73,7 @@
 
   <header class="header container-md">
     <nav class="navbar navbar-expand-lg">
-      <a class="navbar-brand nav-link" href="main">Банк</a>
+      <a class="navbar-brand nav-link" href="main">M·Банк</a>
       <div class="profile-actions">
         <a href="profile" class="nav-link"><i class="fa fa-user" aria-hidden="true"></i><label id="profile-login"></label></a>
         <a class="nav-link" data-bs-toggle="modal" data-bs-target="#logout-modal"><i class="fa fa-sign-out fa-flip-horizontal p-0" aria-hidden="true"></i></a>
@@ -90,15 +93,15 @@
             <form id="data-form">
               <div class="mb-3">
                 <label class="caption">Телефон</label> 
-                <input type="text" id="phone" maxlength="17">
+                <input type="text" id="phone" autocomplete="off" maxlength="17">
                 <div error-for="phone" class="error-msg" hidden></div>
               </div>
               <div class="mb-3">
                 <label class="caption">Логин</label> 
-                <input type="text" id="login" maxlength="100">
+                <input type="text" id="login" autocomplete="off" maxlength="100">
                 <div error-for="login" class="error-msg" hidden></div>
               </div>
-              <button type="submit" class="secondary-btn" id="change-data-btn">Сохранить изменения</button>
+              <button type="submit" class="main-btn" id="change-data-btn">Сохранить изменения</button>
             </form>
           </section>
 
@@ -111,20 +114,20 @@
               <form id="password-form" class="d-flex flex-column gap-2">
                 <div class="mb-3">
                   <label class="caption">Текущий пароль</label> 
-                  <input type="password" id="old-password" name="oldPassword" placeholder="Текущий пароль" maxlength="100" required>
+                  <input type="password" autocomplete="off" id="old-password" name="oldPassword" placeholder="Текущий пароль" maxlength="100" required>
                   <div error-for="oldPassword" class="error-msg" hidden></div>
                 </div>
                 <div class="mb-3">
                   <label class="caption">Новый пароль</label> 
-                  <input type="password" id="new-password" name="newPassword" placeholder="Новый пароль" maxlength="100" required>
+                  <input type="password" autocomplete="off" id="new-password" name="newPassword" placeholder="Новый пароль" maxlength="100" required>
                   <div error-for="newPassword" class="error-msg" hidden></div>
                 </div>
                 <div class="mb-3">
                   <label class="caption">Подтверждение пароля</label> 
-                  <input type="password" id="conf-password" name="passwordConf" placeholder="Подтвердите новый пароль" maxlength="100" required>
+                  <input type="password" autocomplete="off" id="conf-password" name="passwordConf" placeholder="Подтвердите новый пароль" maxlength="100" required>
                   <div error-for="passwordConf" class="error-msg" hidden></div>
                 </div>  
-                <button type="submit" class="secondary-btn" id="change-password-btn">Сохранить изменения</button>
+                <button type="submit" class="main-btn" id="change-password-btn">Сохранить изменения</button>
               </form>
             </div>
           </section>

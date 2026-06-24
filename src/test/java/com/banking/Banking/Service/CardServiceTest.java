@@ -14,6 +14,7 @@ import org.springframework.security.access.AccessDeniedException;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -23,6 +24,7 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class CardServiceTest {
+
     @Mock
     private CardRepository repository;
     @Mock
@@ -31,6 +33,7 @@ public class CardServiceTest {
     private EncodeService encodeService;
     @Mock
     private VerifyIdentityService identityService;
+
     @InjectMocks
     private CardService cardService;
 
@@ -75,7 +78,8 @@ public class CardServiceTest {
 
     @Test
     void createCard_ClientNotFound() {
-        when(clientService.findByIdOrThrow(1L)).thenThrow(new CustomNotFoundException("Пользователь не найден", "client"));
+        when(clientService.findByIdOrThrow(1L))
+                .thenThrow(new CustomNotFoundException("Пользователь не найден", "client"));
 
         assertThrows(CustomNotFoundException.class, () -> cardService.createCard(1L));
         verify(repository, never()).save(any());
@@ -83,34 +87,23 @@ public class CardServiceTest {
 
     @Test
     void belongsToClient_True() {
-        when(repository.findById(10L)).thenReturn(Optional.of(card));
-
-        boolean result = cardService.belongsToClientOrThrow(1L, 10L, "field");
-
-        assertTrue(result);
+        assertDoesNotThrow(() -> cardService.belongsToClientOrThrow(1L, card));
     }
 
     @Test
     void belongsToClient_False() {
-        Client otherClient = Client.builder()
-                .id(2L)
-                .build();
-        Card otherClientCard = Card.builder()
-                .id(10L)
-                .client(otherClient)
-                .build();
-        when(repository.findById(10L)).thenReturn(Optional.of(otherClientCard));
+        Client other = Client.builder().id(2L).build();
+        Card otherCard = Card.builder().id(10L).client(other).build();
 
-        boolean result = cardService.belongsToClientOrThrow(1L, 10L, "field");
-
-        assertFalse(result);
+        assertThrows(AccessDeniedException.class, () -> cardService.belongsToClientOrThrow(1L, otherCard));
     }
 
     @Test
     void findByCardIdentifier_ByPhone_Success() {
         String phone = "+79001234567";
         when(clientService.findByPhone(phone)).thenReturn(client);
-        when(repository.findById(1L)).thenReturn(Optional.of(card));
+        when(clientService.findByIdOrThrow(anyLong())).thenReturn(client);
+        when(repository.findAllByClientId(anyLong())).thenReturn(List.of(card));
 
         Card found = cardService.findByCardIdentifier(phone);
 
@@ -128,7 +121,6 @@ public class CardServiceTest {
         when(repository.findById(10L)).thenReturn(Optional.of(card));
         when(clientService.checkPassword("1234", 1L)).thenReturn(true);
         doNothing().when(identityService).throwIfPasswordAttemptLimit(anyLong(), eq(true));
-
         when(encodeService.decodeString(anyString(), anyLong())).thenReturn("decodedValue");
 
         Map<String, String> details = cardService.revealCardDetails(1L, "1234", 10L);
@@ -148,7 +140,8 @@ public class CardServiceTest {
     void getOwner_ByPhone_Success() {
         String phone = "+79001234567";
         when(clientService.findByPhone(phone)).thenReturn(client);
-        when(repository.findById(1L)).thenReturn(Optional.of(card));
+        when(clientService.findByIdOrThrow(anyLong())).thenReturn(client);
+        when(repository.findAllByClientId(anyLong())).thenReturn(List.of(card));
 
         String owner = cardService.getOwner(phone);
 
@@ -158,14 +151,6 @@ public class CardServiceTest {
     @Test
     void getOwner_CardNotFound() {
         when(clientService.findByPhone(anyString())).thenReturn(client);
-        when(repository.findById(anyLong())).thenReturn(Optional.empty());
-
-        assertThrows(CustomNotFoundException.class, () -> cardService.getOwner("+79001234567"));
-    }
-
-    @Test
-    void getOwner_OwnerNotFound() {
-        when(clientService.findByPhone(anyString())).thenReturn(null);
 
         assertThrows(CustomNotFoundException.class, () -> cardService.getOwner("+79001234567"));
     }

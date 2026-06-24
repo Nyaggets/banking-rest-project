@@ -3,13 +3,15 @@ package com.banking.Banking.Service;
 import com.banking.Banking.Dto.ClientDtoRequest;
 import com.banking.Banking.Dto.PassportDto;
 import com.banking.Banking.Dto.UpdatePasswordDto;
-import com.banking.Banking.Dto.UpdateSafeDataDto;
+import com.banking.Banking.Dto.UpdateDataDto;
 import com.banking.Banking.Entity.Client;
 import com.banking.Banking.Entity.SessionUser;
 import com.banking.Banking.Repository.ClientRepository;
 import com.banking.Banking.validation.CustomException;
+import com.banking.Banking.validation.CustomNotFoundException;
 import com.banking.Banking.validation.RequestLimitException;
 import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -42,7 +44,7 @@ public class ClientService implements UserDetailsService {
         this.phoneService = phoneService;
     }
 
-    public boolean createClient(ClientDtoRequest dto) {
+    public Client createClient(ClientDtoRequest dto) {
         if (repository.findByPhone(dto.getPhone()).isPresent())
             throw new CustomException("DUPLICATE", Map.of("phone", "Пользователь с такими номером телефона уже существует"));
         if (repository.findByLogin(dto.getLogin()).isPresent())
@@ -62,11 +64,10 @@ public class ClientService implements UserDetailsService {
                 .passportDepartmentCode(encodeService.encodeString(dto.getPassportDepartmentCode()))
                 .passportIssueDate(String.valueOf(dto.getPassportIssueDate()))
                 .build();
-        repository.save(client);
-        return true;
+        return repository.save(client);
     }
 
-    public Client updateClient(Long clientId, UpdateSafeDataDto dto) {
+    public Client updateClient(Long clientId, UpdateDataDto dto) {
         Client client = findByIdOrThrow(clientId);
         Map<String, String> errors = new HashMap<>();
         if (dto.getPhone() != null) {
@@ -107,7 +108,9 @@ public class ClientService implements UserDetailsService {
     /**
      * Метод для получения полных данных паспорта с учетом количества попыток подтверждения личности
      */
-    public PassportDto revealPassport(Long clientId, String password) throws AccessDeniedException, RequestLimitException {
+    public PassportDto revealPassport(Long clientId, String password)
+            throws AccessDeniedException, RequestLimitException {
+
         attemptsCount.throwIfPasswordAttemptLimit(clientId, checkPassword(password, clientId));
         Client client = findByIdOrThrow(clientId);
         return PassportDto.builder()
@@ -116,7 +119,7 @@ public class ClientService implements UserDetailsService {
                 .fullName(client.getFullName())
                 .issuedBy(encodeService.decodeString(client.getPassportIssuedBy()))
                 .departmentCode(encodeService.decodeString(client.getPassportDepartmentCode()))
-                .issueDate(LocalDate.parse(encodeService.decodeString(client.getPassportIssueDate()), DateTimeFormatter.ofPattern("yyyy.MM.dd")))
+                .issueDate(LocalDate.parse(client.getPassportIssueDate(), DateTimeFormatter.ofPattern("yyyy-MM-dd")))
                 .build();
     }
 
@@ -149,5 +152,13 @@ public class ClientService implements UserDetailsService {
         }
         Client client = findByLoginOrThrow(login);
         return new SessionUser(client);
+    }
+
+    public String ownerByPhone(Long id, String phone) {
+        findByIdOrThrow(id);
+        Client clientByPhone = findByPhone(phone);
+        if (clientByPhone == null)
+            throw new CustomNotFoundException("Получатель не найден", "receiver");
+        return clientByPhone.getShortenFullName();
     }
 }

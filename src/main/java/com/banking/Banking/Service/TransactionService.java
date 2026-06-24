@@ -57,13 +57,17 @@ public class TransactionService {
     }
 
     public Transaction createTransferToInternalClient(Long currentClientId, TransferDtoRequest transactionDto) {
-        validationService.transferValidation(currentClientId, transactionDto);
-
-        UUID uuid = UUID.randomUUID();
-        Card senderCard = cardService.findById(transactionDto.getClientCardId());
+        Card senderCard = cardService.findByIdOrThrow(transactionDto.getClientCardId(), "sender");
         Card receiverCard = cardService.findByCardIdentifier(transactionDto.getCounterpartyCardIdentifier());
-        boolean isInternal = senderCard.getClient().getId() == receiverCard.getClient().getId();
+        if (receiverCard == null)
+            throw new CustomNotFoundException("Карта получателя не найдена", "receiver");
         BigDecimal commission = calculateCommission(transactionDto.getAmount(), OperationTypeEnum.TRANSFER_OUT);
+        BigDecimal totalAmount = transactionDto.getAmount().add(commission);
+
+        validationService.transferValidation(currentClientId, transactionDto, senderCard, totalAmount);
+
+        boolean isInternal = senderCard.getClient().getId().equals(receiverCard.getClient().getId());
+        UUID uuid = UUID.randomUUID();
         Transaction transactionOut = Transaction.builder()
                 .operationType(OperationTypeEnum.TRANSFER_OUT)
                 .isInternal(isInternal)
@@ -74,7 +78,7 @@ public class TransactionService {
                 .counterpartyType(CounterpartyTypeEnum.CLIENT)
                 .amount(transactionDto.getAmount())
                 .commission(commission)
-                .totalAmount(transactionDto.getAmount().add(commission))
+                .totalAmount(totalAmount)
                 .description(transactionDto.getDescription())
                 .timestamp(LocalDateTime.now())
                 .build();
@@ -91,9 +95,10 @@ public class TransactionService {
                 .description(transactionDto.getDescription())
                 .timestamp(LocalDateTime.now())
                 .build();
-        BigDecimal senderBalance = senderCard.getBalance();
-        senderCard.setBalance(senderBalance.subtract(transactionOut.getTotalAmount()));
+
+        senderCard.setBalance(senderCard.getBalance().subtract(totalAmount));
         receiverCard.setBalance(receiverCard.getBalance().add(transactionIn.getAmount()));
+
         repository.save(transactionIn);
         return repository.save(transactionOut);
     }
@@ -119,27 +124,18 @@ public class TransactionService {
 
     public Transaction createWithdrawal(Long currentClientId, WithdrawalDtoRequest dtoRequest,
                                         CounterpartyTypeEnum counterpartyType) {
-        validationService.withdrawalValidation(currentClientId, dtoRequest);
+        Card senderCard = cardService.findByIdOrThrow(dtoRequest.getClientCardId(), "sender");
 
-        String counterpartyName;
-        String counterpartyIdentifier;
-        if (counterpartyType == CounterpartyTypeEnum.MERCHANT) {
-            counterpartyName = dtoRequest.getCounterpartyName() != null ? dtoRequest.getCounterpartyName() : "Оплата услуги";
-            counterpartyIdentifier = dtoRequest.getCounterpartyIdentifier();
-        } else {
-            counterpartyName = dtoRequest.getCounterpartyName() != null ? dtoRequest.getCounterpartyName() : "Покупка";
-            counterpartyIdentifier = null;
-        }
+        validationService.withdrawalValidation(currentClientId, senderCard, dtoRequest.getAmount());
 
-        Card senderCard = cardService.findById(dtoRequest.getClientCardId());
         BigDecimal commission = calculateCommission(dtoRequest.getAmount(), OperationTypeEnum.WITHDRAWAL);
         Transaction transaction = Transaction.builder()
                 .operationType(OperationTypeEnum.WITHDRAWAL)
                 .isInternal(false)
                 .clientCard(senderCard)
-                .counterpartyName(counterpartyName)
-                .counterpartyIdentifier(counterpartyIdentifier)
-                .counterpartyType(counterpartyType)
+                .counterpartyName(dtoRequest.getCounterpartyName())
+                .counterpartyIdentifier(dtoRequest.getCounterpartyIdentifier())
+                .counterpartyType(counterpartyType) 
                 .amount(dtoRequest.getAmount())
                 .commission(commission)
                 .totalAmount(dtoRequest.getAmount().add(commission))
@@ -161,10 +157,6 @@ public class TransactionService {
         return createWithdrawal(currentClientId, topUpDto, CounterpartyTypeEnum.MERCHANT);
     }
 
-    public List<Transaction> findByCardId(Long cardId) {
-        return repository.findByCardId(cardId);
-    }
-
     public Transaction findById(Long transactionId, Authentication auth) throws AccessDeniedException {
         var transaction = repository.findById(transactionId).orElseThrow(() -> new CustomNotFoundException("Операция не найдена", "transaction"));
         var client = clientService.findByLoginOrThrow(auth.getName());
@@ -173,57 +165,37 @@ public class TransactionService {
         return transaction;
     }
 
-    public Page<Transaction> findTransactions(Long clientId, int pageNum) {
-        Pageable pageable = PageRequest.of(pageNum, PAGE_SIZE, Sort.by(Sort.Direction.DESC, "timestamp"));
-        clientService.findByIdOrThrow(clientId);
-        List<Long> cards = cardService.findByClientId(clientId).stream()
-                .map(Card::getId)
-                .toList();
-        Specification<Transaction> spec = Specification.unrestricted();
-        spec = spec.and(QuerySpec.removeTransferDuplicates());
-        spec = spec.and(QuerySpec.belongsInCards(cards));
-        return repository.findAll(spec, pageable);
-    }
-
     public Page<Transaction> findTransactions(Long clientId, int pageNum, @Nullable List<OperationTypeEnum> types,
-                  @Nullable Long cardId, @Nullable String start, @Nullable String end) throws AccessDeniedException {
+              @Nullable Long cardId, @Nullable LocalDate start, @Nullable LocalDate end) throws AccessDeniedException {
         clientService.findByIdOrThrow(clientId);
-        if (cardId != null && !cardService.belongsToClientOrThrow(clientId, cardId, "card"))
-            throw new AccessDeniedException("Доступ к карте запрещен");
-
         List<Long> cards = cardService.findByClientId(clientId).stream()
                 .map(Card::getId)
                 .toList();
         Pageable pageable = PageRequest.of(pageNum, PAGE_SIZE, Sort.by(Sort.Direction.DESC, "timestamp"));
-        Specification<Transaction> spec = Specification.allOf(QuerySpec.removeTransferDuplicates());
+        Specification<Transaction> spec = Specification.unrestricted();
         if (!cards.isEmpty())
             spec = spec.and(QuerySpec.belongsInCards(cards));
-        if (cardId != null)
-            spec = spec.and(QuerySpec.belongsToCard(cardId));
         if (types != null)
             spec = spec.and(QuerySpec.hasType(types));
         if (start != null && end != null) {
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-            String errorField = "";
-            try {
-                errorField = "start";
-                LocalDateTime startDate = LocalDate.parse(start, formatter).atStartOfDay();
-                errorField = "end";
-                LocalDateTime endDate = LocalDate.parse(end, formatter).atTime(LocalTime.MAX);
-
-                spec = spec.and(QuerySpec.timestampBetween(startDate, endDate));
-            }
-            catch (DateTimeParseException ex) {
-                throw new RuntimeException("Некорректное значение параметра '%s'".formatted(errorField));
-            }
+            LocalDateTime startDate = start.atStartOfDay();
+            LocalDateTime endDate = end.atTime(LocalTime.MAX);
+            spec = spec.and(QuerySpec.timestampBetween(startDate, endDate));
         }
+        if (cardId != null) {
+            Card card = cardService.findByIdOrThrow(cardId, "card");
+            cardService.belongsToClientOrThrow(clientId, card);
+            spec = spec.and(QuerySpec.belongsToCard(cardId));
+        }
+        else
+            spec = spec.and(QuerySpec.removeTransferDuplicates());
         return repository.findAll(spec, pageable);
     }
 
     public CardStatsDto getMonthlyStats(Long cardId, Long clientId) throws AccessDeniedException {
         clientService.findByIdOrThrow(clientId);
-        if (!cardService.belongsToClientOrThrow(clientId, cardId, "card"))
-            throw new AccessDeniedException("Доступ к карте запрещен");
+        Card card = cardService.findByIdOrThrow(cardId, "card");
+        cardService.belongsToClientOrThrow(clientId, card);
 
         LocalDate start = LocalDate.of(LocalDate.now().getYear(), LocalDate.now().getMonthValue(), 1);
         LocalDate end = start.plusMonths(1);

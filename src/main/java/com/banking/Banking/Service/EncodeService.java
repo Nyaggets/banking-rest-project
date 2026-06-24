@@ -39,6 +39,9 @@ public class EncodeService {
     }
 
     public String encodeString(String line, Long clientId) {
+        if (line == null || line.isBlank())
+            throw new IllegalArgumentException("Cannot encode null or empty value");
+
         try {
             byte[] cipherText = aead.encrypt(line.getBytes(), clientId.toString().getBytes());
             return Base64.getEncoder().encodeToString(cipherText);
@@ -48,6 +51,9 @@ public class EncodeService {
     }
 
     public String encodeString(String line) {
+        if (line == null || line.isBlank())
+            throw new IllegalArgumentException("Cannot encode null or empty value");
+
         try {
             byte[] cipherText = aead.encrypt(line.getBytes(), "".getBytes());
             return Base64.getEncoder().encodeToString(cipherText);
@@ -57,6 +63,9 @@ public class EncodeService {
     }
 
     public String decodeString(String lineBase64, Long clientId) {
+        if (lineBase64 == null || lineBase64.isBlank())
+            throw new IllegalArgumentException("Cannot decode null or empty value");
+
         try {
             byte[] cipherText = Base64.getDecoder().decode(lineBase64);
             byte[] decodedLine = aead.decrypt(cipherText, clientId.toString().getBytes());
@@ -67,6 +76,9 @@ public class EncodeService {
     }
 
     public String decodeString(String lineBase64) {
+        if (lineBase64 == null || lineBase64.isBlank())
+            throw new IllegalArgumentException("Cannot decode null or empty value");
+
         try {
             byte[] cipherText = Base64.getDecoder().decode(lineBase64);
             byte[] decodedLine = aead.decrypt(cipherText, "".getBytes());
@@ -77,6 +89,9 @@ public class EncodeService {
     }
 
     public String generateSha256Hash(String line) {
+        if (line == null || line.isBlank())
+            throw new IllegalArgumentException("Cannot hash null or empty value");
+
         try {
             byte[] hash = MessageDigest.getInstance("SHA-256").digest(line.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(hash);

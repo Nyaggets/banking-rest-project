@@ -22,13 +22,13 @@ public class QuerySpec {
         };
     }
     public static Specification<Transaction> hasType(List<OperationTypeEnum> types) {
-        return (root, query, criteriaBuilder) -> {
-            Predicate typeIn = root.get("operationType").in(types);
+            return (root, query, criteriaBuilder) -> {
+            Predicate operationType = root.get("operationType").in(types);
             if (types.contains(OperationTypeEnum.TRANSFER_IN) && types.contains(OperationTypeEnum.TRANSFER_OUT))
-                return typeIn;
+                return operationType;
 
             return criteriaBuilder.and(
-                    typeIn,
+                    operationType,
                     criteriaBuilder.equal(root.get("isInternal"), false)
             );
         };

@@ -15,9 +15,16 @@ const passportCollapseEl = document.getElementById('passport-collpase')
 
 phoneInput.value = formatPhoneOrCard(client.phone)
 loginInput.value = client.login
-phoneInput.addEventListener('input', () => formatPhoneOrCard(phoneInput.value))
-document.getElementById('data-form').addEventListener('submit', async (e) => {
+phoneInput.addEventListener('input', async () => {
+    phoneInput.value = formatPhoneOrCard(phoneInput.value)
+})
+dataForm.addEventListener('submit', async (e) => {
     e.preventDefault()
+    dataForm.querySelectorAll('.error-msg').forEach(elem => {
+        elem.hidden = true
+        elem.innerText = ''
+    })
+
     const body = {
         login: loginInput.value.trim(),
         phone: phoneInput.value.trim()
@@ -40,8 +47,12 @@ document.getElementById('data-form').addEventListener('submit', async (e) => {
     saveDataBtn.blur()
 })
 
-document.getElementById('password-form').addEventListener('submit', async (e) => {
+passwordForm.addEventListener('submit', async (e) => {
     e.preventDefault()
+    passwordForm.querySelectorAll('.error-msg').forEach(elem => {
+        elem.hidden = true
+        elem.innerText = ''
+    })
     const body = Object.fromEntries(new FormData(passwordForm).entries())
     const response = await fetch(`${API_BASE}/clients/password`, {
         method: 'PATCH',
@@ -57,10 +68,10 @@ document.getElementById('password-form').addEventListener('submit', async (e) =>
         processResponse(response)
 })
 
+//подтверждение личности для просмотра паспорта
 const modalEl = document.getElementById('confirm-modal')
 const modalInput = document.getElementById('password-input')
 const modalConfirmBtn = document.getElementById('password-conf-btn')
-
 passportRevealBtn.addEventListener('click', (e) => {
     e.preventDefault()
     if (passportCollapseEl.classList.contains('show')) {
@@ -70,11 +81,9 @@ passportRevealBtn.addEventListener('click', (e) => {
     }
     bootstrap.Modal.getOrCreateInstance(modalEl).show()
 })
-
 modalEl.addEventListener('hidden.bs.modal', () => {
     modalInput.value = ''
 })
-
 const modalForm = document.getElementById('password-conf-form')
 modalForm.addEventListener('submit', async (e) => {
     e.preventDefault()

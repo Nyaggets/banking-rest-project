@@ -21,7 +21,6 @@ public class CardService {
     private final ClientService clientService;
     private final EncodeService encodeService;
     private final VerifyIdentityService identityService;
-
     public CardService(CardRepository repository, ClientService clientService, EncodeService encodeService, VerifyIdentityService identityService) {
         this.repository = repository;
         this.clientService = clientService;
@@ -61,6 +60,10 @@ public class CardService {
         for (int i = 0; i < 20; i++)
             accountNumber.append(random.nextInt(10));
 
+        StringBuilder pinCode = new StringBuilder();
+        for (int i = 0; i < 4; i++)
+            pinCode.append(random.nextInt(10));
+
         Card card = Card.builder()
                         .client(client)
                         .clientName(client.getName())
@@ -73,6 +76,8 @@ public class CardService {
                         .cardNumberHash(encodeService.generateSha256Hash(cardNumber))
                         .cvvHash(encodeService.generateSha256Hash(cvv))
                         .accountNumber(accountNumber.toString())
+                        .pinCode(encodeService.encodeString(pinCode.toString(), clientId))
+                        .pinCodeHash(encodeService.generateSha256Hash(pinCode.toString()))
                         .build();
         return repository.save(card);
     }
@@ -102,23 +107,29 @@ public class CardService {
         return repository.findByLast4(last4).orElse(null);
     }
 
-    public boolean belongsToClientOrThrow(Long clientId, Long cardId, String field) {
-        Card card = findByIdOrThrow(cardId, field);
-        return Objects.equals(card.getClient().getId(), clientId);
+    public void belongsToClientOrThrow(Long clientId, Card card) {
+        if (!Objects.equals(card.getClient().getId(), clientId))
+            throw new AccessDeniedException("Доступ к карте запрещен");
     }
 
     public Card findByCardIdentifier(String identifier) {
         Card card;
-        if (identifier.matches("^(\\+?7|8)\\d{10}$")) {
+        if (identifier.matches("^\\d{20}$"))
+            card = findByCardNumberHash(identifier);
+
+        else if (identifier.matches("^\\d{4}$"))
+            card = findByLast4(identifier);
+
+        else if (identifier.matches("^(\\+?7|8)\\d{10}$")) {
             Client client = clientService.findByPhone(identifier);
             if (client == null)
                 throw new CustomNotFoundException("Получатель не найден", "receiver");
-            card = findByIdOrThrow(client.getId(), "receiver");
+            List<Card> clientCards = findByClientId(client.getId());
+            if (clientCards == null || clientCards.isEmpty())
+                throw new CustomNotFoundException("У получателя нет привязанных карт", "receiver");
+            return clientCards.getFirst();
         }
-        else if (identifier.matches("^\\d{20}$"))
-            card = findByCardNumberHash(identifier);
-        else if (identifier.matches("^\\d{4}$"))
-            card = findByLast4(identifier);
+
         else
             card = findById(Long.valueOf(identifier));
 
@@ -136,10 +147,9 @@ public class CardService {
      * Метод для получения полных данных карты с учетом количества попыток подтверждения личности
      */
     public Map<String, String> revealCardDetails(Long clientId, String password, Long cardId) throws AccessDeniedException {
-        if (!belongsToClientOrThrow(clientId ,cardId, "sender"))
-            throw new AccessDeniedException("Доступ к карте запрещен");
+        Card card = findByIdOrThrow(cardId, "sender");
+        belongsToClientOrThrow(clientId, card);
         identityService.throwIfPasswordAttemptLimit(clientId, clientService.checkPassword(password, clientId));
-        Card card = findByIdOrThrow(cardId, "card");
         return new HashMap<>() {{
             put("cvv", encodeService.decodeString(card.getCvv(), clientId));
             put("cardNumber", encodeService.decodeString(card.getCardNumber(), clientId));

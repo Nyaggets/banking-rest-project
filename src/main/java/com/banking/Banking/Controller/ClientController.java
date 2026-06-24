@@ -1,8 +1,9 @@
 package com.banking.Banking.Controller;
 
+import com.banking.Banking.Dto.ClientDtoRequest;
 import com.banking.Banking.Dto.PassportDto;
 import com.banking.Banking.Dto.UpdatePasswordDto;
-import com.banking.Banking.Dto.UpdateSafeDataDto;
+import com.banking.Banking.Dto.UpdateDataDto;
 import com.banking.Banking.Entity.Client;
 import com.banking.Banking.Entity.SessionUser;
 import com.banking.Banking.Mapper.ClientMapper;
@@ -15,7 +16,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -28,6 +31,17 @@ public class ClientController {
     private ClientService clientService;
     @Autowired
     private ClientMapper clientMapper;
+
+    /**
+     * Добавление клиента
+     */
+    @PostMapping
+    public ResponseEntity<?> createClient(@Valid @RequestBody ClientDtoRequest dto){
+        clientService.createClient(dto);
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .body(Map.of("success", "Клиент создан"));
+    }
 
     /**
      * Получение данных текущего пользователя
@@ -46,11 +60,15 @@ public class ClientController {
      * Получение данных профиля текущего пользователя
      */
     @PatchMapping("/profile")
-    public ResponseEntity<?> updateClient(Authentication auth, @RequestBody @Valid UpdateSafeDataDto dtoParams) {
+    public ResponseEntity<?> updateClient(Authentication auth, @RequestBody @Valid UpdateDataDto dtoParams) {
         SessionUser client = (SessionUser) auth.getPrincipal();
 
         Client updatedClient = clientService.updateClient(client.getId(), dtoParams);
-        return ResponseEntity.ok(clientMapper.toDtoResponse(updatedClient));
+        SessionUser updatedUser = new SessionUser(updatedClient);
+        Authentication newAuth = new UsernamePasswordAuthenticationToken(
+                updatedUser, auth.getCredentials(), auth.getAuthorities());
+        SecurityContextHolder.getContext().setAuthentication(newAuth);
+        return ResponseEntity.ok(clientMapper.toDto(updatedClient));
     }
 
     /**
@@ -61,7 +79,7 @@ public class ClientController {
         SessionUser client = (SessionUser) auth.getPrincipal();
 
         Client updatedClient = clientService.updateClient(client.getId(), dtoParams);
-        return ResponseEntity.ok(clientMapper.toDtoResponse(updatedClient));
+        return ResponseEntity.ok(clientMapper.toDto(updatedClient));
     }
 
     /**
@@ -73,5 +91,16 @@ public class ClientController {
         return ResponseEntity.ok()
                 .cacheControl(CacheControl.noStore())
                 .body(clientService.revealPassport(client.getId(), requestBody.get("password")));
+    }
+
+    /**
+     * Получение ФИО пользователя по номеру телефона
+     */
+    @GetMapping("/phone-owner")
+    public ResponseEntity<?> phoneOwner(Authentication auth, @RequestParam String phone) {
+        SessionUser client = (SessionUser) auth.getPrincipal();
+
+        String owner = clientService.ownerByPhone(client.getId(), phone);
+        return ResponseEntity.ok(Map.of("fullName", owner));
     }
 }

@@ -19,10 +19,10 @@ const currentParams = {
     start: url.get('start'),
     end: url.get('end')        
 }
-const getCleanParams = () => Object.fromEntries(Object.entries(currentParams).filter(([key, value]) => 
-    value != null && (!Array.isArray(value) || value.length > 0)))
-
-const formatShortDate = (date) => new Intl.DateTimeFormat('ru', {dateStyle: 'short'}).format(new Date(date))
+const getCleanParams = () => 
+    Object.fromEntries(Object.entries(currentParams).filter(([key, value]) => value != null && (!Array.isArray(value) || value.length > 0)))
+const formatShortDate = (date) => 
+    new Intl.DateTimeFormat('ru', {dateStyle: 'short'}).format(new Date(date))
 const selectedPeriodEl = document.getElementById('selected-period')
 const showSelectedPeriod = () => {
     const params = getCleanParams()
@@ -31,7 +31,6 @@ const showSelectedPeriod = () => {
     else
         selectedPeriodEl.innerHTML = ''
 }
-
 const buildUrlWithParams = (baseUrl) => {
     const newUrl = new URL(baseUrl)
     Object.entries(getCleanParams()).forEach(([key, value]) => {
@@ -42,7 +41,6 @@ const buildUrlWithParams = (baseUrl) => {
     })
     return newUrl
 }
-
 const clearFilters = () => {
     Object.keys(currentParams).forEach(key => currentParams[key] = null)
     showSelectedPeriod.innerHTML = ''
@@ -82,13 +80,13 @@ const loadPage = async () => {
     window.history.pushState(getCleanParams(), '', currentPageUrl)
 }   
 
+//генерация ссылок для кнопок пагинации
 const generatePagination = () => {
     const navEl = document.getElementById('pagination-nav')
     if (pagesCount == 0) {
         navEl.hidden = true
         return
     }
-    
     const currentPageNum = getCleanParams().page ?? '0'
     navEl.hidden = false
     paginationContainer.innerHTML = ''
@@ -100,7 +98,6 @@ const generatePagination = () => {
         li.appendChild(link)
         paginationContainer.appendChild(li)
     }
-
     document.querySelectorAll('.page-number-link').forEach(btn => {
         btn.href = buildUrlWithParams(`${URL_BASE}/history`, getCleanParams())
     })
@@ -111,7 +108,6 @@ paginationContainer.addEventListener('click', async (e) => {
     const target = e.target.closest('.page-number-link')
     if (!target)
         return
-
     currentParams.page = e.target.dataset.page
     loadPage()
 })
@@ -141,7 +137,7 @@ cardSelect.addEventListener('change', async () => {
     loadPage()
 })
 
-
+//задание данных для календаря flatpickr
 const dateRangeInput = document.getElementById('date-range-picker')
 const fp = flatpickr(dateRangeInput, {
     mode: "range",
@@ -165,7 +161,7 @@ const fp = flatpickr(dateRangeInput, {
     onReady: (selectedDates, dateStr, instance) => {
         if (instance.calendarContainer.querySelector('#flatpickr-confirm-btn')) 
             return
-        const confirmBtn = createNewElement('button', 'main-btn, mb-2', 'Применить период')
+        const confirmBtn = createNewElement('button', 'main-btn mb-2', 'Применить период')
         confirmBtn.id = 'flatpickr-confirm-btn'
         confirmBtn.type = 'button'
 

@@ -20,29 +20,33 @@ const fillOperationInfo = (icon, labelText, titleText, container, titleClass) =>
     return
   const label = createNewElement('p', titleClass ?? '', `<i class='fa ${icon} me-2 mb-1 detail-label caption ${titleClass ?? ''}'></i>${labelText}`)
   const title = createNewElement('h3', 'mb-0', titleText)
-  
   container.appendChild(label)
   container.appendChild(title)
 }
 
 document.getElementById('operation-title-container').classList.add(`direction-${transaction.direction}`)
 document.getElementById('operation-title').innerHTML = transaction.operationTypeRu
-document.getElementById('amount').innerText = `${formatAmount(transaction.amount)} ₽`
+document.getElementById('amount').innerText = `${formatAmount(transaction.totalAmount)} ₽`
 const commissionEl = document.getElementById('commission')
-const commisionText = transaction.commission && transaction.commission != 0 ? `${formatAmount(transaction.commission)} ₽` : 'Нет комисии'
-fillOperationInfo('fa-solid fa-percent', 'Комиссия', commisionText, commissionEl)
-if (transaction.commission == 0)
-    commissionEl.classList.add('grey-text')
+if (transaction.direction != 'out')
+  commissionEl.remove()
+else {
+  const commisionText = transaction.commission && transaction.commission != 0 
+    ? `${formatAmount(transaction.commission)} ₽` 
+    : 'Нет комисии'
+  fillOperationInfo('fa-solid fa-percent', 'Комиссия', commisionText, commissionEl)
+  if (transaction.commission == 0)
+      commissionEl.classList.add('grey-text')
+} 
 
+//форматиорвание блоков получателя и отправителя
+const formatCounterpartyText = () => {
+  const counterpatryClient = transaction.counterpartyName ? ` (${transaction.counterpartyName})` : ''
+  return `${transaction.counterpartyIdentifier}${counterpatryClient}`
+}
 const counterpartyEl = document.getElementById('counterparty-container')
 const clientEl = document.getElementById('client-container')
 counterpartyEl.innerHTML = '' 
-const formatCounterpartyText = () => {
-  const name = transaction.counterpartyName ? ` (${transaction.counterpartyName})` : ''
-  return `${transaction.counterpartyIdentifier}${name}`
-}
-
-commissionEl.hidden = (transaction.operationType !== 'WITHDRAWAL')
 const isOut = transaction.operationType === 'TRANSFER_OUT'
 if (transaction.operationType === 'WITHDRAWAL') {
   fillOperationInfo('fa-arrow-down', 'Получатель', transaction.counterpartyName, counterpartyEl, 'transaction-receiver')

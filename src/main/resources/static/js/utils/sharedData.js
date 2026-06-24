@@ -20,7 +20,8 @@ const operationIcons = {
   CLIENT: 'money-bill-transfer',
   MERCHANT: 'receipt',
   PURCHASE: 'shopping-basket',
-  EMPLOYER: 'building',
+  SALARY: 'building',
+  REFUND: 'undo',
   DEFAULT: 'times'
 }
 
@@ -38,6 +39,12 @@ const refactorTransaction = (transaction) => {
   transaction.signIcon = amountIcons[transaction.direction.toUpperCase()] || amountIcons.DEFAULT
   transaction.operationIcon = operationIcons[transaction.counterpartyType.toUpperCase()] || operationIcons.DEFAULT
   transaction.operationTypeRu = typesRu[transaction.operationType.toUpperCase()] || typesRu.DEFAULT
+  if (transaction.counterpartyType == 'PURCHASE') 
+    transaction.operationTypeRu = 'Оплата товаров или услуг'
+  else if (transaction.counterpartyType == 'SALARY') 
+    transaction.operationTypeRu = 'Зарплата'
+  else if (transaction.counterpartyType == 'REFUND') 
+    transaction.operationTypeRu = 'Возврат'
   
   if (transaction.counterpartyIdentifier?.length == 4)
     transaction.counterpartyIdentifier = `****${transaction.counterpartyIdentifier}`

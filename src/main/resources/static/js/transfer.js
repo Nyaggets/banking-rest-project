@@ -6,41 +6,76 @@ showSpinner()
 showClientLogin()
 const url = window.location.search
 const search = new URLSearchParams(url)
+//обработка селектов получателя и отправителя
 let urlSenderCard
-if (search.has('from')) 
-    urlSenderCard = await getData(`${API_BASE}/cards/${search.get('from')}`)
+if (search.has('from')) {
+    const senderCard = await getData(`${API_BASE}/cards/${search.get('from')}`)
+    urlSenderCard = senderCard.id
+}
+if (!urlSenderCard) 
+    urlSenderCard = cards[0]?.id
 
-const fillCardSelect = (selectEl, excludedId) => {
-    selectEl.innerHTML = ''
-    const selectedId = selectEl.value
-    let index = 0
-    cards.forEach((card) => {
-        if (excludedId && card.id == excludedId) 
-            return
-        selectEl[index++] = new Option(formatCardOption(card), card.id, false, selectedId && card.id == selectedId)
+const fillSelect = (selectEl) => {
+    cards.forEach(card => {
+        selectEl.add(new Option(formatCardOption(card), card.id))
     })
 }
-//отображение поля ввода в зависимости от типа операции
+const syncSelects = (initialSenderValue = null) => {
+    internalSelect.querySelectorAll('option').forEach(opt => opt.disabled = false)
+    senderSelect.querySelectorAll('option').forEach(opt => opt.disabled = false)
+    if (initialSenderValue) 
+        senderSelect.value = initialSenderValue
+    const currentSenderValue = senderSelect.value
+    const currentReceiverValue = internalSelect.value
+
+    if (currentSenderValue) {
+        const opt = internalSelect.querySelector(`option[value="${currentSenderValue}"]`)
+        if (opt) 
+            opt.disabled = true
+    }
+    if (!currentReceiverValue || internalSelect.querySelector(`option[value="${currentReceiverValue}"]`)?.disabled) {
+        const firstAvailable = [...internalSelect.options].find(o => !o.disabled && o.value)
+        if (firstAvailable) 
+            internalSelect.value = firstAvailable.value
+    }
+
+    const newReceiverValue = internalSelect.value
+    if (newReceiverValue) {
+        const opt = senderSelect.querySelector(`option[value="${newReceiverValue}"]`)
+        if (opt) 
+            opt.disabled = true
+    }
+    const newSenderValue = senderSelect.value
+    if (newSenderValue && senderSelect.querySelector(`option[value="${newSenderValue}"]`)?.disabled) {
+        const firstAvailable = [...senderSelect.options].find(o => !o.disabled && o.value)
+        if (firstAvailable) 
+            senderSelect.value = firstAvailable.value
+    }
+}
+
 const senderSelect = document.getElementById('sender-cards-select')
 const internalRec = document.querySelector('.internal-rec')
 const internalSelect = document.querySelector('.receiver-cards-select')
 const externalInput = document.querySelector('.external-rec')
 const type = search.get('type')
-if (!search.has('type') || type == 'INTERNAL') {
+if (!search || type == 'INTERNAL') {
     externalInput.remove()
     internalRec.hidden = false
 
-    internalSelect.addEventListener('change', () => fillCardSelect(senderSelect, internalSelect.value))
-    senderSelect.addEventListener('change', () => fillCardSelect(internalSelect, senderSelect.value))
+    fillSelect(senderSelect)
+    fillSelect(internalSelect)
 
-    const senderSelectedId = urlSenderCard?.id ?? cards[0]?.id
-    fillCardSelect(internalSelect, senderSelectedId)
-    fillCardSelect(senderSelect, internalSelect.value)   
-}
+    syncSelects(urlSenderCard)
+    internalSelect.addEventListener('change', () => syncSelects())
+    senderSelect.addEventListener('change', () => syncSelects())
+} 
 else {
     internalRec.remove()
     externalInput.hidden = false
-    fillCardSelect(senderSelect)
+
+    fillSelect(senderSelect)
+    if (urlSenderCard) 
+        senderSelect.value = urlSenderCard
 }
 
 //отображение имени получателя
@@ -53,6 +88,9 @@ const clearField = (field) => {
 }
 receiverInput.addEventListener('input', async () => {
     receiverInput.value = formatPhoneOrCard(receiverInput.value)
+    if (!recipientNameEl)
+        return
+
     recipientNameEl.innerHTML = ''
     const identifier = receiverInput.value.trim().replace(/[\s+]/g, '')
     if (identifier.length < 11) {
@@ -60,7 +98,6 @@ receiverInput.addEventListener('input', async () => {
         recipientNameEl.hidden = true
         return
     }
-
     const response = await fetch(`${API_BASE}/cards/owner?identifier=${identifier}`)
     if (response.ok) {
         clearField(errorElement)
@@ -78,6 +115,7 @@ receiverInput.addEventListener('input', async () => {
     }
 })
 
+//ограничение длины комментария
 const descriptionInput = document.getElementById('description')
 const inputCount = document.getElementById('description-size')
 const updateCount = () => inputCount.innerText = `${DESCRIPTION_MAX - descriptionInput.value.length}/${DESCRIPTION_MAX}`
@@ -91,7 +129,7 @@ descriptionInput.addEventListener('input', () => {
     
 })
 
-//расчет комиссии
+//расчет и форматирование комиссии
 const transferBtn = document.getElementById('transfer-btn')
 const commissionEl = document.getElementById('commission-amount')
 const calcCommission = async (amountInputEl) => {

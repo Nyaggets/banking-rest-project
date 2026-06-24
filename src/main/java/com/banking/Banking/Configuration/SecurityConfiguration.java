@@ -33,7 +33,7 @@ public class SecurityConfiguration {
                 .csrf(csrf -> csrf.disable())
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                    .requestMatchers("/login*", "/logout", "/static/**", "/js/**", "/js/utils/**", "/session-expired").permitAll()
+                    .requestMatchers("/login*", "/logout", "/static/**", "/js/**", "/js/utils/**", "/session-expired", "/*.png", "/*.ico", "/*.jpg", "/*.css", "/*.js"  ).permitAll()
                     .requestMatchers("/main", "/transfer", "/history", "/profile", "/card", "/transaction", "/balance-deposit").hasAuthority("USER")
                     .anyRequest().authenticated()
                 )

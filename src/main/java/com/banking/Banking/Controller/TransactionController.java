@@ -14,6 +14,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -22,6 +23,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -57,11 +59,20 @@ public class TransactionController {
     }
 
     /**
-     * Создание операции пополнения на карту клиента
+     * Создание операции получения зарплаты на карту клиента
      */
-    @PostMapping("/{cardId}/transactions/deposit")
+    @PostMapping("/{cardId}/transactions/salary")
+    public ResponseEntity<?> createSalaryDeposit(@Valid @RequestBody DepositDtoRequest depositDto) {
+        Transaction deposit = transactionService.createDeposit(depositDto, CounterpartyTypeEnum.SALARY);
+        return new ResponseEntity<>(Map.of("operationId", deposit.getId()), HttpStatus.CREATED);
+    }
+
+    /**
+     * Создание операции возврата суммы на карту клиента
+     */
+    @PostMapping("/{cardId}/transactions/refund")
     public ResponseEntity<?> createExternalDeposit(@Valid @RequestBody DepositDtoRequest depositDto) {
-        Transaction deposit = transactionService.createDeposit(depositDto, CounterpartyTypeEnum.EMPLOYER);
+        Transaction deposit = transactionService.createDeposit(depositDto, CounterpartyTypeEnum.REFUND);
         return new ResponseEntity<>(Map.of("operationId", deposit.getId()), HttpStatus.CREATED);
     }
 
@@ -100,15 +111,14 @@ public class TransactionController {
      * Получение страницы из списка транзакций текущего клиента
      */
     @GetMapping("/history")
-    @ResponseBody
     public ResponseEntity<Page> history(Authentication auth, @RequestParam(defaultValue = "0") int page,
                                         @Nullable @RequestParam Long cardId,
                                         @Nullable @RequestParam List<OperationTypeEnum> types,
-                                        @Nullable @RequestParam String start,
-                                        @Nullable @RequestParam String end) throws AccessDeniedException {
+                                        @Nullable @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate start,
+                                        @Nullable @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate end) throws AccessDeniedException {
         SessionUser client = (SessionUser) auth.getPrincipal();
         var transactions = transactionService.findTransactions(client.getId(), page, types, cardId, start, end);
-        var dtos = mapper.toDtoList(transactions.getContent());
+        var dtos = mapper.toListDto(transactions.getContent());
         var dtoPage = new PageImpl<>(dtos, transactions.getPageable(), transactions.getTotalElements());
         return ResponseEntity.ok(dtoPage);
     }

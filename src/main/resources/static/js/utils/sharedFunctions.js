@@ -34,6 +34,7 @@ const formatAmount = (amount) => {
 const formatPhoneOrCard = (value) => {
     if (value == null || value == undefined)
         return ''
+    
     let valueDigits = value.replace(/\D/g, '')
     if (valueDigits.length >= 16)
         return valueDigits.match(/.{1,4}/g)?.join(' ') || valueDigits;
@@ -41,6 +42,7 @@ const formatPhoneOrCard = (value) => {
         return valueDigits
     if (valueDigits.length == 0)
         return ''
+
     let formatted = valueDigits.charAt(0)
     if (valueDigits.length > 1) 
         formatted += ' ' + valueDigits.substring(1, 4)
@@ -67,22 +69,32 @@ const showSpinner = () => {
     const spinner = document.getElementById('spinner')
     if (!spinner)
         return
-    const hide = () => { 
-        spinner.style.display = 'none' 
-        spinner.remove() 
-    }
-    let timer = setTimeout(hide, 200)
+
+    let timer = setTimeout(() => {
+        spinner.style.display = 'none'
+        spinner.remove()
+    }, 200)
+
     if (document.readyState === 'loading') {
         window.addEventListener('DOMContentLoaded', () => {
             clearTimeout(timer)
-            timer = setTimeout(hide, 50)
+            timer = setTimeout(() => {
+                spinner.style.display = 'none'
+                spinner.remove()
+            }, 50)
         })
     }
-    setTimeout(hide, 5000)
+    
+    setTimeout(() => {
+        if (spinner.parentNode) {
+            spinner.style.display = 'none'
+            spinner.remove()
+        }
+    }, 5000)
 }
 
 const showToast = (title, description) => {
-    const toastInstance = new bootstrap.Toast(document.querySelector('.toast'), { delay: 1500, autohide: true })
+    const toastInstance = new bootstrap.Toast(document.querySelector('.toast'), { delay: 1900, autohide: true })
     document.getElementById('toast-header').innerText = title
     document.getElementById('toast-body').innerHTML = description
     toastInstance.show()
@@ -99,7 +111,7 @@ const processResponse = async (response) => {
         case 401:
             sessionStorage.clear()
             showToast('Сессия завершена', 'Время сессии истекло, повторите вход')
-            setTimeout(() => window.location.assign('/session-expired'), 1500)
+            setTimeout(() => window.location.assign('/session-expired'), 1900)
             break
 
         case 429: {

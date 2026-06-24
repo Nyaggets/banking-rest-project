@@ -15,7 +15,6 @@ public class SessionUser implements UserDetails {
     private final String password;
     private final String phone;
     private final Collection<? extends GrantedAuthority> authorities;
-
     public SessionUser(Client client) {
         this.id = client.getId();
         this.login = client.getLogin();
@@ -23,7 +22,6 @@ public class SessionUser implements UserDetails {
         this.authorities = client.getAuthorities();
         this.phone = client.getPhone();
     }
-
     @Override public Collection<? extends GrantedAuthority> getAuthorities() {
         return authorities;
     }

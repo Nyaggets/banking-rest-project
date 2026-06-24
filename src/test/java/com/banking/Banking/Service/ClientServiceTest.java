@@ -3,7 +3,7 @@ package com.banking.Banking.Service;
 import com.banking.Banking.Dto.ClientDtoRequest;
 import com.banking.Banking.Dto.PassportDto;
 import com.banking.Banking.Dto.UpdatePasswordDto;
-import com.banking.Banking.Dto.UpdateSafeDataDto;
+import com.banking.Banking.Dto.UpdateDataDto;
 import com.banking.Banking.Entity.Client;
 import com.banking.Banking.Repository.ClientRepository;
 import com.banking.Banking.validation.CustomException;
@@ -43,7 +43,7 @@ public class ClientServiceTest {
 
     private Client existingClient;
     private ClientDtoRequest createDto;
-    private UpdateSafeDataDto updateDataDto;
+    private UpdateDataDto updateDataDto;
     private UpdatePasswordDto updatePasswordDto;
 
     @BeforeEach
@@ -78,7 +78,7 @@ public class ClientServiceTest {
                 .patronymic("Ivanovich")
                 .build();
 
-        updateDataDto = UpdateSafeDataDto.builder()
+        updateDataDto = UpdateDataDto.builder()
                 .phone("+79001112233")
                 .login("updatedLogin")
                 .build();
@@ -99,7 +99,7 @@ public class ClientServiceTest {
         when(clientRepository.findByLogin(anyString())).thenReturn(Optional.empty());
         when(clientRepository.save(any())).thenReturn(existingClient);
 
-        boolean result = clientService.createClient(createDto);
+        boolean result = clientService.createClient(createDto) != null;
 
         assertTrue(result);
         verify(clientRepository, times(1)).save(any());

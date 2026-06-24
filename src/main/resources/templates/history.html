@@ -7,6 +7,9 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <link href="../static/css/style.css" rel="stylesheet">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
   <title>История</title>
 </head>
 
@@ -38,7 +41,7 @@
 
   <header class="header container-md">
     <nav class="navbar navbar-expand-lg">
-      <a class="navbar-brand nav-link" href="main">Банк</a>
+      <a class="navbar-brand nav-link" href="main">M·Банк</a>
       <div class="profile-actions">
         <a href="profile" class="nav-link"><i class="fa fa-user" aria-hidden="true"></i><label id="profile-login"></label></a>
         <a class="nav-link" data-bs-toggle="modal" data-bs-target="#logout-modal"><i class="fa fa-sign-out fa-flip-horizontal p-0" aria-hidden="true"></i></a>
@@ -48,7 +51,7 @@
   </header>
 
   <main>
-    <div class="toast position-fixed mt-3 top-0 start-50 translate-middle-x" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="true" data-bs-delay="1500">
+    <div class="toast position-fixed mt-3 top-0 start-50 translate-middle-x" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="true" data-bs-delay="1900">
       <div class="toast-header">
         <strong class="me-auto" id="toast-header"></strong>
         <small>Только что</small>
@@ -84,7 +87,7 @@
             </select>
           </div>
           <p id="selected-period" class="caption mt-1"></p>
-          <input type="text" id="date-range-picker" hidden>
+          <input type="text" id="date-range-picker" autocomplete="off" hidden>
         </div>
 
         <div id="history-msg" hidden></div>

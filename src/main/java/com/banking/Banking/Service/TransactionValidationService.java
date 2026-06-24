@@ -44,19 +44,17 @@ public class TransactionValidationService {
 
     private boolean receiverValidation(String receiverIdentifier, HashMap<String, String> errors) {
         Card receiverCard = cardService.findByCardIdentifier(receiverIdentifier);
-        if (receiverCard == null) {
-            errors.put("receiver", "Получатель не найден");
-            return false;
-        }
-        return true;
+        if (receiverCard != null)
+            return true;
+        errors.put("receiver", "Получатель не найден");
+        return false;
     }
 
-    public void transferValidation(Long currentClientId, TransferDtoRequest transactionDto) {
+    public void transferValidation(Long currentClientId, TransferDtoRequest transactionDto, Card senderCard, BigDecimal totalAmount) {
         HashMap<String, String> errors = new HashMap<>();
-        Card senderCard = cardService.findByIdOrThrow(transactionDto.getClientCardId(), "sender");
 
         clientSenderValidation(currentClientId, senderCard, errors);
-        amountValidation(senderCard.getBalance(), transactionDto.getAmount(), errors);
+        amountValidation(senderCard.getBalance(), totalAmount, errors);
         if (!receiverValidation(transactionDto.getCounterpartyCardIdentifier(), errors))
             throw new CustomException("VALIDATION EXCEPTION", errors);
         Card receiverCard = cardService.findByCardIdentifier(transactionDto.getCounterpartyCardIdentifier());
@@ -66,12 +64,11 @@ public class TransactionValidationService {
             throw new CustomException("VALIDATION EXCEPTION", errors);
     }
 
-    public void withdrawalValidation(Long currentClientId, WithdrawalDtoRequest transactionDto) {
+    public void withdrawalValidation(Long currentClientId, Card senderCard, BigDecimal amount) {
         HashMap<String, String> errors = new HashMap<>();
-        Card senderCard = cardService.findByIdOrThrow(transactionDto.getClientCardId(), "sender");
 
         clientSenderValidation(currentClientId, senderCard, errors);
-        amountValidation(senderCard.getBalance(), transactionDto.getAmount(), errors);
+        amountValidation(senderCard.getBalance(), amount, errors);
         if (!errors.isEmpty())
             throw new CustomException("VALIDATION EXCEPTION", errors);
     }
@@ -79,7 +76,7 @@ public class TransactionValidationService {
     public void depositValidation(DepositDtoRequest transactionDto) {
         HashMap<String, String> errors = new HashMap<>();
 
-        receiverValidation(transactionDto.getCounterpartyIdentifier(), errors);
+        receiverValidation(transactionDto.getClientCardId().toString(), errors);
         if (!errors.isEmpty())
             throw new CustomException("VALIDATION EXCEPTION", errors);
     }

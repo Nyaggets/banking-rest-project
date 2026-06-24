@@ -17,5 +17,5 @@ public interface TransactionMapper {
     @Mapping(target = "clientCardId", source = "clientCard.id")
     @Mapping(target="clientHiddenNumber", expression = "java(transaction.getHiddenCard())")
     @Mapping(target="direction", expression = "java(transaction.getDirection())")
-    List<TransactionDtoResponse> toDtoList(List<Transaction> transactionList);
+    List<TransactionDtoResponse> toListDto(List<Transaction> transactionList);
 }

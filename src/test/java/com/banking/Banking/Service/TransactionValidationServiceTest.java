@@ -28,7 +28,6 @@ public class TransactionValidationServiceTest {
     @Mock private CardService cardService;
     @Mock private ClientService clientService;
     @Mock private VerifyIdentityService identityService;
-
     @InjectMocks
     private TransactionValidationService validationService;
 
@@ -41,150 +40,110 @@ public class TransactionValidationServiceTest {
 
     @BeforeEach
     void setUp() {
-        client = Client.builder()
-                .id(1L)
-                .login("user")
-                .build();
+        client = Client.builder().id(1L).login("user").build();
 
         senderCard = Card.builder()
                 .id(10L)
                 .client(client)
                 .balance(new BigDecimal("100"))
-                .last4("1111")
-                .clientName("Ivan Ivanov")
                 .build();
 
         receiverCard = Card.builder()
                 .id(20L)
                 .client(new Client())
                 .balance(BigDecimal.ZERO)
-                .last4("2222")
-                .clientName("Petr Petrov")
                 .build();
 
         transferDto = TransferDtoRequest.builder()
-                .clientCardId(1L)
+                .clientCardId(10L)
                 .counterpartyCardIdentifier("2222")
-                .amount(new BigDecimal("100"))
+                .amount(new BigDecimal("50"))
                 .build();
 
         withdrawalDto = WithdrawalDtoRequest.builder()
-                .clientCardId(1L)
-                .amount(new BigDecimal("100"))
+                .clientCardId(10L)
+                .counterpartyIdentifier("counterparty")
+                .amount(new BigDecimal("50"))
                 .build();
 
         depositDto = DepositDtoRequest.builder()
+                .clientCardId(20L)
                 .counterpartyIdentifier("2222")
                 .build();
     }
 
     @Test
-    void amountValidation_Success() {
-        when(clientService.findByIdOrThrow(anyLong())).thenReturn(client);
-        when(cardService.findByIdOrThrow(anyLong(), anyString())).thenReturn(senderCard);
-        when(cardService.findById(anyLong())).thenReturn(senderCard);
-
-        assertDoesNotThrow(() -> validationService.withdrawalValidation(1L, withdrawalDto));
-    }
-
-    @Test
-    void amountValidation_OutOfRange() {
-        when(clientService.findByIdOrThrow(anyLong())).thenReturn(client);
-        when(cardService.findByIdOrThrow(anyLong(), anyString())).thenReturn(senderCard);
-        when(cardService.findById(anyLong())).thenReturn(senderCard);
-
-        withdrawalDto.setAmount(new BigDecimal("5"));
-
-        CustomException exception = assertThrows(CustomException.class, () -> validationService.withdrawalValidation(1L, withdrawalDto));
-        assertThat(exception.getErrors()).containsKey("amount");
-    }
-
-    @Test
-    void clientSenderValidation_Success() {
-        when(clientService.findByIdOrThrow(1L)).thenReturn(client);
-        when(cardService.findByIdOrThrow(1L, "sender")).thenReturn(senderCard);
-        when(cardService.findById(anyLong())).thenReturn(senderCard);
-        when(cardService.findByCardIdentifier("2222")).thenReturn(receiverCard);
-
-        assertDoesNotThrow(() -> validationService.transferValidation(1L, transferDto));
-    }
-
-    @Test
-    void clientSenderValidation_AccessDenied() {
-        when(clientService.findByIdOrThrow(anyLong())).thenReturn(client);
-        when(cardService.findByIdOrThrow(anyLong(), eq("sender"))).thenReturn(senderCard);
-        when(cardService.findById(anyLong())).thenReturn(senderCard);
-        senderCard.getClient().setId(99L);
-
-        assertThrows(AccessDeniedException.class, () -> validationService.transferValidation(1L, transferDto));
-    }
-
-    @Test
-    void receiverValidation_Success() {
-        when(cardService.findByCardIdentifier("2222")).thenReturn(receiverCard);
-        assertDoesNotThrow(() -> validationService.depositValidation(depositDto));
-    }
-
-    @Test
-    void receiverValidation_NotFound() {
-        when(cardService.findByCardIdentifier("2222")).thenReturn(null);
-
-        CustomException exception = assertThrows(CustomException.class, () -> validationService.depositValidation(depositDto));
-        assertThat(exception.getErrors()).containsKey("receiver");
-    }
-    
-    @Test
     void transferValidation_Success() {
         when(clientService.findByIdOrThrow(anyLong())).thenReturn(client);
-        when(cardService.findByIdOrThrow(anyLong(), eq("sender"))).thenReturn(senderCard);
-        when(cardService.findById(anyLong())).thenReturn(senderCard);
         when(cardService.findByCardIdentifier("2222")).thenReturn(receiverCard);
+        when(cardService.findById(anyLong())).thenReturn(senderCard);
 
-        assertDoesNotThrow(() -> validationService.transferValidation(1L, transferDto));
+        assertDoesNotThrow(() -> validationService.transferValidation(1L, transferDto, senderCard, new BigDecimal("50")));
+    }
+
+    @Test
+    void transferValidation_AccessDenied() {
+        senderCard.getClient().setId(99L);
+        when(clientService.findByIdOrThrow(anyLong())).thenReturn(client);
+        when(cardService.findById(anyLong())).thenReturn(senderCard);
+
+        assertThrows(AccessDeniedException.class, () -> validationService.transferValidation(1L, transferDto, senderCard, new BigDecimal("50")));
     }
 
     @Test
     void transferValidation_SenderEqualsReceiver() {
         when(clientService.findByIdOrThrow(anyLong())).thenReturn(client);
-        when(cardService.findByIdOrThrow(anyLong(), eq("sender"))).thenReturn(senderCard);
-        when(cardService.findById(anyLong())).thenReturn(senderCard);
-        when(cardService.findByCardIdentifier("2222")).thenReturn(senderCard);
+        when(cardService.findByCardIdentifier(anyString())).thenReturn(senderCard);
 
-        CustomException exception = assertThrows(CustomException.class, () -> validationService.transferValidation(1L, transferDto));
-        assertThat(exception.getErrors()).containsKey("receiver");
+        CustomException ex = assertThrows(CustomException.class, () -> validationService.transferValidation(1L, transferDto, senderCard, new BigDecimal("50")));
+        assertThat(ex.getErrors()).containsKey("receiver");
     }
-    
+
+    @Test
+    void transferValidation_ReceiverNotFound() {
+        when(clientService.findByIdOrThrow(anyLong())).thenReturn(client);
+        when(cardService.findByCardIdentifier(anyString())).thenReturn(null);
+
+        CustomException ex = assertThrows(CustomException.class, () -> validationService.transferValidation(1L, transferDto, senderCard, new BigDecimal("50")));
+        assertThat(ex.getErrors()).containsKey("receiver");
+    }
+
     @Test
     void withdrawalValidation_Success() {
         when(clientService.findByIdOrThrow(anyLong())).thenReturn(client);
-        when(cardService.findByIdOrThrow(anyLong(), eq("sender"))).thenReturn(senderCard);
         when(cardService.findById(anyLong())).thenReturn(senderCard);
 
-        assertDoesNotThrow(() -> validationService.withdrawalValidation(1L, withdrawalDto));
+        assertDoesNotThrow(() -> validationService.withdrawalValidation(1L, senderCard, new BigDecimal("50")));
     }
 
     @Test
     void withdrawalValidation_InsufficientFunds() {
         when(clientService.findByIdOrThrow(anyLong())).thenReturn(client);
-        when(cardService.findByIdOrThrow(anyLong(), eq("sender"))).thenReturn(senderCard);
-        when(cardService.findById(anyLong())).thenReturn(senderCard);
-        withdrawalDto.setAmount(new BigDecimal("1000"));
 
-        CustomException exception = assertThrows(CustomException.class, () -> validationService.withdrawalValidation(1L, withdrawalDto));
-        assertThat(exception.getErrors()).containsKey("amount");
+        CustomException ex = assertThrows(CustomException.class, () -> validationService.withdrawalValidation(1L, senderCard, new BigDecimal("2000")));
+        assertThat(ex.getErrors()).containsKey("amount");
     }
-    
+
+    @Test
+    void withdrawalValidation_OutOfRange() {
+        when(clientService.findByIdOrThrow(anyLong())).thenReturn(client);
+
+        withdrawalDto.setAmount(new BigDecimal("5"));
+        CustomException ex = assertThrows(CustomException.class, () -> validationService.withdrawalValidation(1L, senderCard, new BigDecimal("5")));
+        assertThat(ex.getErrors()).containsKey("amount");
+    }
+
     @Test
     void depositValidation_Success() {
-        when(cardService.findByCardIdentifier("2222")).thenReturn(receiverCard);
+        when(cardService.findByCardIdentifier(anyString())).thenReturn(receiverCard);
+
         assertDoesNotThrow(() -> validationService.depositValidation(depositDto));
     }
 
     @Test
     void depositValidation_ReceiverError() {
-        when(cardService.findByCardIdentifier("2222")).thenReturn(null);
-
-        CustomException exception = assertThrows(CustomException.class, () -> validationService.depositValidation(depositDto));
-        assertThat(exception.getErrors()).containsKey("receiver");
+        when(cardService.findByCardIdentifier(anyString())).thenReturn(null);
+        CustomException ex = assertThrows(CustomException.class, () -> validationService.depositValidation(depositDto));
+        assertThat(ex.getErrors()).containsKey("receiver");
     }
 }

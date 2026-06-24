@@ -4,6 +4,9 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import java.util.List;
 
+/**
+ * Перечисление мобильных операторов
+ */
 @Getter
 @RequiredArgsConstructor
 public enum MobileOperatorEnum {
@@ -11,7 +14,6 @@ public enum MobileOperatorEnum {
     MEGAFON("МегаФон", List.of("920", "921", "922", "923", "924", "925", "926", "927", "928", "929", "902")),
     BEELINE("Билайн", List.of("903", "905", "906", "909", "960", "961", "962", "963", "964", "965", "966", "967", "968", "969")),
     TELE2("Теле2", List.of("950", "951", "952", "953", "958", "991", "992", "993", "994", "995", "996", "997"));
-
     private final String operatorName;
     private final List<String> operatorCodes;
 }

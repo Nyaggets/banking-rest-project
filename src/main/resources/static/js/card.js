@@ -1,5 +1,5 @@
 import { URL_BASE, API_BASE, showHistory, showClientLogin } from '/js/utils/sharedData.js'
-import { formatAmount, showSpinner, createNewElement, getData, processResponse } from '/js/utils/sharedFunctions.js'
+import { formatAmount, showSpinner, createNewElement, getData, processResponse, formatPhoneOrCard } from '/js/utils/sharedFunctions.js'
 
 showSpinner()
 showClientLogin()
@@ -27,10 +27,12 @@ showBtn.dataset.bsToggle = 'modal'
 showBtn.dataset.bsTarget = '#confirm-modal'
 
 cardContainer.append(cardNumberEl, cvvEl, balanceEl, expiredDateEl, showBtn)
-document.querySelectorAll('.transfer-btn').forEach(btn => {
-    btn.href = `${URL_BASE}/transfer?type=EXTERNAL&from=${cardId}`
-})
+document.querySelector('.transfer-btn-ext').href = `${URL_BASE}/transfer?type=EXTERNAL&from=${cardId}`
+document.querySelector('.transfer-btn-int').href = `${URL_BASE}/transfer?type=INTERNAL&from=${cardId}`
 document.getElementById('withdrawal-btn').href = `${URL_BASE}/balance-top-up?from=${cardId}`
+
+//номер счета
+document.getElementById('account-number').innerText = card.accountNumber || 'Номер не определен'
 
 let stats
 const statResponse = await fetch(`${API_BASE}/cards/${cardId}/stats`)
@@ -40,19 +42,15 @@ else {
   processResponse(statResponse)
   document.getElementById('card-data').remove()
 }
-
 document.getElementById('month-income').innerHTML = `<i class="fa fa-plus" aria-hidden="true"></i> ${formatAmount(stats.income)}₽`
 document.getElementById('month-outcome').innerHTML = `<i class="fa fa-minus" aria-hidden="true"></i> ${formatAmount(stats.outcome)}₽`
 document.getElementById('month-name').innerText  = `Статистика за ${new Date().toLocaleString('ru', {month: 'long'})}`
-
-document.getElementById('account-number').innerText = card.accountNumber || 'Номер не определен'
 
 const cardHistoryLink = `${URL_BASE}/history?cardId=${cardId}`
 document.getElementById('card-history-link').href = cardHistoryLink
 document.getElementById('card-history-btn').addEventListener('click', () => {
     window.location.assign(cardHistoryLink)
 })
-
 const cardHistoryPage = await getData(`${API_BASE}/cards/history?cardId=${cardId}`)
 const { content: cardHistory } = cardHistoryPage
 if (!cardHistory || cardHistory.length == 0) {
@@ -74,14 +72,19 @@ else {
     showHistory(cardHistory, cardTransactionsList)
 }
 
+//подтверждение личности для просмотра данных карты
 const modalEl = document.getElementById('confirm-modal')
 const modalInput = document.getElementById('password-input')
 const modalError = document.getElementById('confirm-error')
 modalEl.addEventListener('hidden.bs.modal', () => {
-    modalError.value = ''
+    modalEl.querySelectorAll('.error-msg').forEach(elem => {
+        elem.hidden = true
+        elem.innerText = ''
+    })
 })
 document.getElementById('password-conf-form')?.addEventListener('submit', async (e) => {
     e.preventDefault()
+    
     const errorEl = document.getElementById('confirm-error')
     const response = await fetch(`${API_BASE}/cards/${cardId}/card-details`, {
         method: 'POST',
@@ -90,7 +93,7 @@ document.getElementById('password-conf-form')?.addEventListener('submit', async 
     })
     if (response.ok) {
         const { cardNumber, cvv } = await response.json()
-        document.getElementById('card-number').innerText = cardNumber
+        document.getElementById('card-number').innerText = formatPhoneOrCard(cardNumber)
         document.getElementById('cvv').innerText = cvv
         bootstrap.Modal.getInstance(modalEl).hide()
     }

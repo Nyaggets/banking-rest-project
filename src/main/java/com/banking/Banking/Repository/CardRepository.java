@@ -9,9 +9,6 @@ import java.util.Optional;
 
 public interface CardRepository extends JpaRepository<Card, Long> {
     Optional<Card> findByCardNumber(String cardNumber);
-    @Query("SELECT ca FROM Card ca " +
-            "JOIN ca.client cl " +
-            "WHERE cl.id = :id")
     List<Card> findAllByClientId(Long id);
     @Query("SELECT ca FROM Card ca WHERE ca.cardNumberHash LIKE :cardNumber")
     Optional<Card> findByCardNumberHash(String cardNumber);

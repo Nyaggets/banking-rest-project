@@ -25,6 +25,7 @@ public class Client implements UserDetails {
     @Column(name = "client_id")
     Long id;
     @Size(min = 11, max = 11)
+    @Column(unique = true)
     String phone;
     @Size(min = 5, max = 40)
     String surname;
@@ -34,17 +35,18 @@ public class Client implements UserDetails {
     String patronymic;
     String password;
     @Size(min = 4, max = 20)
+    @Column(unique = true)
     String login;
     String authority;
-    @Column(name = "passport_series")
+    @Column(name = "passport_series", unique = true)
     String passportSeries;
-    @Column(name = "passport_number")
+    @Column(name = "passport_number", unique = true)
     String passportNumber;
-    @Column(name = "passport_issue_date")
+    @Column(name = "passport_issue_date", unique = true)
     String passportIssueDate;
-    @Column(name = "passport_issued_by")
+    @Column(name = "passport_issued_by", unique = true)
     String passportIssuedBy;
-    @Column(name = "passport_department_code")
+    @Column(name = "passport_department_code", unique = true)
     String passportDepartmentCode;
 
     @Override

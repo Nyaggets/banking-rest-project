@@ -13,9 +13,8 @@ public class TransactionDtoResponse {
     String direction;
     OperationTypeEnum operationType;
     String isInternal;
-    BigDecimal amount;
-    BigDecimal commission;
     BigDecimal totalAmount;
+    BigDecimal commission;
     LocalDateTime timestamp;
     String description;
 
